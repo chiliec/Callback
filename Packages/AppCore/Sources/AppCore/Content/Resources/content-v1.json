@@ -31,7 +31,7 @@
     },
     {
       "id": "behavioral", "name": "Behavioral", "section": "craft",
-      "symbolName": "message", "colorToken": "behavioral", "order": 0,
+      "symbolName": "message", "colorToken": "behavioral", "order": 1,
       "lessons": [],
       "questions": [
         { "id": "beh-q1", "kind": "behavioral",
