@@ -4,18 +4,19 @@ import Foundation
 @Model
 public final class UserProfile {
     public var readiness: Int
+    public var readinessDelta: Int
     public var streakDays: Int
     public var answeredCount: Int
     public var accuracy: Double
-    public var weeklyActivity: [Int]      // trailing 12 weeks
+    public var weeklyActivity: [Int]
     public var targetRole: String
     public var levelRaw: String
     public var targetDate: Date?
-    public var dailyGoal: Int             // 5...50, step 5
+    public var dailyGoal: Int
     public var notificationsEnabled: Bool
     public var reminderTime: Date?
     public var hasCompletedPlacement: Bool
-    public var contentVersion: Int        // guards re-seeding
+    public var contentVersion: Int
 
     public var level: Level {
         get { Level(rawValue: levelRaw) ?? .mid }
@@ -24,6 +25,7 @@ public final class UserProfile {
 
     public init(
         readiness: Int = 0,
+        readinessDelta: Int = 0,
         streakDays: Int = 0,
         answeredCount: Int = 0,
         accuracy: Double = 0,
@@ -38,6 +40,7 @@ public final class UserProfile {
         contentVersion: Int = 0
     ) {
         self.readiness = readiness
+        self.readinessDelta = readinessDelta
         self.streakDays = streakDays
         self.answeredCount = answeredCount
         self.accuracy = accuracy
