@@ -76,11 +76,12 @@ struct SessionResultsView: View {
 
     private var chipsRow: some View {
         HStack(spacing: 12) {
+            let deltaSign = result.readinessDelta >= 0 ? "+" : ""
             chip(
                 icon: "arrow.up",
-                text: "+\(result.readinessDelta) readiness",
-                color: DSColor.green,
-                textColor: DSColor.greenText
+                text: "\(deltaSign)\(result.readinessDelta) readiness",
+                color: result.readinessDelta >= 0 ? DSColor.green : DSColor.orange,
+                textColor: result.readinessDelta >= 0 ? DSColor.greenText : DSColor.orangeText
             )
             chip(
                 icon: "list.bullet",
