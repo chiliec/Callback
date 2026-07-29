@@ -9,7 +9,7 @@ Native iPhone app (iOS 18+) to prepare for iOS developer interviews. Local-first
 no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM packages
 (`DesignSystem`, `AppCore`) + app target, wired via XcodeGen.
 
-## Status: Phase 1 complete — pushed to GitHub
+## Status: Phase 2 complete — pushed to GitHub
 
 - **Repo:** https://github.com/chiliec/Callback (public, `main`)
 - **Spec:** `~/Develop/Pet/Journal/Projects/Callback/specs/2026-07-29-callback-design.md`
@@ -27,7 +27,7 @@ no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM pa
 - Readiness = coverage-aware weighted mean of topic masteries; mastery = recency-weighted
   accuracy. All in a tested `ScoringEngine`.
 
-## What's built (Phase 1)
+## What's built (Phases 1 + 2)
 
 **AppCore package** (`Packages/AppCore/`) — 20 tests passing:
 - SwiftData model graph: `Topic`, `Lesson`, `Question`, `CodeSnippet`, `Option`, `Session`, `AnswerRecord`, `UserProfile`
@@ -45,24 +45,44 @@ no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM pa
 - `PrimaryButtonStyle`, `TintedButtonStyle`
 - `SegmentedFilter`, `OptionRow` + `AnswerState`, `WeeklyBarChart`
 
-**App target:**
+**App target (Phase 1):**
 - `CallbackApp` — injects `ModelContainer`, seeds content on first launch via `bootstrap()`
-- `RootView` — temporary topics list with `@Query(sort: \Topic.order)` and `IconTile`; replaced in Phase 2
 
-## Known carry-forward items (for Phase 2)
+**App target (Phase 2) — core loop skeleton:**
+- `AppCoordinator` (`@Observable`) — `selectedTab: AppTab`, `topicsFilter: TopicFilter`; cross-tab navigation state
+- `AppTabView` — 4-tab shell (Home / Topics / Practice / Profile) using iOS 18 `Tab(value:)` API
+- `HomeView` — readiness ring (76pt/stroke 7), delta, Streak/Answered/Accuracy stats grid, Continue card, Weak Areas deep-link
+- `TopicsView` + `TopicRow` — sections by `TopicSection`, search, All/Weak/Saved filter, `NavigationLink` push to TopicDetail
+- `TopicDetailView` — 68pt mastery ring, below-target status, full-width Practice CTA, lessons list, question-bank counts
+- `DrillSession` (`@Observable`) — in-progress drill state: questions, picks, currentIndex, advance/complete
+- `QuestionPlayerView` — kicker, question (20/700), optional CodeBlock, A–D `OptionRow` answer mechanic, verdict chip + explanation, Next/Finish, drill-complete screen
+- `DrillCompletion.save(throws:)` — inserts `AnswerRecord`s, recomputes `Topic.mastery` + `UserProfile` (readiness, delta, answeredCount, accuracy, streakDays) via `ScoringEngine`
 
+## Known carry-forward items (for Phase 3)
+
+**From Phase 1 (unchanged):**
 - `weeklyActivity: [Int]` in UserProfile stored as Transformable — no SQL predicates on it
 - `ContentLoader.seed()` relies on implicit SwiftData cascade-insert for Lesson/Option/CodeSnippet (works; make explicit)
 - `Session.score` uses default IEEE 754 rounding; consider `.toNearestOrAwayFromZero`
 - `DSCode.functionDecl` defined but no matching `SyntaxTokenKind` — dead token
 - `SyntaxTokenKind.call` never produced by tokenizer — dead enum case
 - `OptionRow` border-width via Color equality comparison — works but fragile pattern
+
+**From Phase 2:**
+- `.padding(.vertical, 8)` bare literals in HomeView + TopicsView safeAreaInset (no DSSpacing token)
+- `PrimaryButtonStyle` not used in `QuestionPlayerView` (inline modifier chain)
+- `.background(.bar)` after `.clipShape` on Done button in drill-complete view (minor visual bleed)
+- Behavioral-only drill shows "0 of 0 correct" on completion screen
+- `DrillCompletion.save` makes 3 sequential `context.fetch` calls; the first is a subset of the third — can be combined
+- `try? DrillCompletion.save(...)` at call site silently swallows save errors — Phase 5 for user-facing error handling
 - Only available simulator is `iPad Pro 12.9 shots` (iOS 26.4) — iPhone 16 not installed
 
 ## Next session
 
-Write and execute **Phase 2 (Core loop skeleton)** plan just-in-time per the roadmap.
+Write and execute **Phase 3 (Sessions)** plan just-in-time per the roadmap.
 Start by reading `~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-29-callback-roadmap.md`
-to draft the Phase 2 plan before implementing.
+to draft the Phase 3 plan before implementing.
+
+Phase 3 scope: Practice hub (4c), Mock session (5a) — timer + pause overlay + background persistence — Session results (6a).
 
 > `linear_project_id: skip` keeps Linear sync inert — change it if you want Linear tracking.
