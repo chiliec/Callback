@@ -93,10 +93,6 @@ struct SwiftDataTests {
 
     // MARK: - MockCompletion Tests
 
-    private func makeContext() throws -> ModelContext {
-        try AppModelContainer.make(inMemory: true).mainContext
-    }
-
     private func seedTopicsAndProfile(context: ModelContext) throws -> (Topic, Topic, UserProfile) {
         let opt0 = Option(text: "A", isMonospaced: false, order: 0)
         let opt1 = Option(text: "B", isMonospaced: false, order: 1)
@@ -124,7 +120,8 @@ struct SwiftDataTests {
 
     @Test("MockCompletion::saveCreatesSessionEntity")
     func mockCompletionSaveCreatesSessionEntity() throws {
-        let context = try makeContext()
+        let container = try AppModelContainer.make(inMemory: true)
+        let context = container.mainContext
         let (swift, behavioral, profile) = try seedTopicsAndProfile(context: context)
         let qs = [swift.questions[0], behavioral.questions[0]]
         let ms = MockSession(sessionKind: .mock, level: .mid, questions: qs, totalSeconds: 2700)
@@ -142,7 +139,8 @@ struct SwiftDataTests {
 
     @Test("MockCompletion::saveInsertsLinkedAnswerRecords")
     func mockCompletionSaveInsertsLinkedAnswerRecords() throws {
-        let context = try makeContext()
+        let container = try AppModelContainer.make(inMemory: true)
+        let context = container.mainContext
         let (swift, behavioral, profile) = try seedTopicsAndProfile(context: context)
         let qs = [swift.questions[0], behavioral.questions[0]]
         let ms = MockSession(sessionKind: .mock, level: .mid, questions: qs, totalSeconds: 2700)
@@ -161,7 +159,8 @@ struct SwiftDataTests {
 
     @Test("MockCompletion::saveReturnsCorrectToReviewCount")
     func mockCompletionSaveReturnsCorrectToReviewCount() throws {
-        let context = try makeContext()
+        let container = try AppModelContainer.make(inMemory: true)
+        let context = container.mainContext
         let (swift, behavioral, profile) = try seedTopicsAndProfile(context: context)
         let qs = [swift.questions[0], behavioral.questions[0]]
         let ms = MockSession(sessionKind: .mock, level: .mid, questions: qs, totalSeconds: 2700)
@@ -175,7 +174,8 @@ struct SwiftDataTests {
 
     @Test("MockCompletion::saveFlaggedQuestionCountedInToReview")
     func mockCompletionSaveFlaggedQuestionCountedInToReview() throws {
-        let context = try makeContext()
+        let container = try AppModelContainer.make(inMemory: true)
+        let context = container.mainContext
         let (swift, _, profile) = try seedTopicsAndProfile(context: context)
         let qs = [swift.questions[0]]
         let ms = MockSession(sessionKind: .mock, level: .mid, questions: qs, totalSeconds: 2700)
@@ -188,7 +188,8 @@ struct SwiftDataTests {
 
     @Test("MockCompletion::saveUpdatesProfileReadiness")
     func mockCompletionSaveUpdatesProfileReadiness() throws {
-        let context = try makeContext()
+        let container = try AppModelContainer.make(inMemory: true)
+        let context = container.mainContext
         let (swift, _, profile) = try seedTopicsAndProfile(context: context)
         let qs = [swift.questions[0]]
         let ms = MockSession(sessionKind: .mock, level: .mid, questions: qs, totalSeconds: 2700)
@@ -201,7 +202,8 @@ struct SwiftDataTests {
 
     @Test("MockCompletion::saveReturnsReadinessDelta")
     func mockCompletionSaveReturnsReadinessDelta() throws {
-        let context = try makeContext()
+        let container = try AppModelContainer.make(inMemory: true)
+        let context = container.mainContext
         let (swift, _, profile) = try seedTopicsAndProfile(context: context)
         profile.readiness = 40  // pre-set baseline
         let qs = [swift.questions[0]]
