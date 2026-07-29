@@ -9,7 +9,7 @@ Native iPhone app (iOS 18+) to prepare for iOS developer interviews. Local-first
 no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM packages
 (`DesignSystem`, `AppCore`) + app target, wired via XcodeGen.
 
-## Status: Phase 4 planned — ready to execute
+## Status: Phase 4 complete — Phase 5 next
 
 - **Repo:** https://github.com/chiliec/Callback (public, `main`)
 - **Spec:** `~/Develop/Pet/Journal/Projects/Callback/specs/2026-07-29-callback-design.md`
@@ -65,7 +65,15 @@ no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM pa
 - `SessionResultsView` — 100pt ring, correct/total, meta line, readiness + review chips, by-topic mini-bar breakdown, CTA buttons
 - `PracticeView` — mock card with level segmented picker, timed drill rows (Rapid Fire / Code Review / System Design), recent sessions list
 
-## Known carry-forward items (for Phase 4)
+**App target (Phase 4):**
+- `ReviewQueueView` — filter (All/Wrong/Flagged), per-row wrong/flagged badges, "Review N" CTA, empty state 9b (all-clear)
+- `ReviewItemView` — paginated answer-vs-correct comparison cards, explanation, covers-gap lesson row
+- `LessonReaderView` + `LessonBodyParser` — prose/code-fence/keyIdea segments, scroll-driven 3pt progress bar, mark-complete (+1 mastery, readiness recompute), completed card with undo, `QuickCheckView` inline
+- `TopicsView` empty state 9c — saved-filter overlay when no saved topics
+- `AppCore ReviewItem` — `pickedIndex: Int?` added; `ReviewQueue.build()` copies it from `AnswerRecord`
+- Navigation: TopicDetailView lessons → `NavigationLink(value: Lesson)`; SessionResultsView "Review N" → `ReviewQueueView`; ReviewItemView covers-gap → `LessonReaderView`
+
+## Known carry-forward items (for Phase 5)
 
 **From Phase 1 (unchanged):**
 - `weeklyActivity: [Int]` in UserProfile stored as Transformable — no SQL predicates on it
@@ -91,13 +99,11 @@ no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM pa
 
 ## Next session
 
-Execute **Phase 4 (Review & Reader)** plan. Plan is written and ready at:
-`~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-29-callback-phase4-review-reader.md`
-
-Use `/executing-plans` to drive execution with review checkpoints.
-
-Phase 4 scope: Review queue (6b), Review item (7a), Lesson reader (12a) with scroll-driven progress; empty states (9b, 9c).
-Steps: 1) Topics saved empty (9c) → 2) ReviewQueueView → 3) ReviewItemView → 4) AppCore ReviewItem.pickedIndex → 5) LessonReaderView → 6) navigation wiring → 7) xcodegen + build → 8) tests.
+Plan and execute **Phase 5**. Carry-forward from Phase 4 to address in Phase 5:
+- `ReviewItemView` "Retry" button: launch single-question `DrillSession`
+- Standalone ReviewQueue entry in `PracticeView` (reachable without completing a session)
+- `QuickCheckView` answer → updates `Topic.mastery`
+- `saveSession()` error surfacing (from Phase 3 carry-forward)
 
 
 > `linear_project_id: skip` keeps Linear sync inert — change it if you want Linear tracking.
