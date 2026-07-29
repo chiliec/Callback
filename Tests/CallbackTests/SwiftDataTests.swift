@@ -1,12 +1,97 @@
-// Tests/CallbackTests/MockCompletionTests.swift
 import Testing
 import SwiftData
 @testable import Callback
 import AppCore
 
-@Suite("MockCompletion", .serialized)
+// Consolidated SwiftData tests in a single serialized suite to prevent concurrent ModelContainer crashes.
+// All SwiftData-dependent tests must run in the same process to avoid simulator crashes from concurrent initialization.
+
+@Suite(.serialized)
 @MainActor
-struct MockCompletionTests {
+struct SwiftDataTests {
+
+    // MARK: - DrillCompletion Tests
+
+    @Test("DrillCompletion::saveCreatesAnswerRecordAndUpdatesMastery")
+    func drillCompletionSaveCreatesAnswerRecordAndUpdatesMastery() throws {
+        let container = try AppModelContainer.make(inMemory: true)
+        let context = container.mainContext
+
+        let opt0 = Option(text: "struct", isMonospaced: true, order: 0)
+        let opt1 = Option(text: "class", isMonospaced: false, order: 1)
+        let question = Question(
+            id: "q1",
+            kind: .multipleChoice,
+            prompt: "Which is a value type?",
+            explanation: "Structs are value types.",
+            correctIndex: 0,
+            options: [opt0, opt1]
+        )
+        let topic = Topic(
+            id: "swift", name: "Swift", section: .fundamentals,
+            symbolName: "swift", colorToken: "swift", order: 0
+        )
+        question.topic = topic
+        topic.questions = [question]
+        let profile = UserProfile()
+        context.insert(topic)
+        context.insert(profile)
+        try context.save()
+
+        let session = DrillSession(questions: [question])
+        session.pick(0)  // correct answer
+
+        try DrillCompletion.save(session: session, topic: topic, profile: profile, context: context)
+
+        let records = try context.fetch(FetchDescriptor<AnswerRecord>())
+        #expect(records.count == 1)
+        #expect(records[0].isCorrect == true)
+        #expect(records[0].pickedIndex == 0)
+        #expect(records[0].questionID == "q1")
+        #expect(topic.mastery == 100)
+        #expect(profile.answeredCount == 1)
+        #expect(profile.accuracy == 1.0)
+    }
+
+    @Test("DrillCompletion::saveRecordsWrongAnswerAndSetsMasteryToZero")
+    func drillCompletionSaveRecordsWrongAnswerAndSetsMasteryToZero() throws {
+        let container = try AppModelContainer.make(inMemory: true)
+        let context = container.mainContext
+
+        let opt0 = Option(text: "struct", isMonospaced: true, order: 0)
+        let opt1 = Option(text: "class", isMonospaced: false, order: 1)
+        let question = Question(
+            id: "q1",
+            kind: .multipleChoice,
+            prompt: "Which is a value type?",
+            explanation: "Structs are value types.",
+            correctIndex: 0,
+            options: [opt0, opt1]
+        )
+        let topic = Topic(
+            id: "swift", name: "Swift", section: .fundamentals,
+            symbolName: "swift", colorToken: "swift", order: 0
+        )
+        question.topic = topic
+        topic.questions = [question]
+        let profile = UserProfile()
+        context.insert(topic)
+        context.insert(profile)
+        try context.save()
+
+        let session = DrillSession(questions: [question])
+        session.pick(1)  // wrong answer (correct is 0)
+
+        try DrillCompletion.save(session: session, topic: topic, profile: profile, context: context)
+
+        let records = try context.fetch(FetchDescriptor<AnswerRecord>())
+        #expect(records.count == 1)
+        #expect(records[0].isCorrect == false)
+        #expect(topic.mastery == 0)
+        #expect(profile.accuracy == 0.0)
+    }
+
+    // MARK: - MockCompletion Tests
 
     private func makeContext() throws -> ModelContext {
         try AppModelContainer.make(inMemory: true).mainContext
@@ -37,7 +122,8 @@ struct MockCompletionTests {
         return (swift, behavioral, profile)
     }
 
-    @Test func saveCreatesSessionEntity() throws {
+    @Test("MockCompletion::saveCreatesSessionEntity")
+    func mockCompletionSaveCreatesSessionEntity() throws {
         let context = try makeContext()
         let (swift, behavioral, profile) = try seedTopicsAndProfile(context: context)
         let qs = [swift.questions[0], behavioral.questions[0]]
@@ -54,7 +140,8 @@ struct MockCompletionTests {
         _ = result  // suppress warning
     }
 
-    @Test func saveInsertsLinkedAnswerRecords() throws {
+    @Test("MockCompletion::saveInsertsLinkedAnswerRecords")
+    func mockCompletionSaveInsertsLinkedAnswerRecords() throws {
         let context = try makeContext()
         let (swift, behavioral, profile) = try seedTopicsAndProfile(context: context)
         let qs = [swift.questions[0], behavioral.questions[0]]
@@ -72,7 +159,8 @@ struct MockCompletionTests {
         #expect(result.session.answers.count == 2)
     }
 
-    @Test func saveReturnsCorrectToReviewCount() throws {
+    @Test("MockCompletion::saveReturnsCorrectToReviewCount")
+    func mockCompletionSaveReturnsCorrectToReviewCount() throws {
         let context = try makeContext()
         let (swift, behavioral, profile) = try seedTopicsAndProfile(context: context)
         let qs = [swift.questions[0], behavioral.questions[0]]
@@ -85,9 +173,10 @@ struct MockCompletionTests {
         #expect(result.toReviewCount == 2)
     }
 
-    @Test func saveFlaggedQuestionCountedInToReview() throws {
+    @Test("MockCompletion::saveFlaggedQuestionCountedInToReview")
+    func mockCompletionSaveFlaggedQuestionCountedInToReview() throws {
         let context = try makeContext()
-        let (swift, behavioral, profile) = try seedTopicsAndProfile(context: context)
+        let (swift, _, profile) = try seedTopicsAndProfile(context: context)
         let qs = [swift.questions[0]]
         let ms = MockSession(sessionKind: .mock, level: .mid, questions: qs, totalSeconds: 2700)
         ms.pick(0)   // correct
@@ -97,7 +186,8 @@ struct MockCompletionTests {
         #expect(result.toReviewCount == 1)  // flagged counts for review
     }
 
-    @Test func saveUpdatesProfileReadiness() throws {
+    @Test("MockCompletion::saveUpdatesProfileReadiness")
+    func mockCompletionSaveUpdatesProfileReadiness() throws {
         let context = try makeContext()
         let (swift, _, profile) = try seedTopicsAndProfile(context: context)
         let qs = [swift.questions[0]]
@@ -109,7 +199,8 @@ struct MockCompletionTests {
         _ = result
     }
 
-    @Test func saveReturnsReadinessDelta() throws {
+    @Test("MockCompletion::saveReturnsReadinessDelta")
+    func mockCompletionSaveReturnsReadinessDelta() throws {
         let context = try makeContext()
         let (swift, _, profile) = try seedTopicsAndProfile(context: context)
         profile.readiness = 40  // pre-set baseline

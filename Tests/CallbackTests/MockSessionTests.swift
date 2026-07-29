@@ -4,7 +4,7 @@ import Testing
 @testable import Callback
 import AppCore
 
-@Suite("MockSession", .serialized)
+@Suite("MockSession")
 @MainActor
 struct MockSessionTests {
 
