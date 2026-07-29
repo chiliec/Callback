@@ -1,11 +1,147 @@
 import SwiftUI
+import SwiftData
 import AppCore
+import DesignSystem
 
 struct TopicDetailView: View {
     let topic: Topic
+    @Query private var profiles: [UserProfile]
+    @State private var drillSession: DrillSession?
+    @Environment(\.modelContext) private var context
+
+    private var profile: UserProfile? { profiles.first }
+
+    private var sortedLessons: [Lesson] {
+        topic.lessons.sorted { $0.order < $1.order }
+    }
+
+    private func questionCount(for kind: QuestionKind) -> Int {
+        topic.questions.filter { $0.kind == kind }.count
+    }
 
     var body: some View {
-        Text("Topic Detail — Phase 5")
-            .navigationTitle(topic.name)
+        List {
+            masteryCard
+            lessonsSection
+            questionBankSection
+        }
+        .navigationTitle(topic.name)
+        .navigationBarTitleDisplayMode(.large)
+        .background(DSColor.groupedBackground.ignoresSafeArea())
+        .navigationDestination(item: $drillSession) { _ in
+            Text("Player — coming in Task 6")
+                .navigationTitle("Practice")
+        }
     }
+
+    // MARK: Mastery card
+
+    private var masteryCard: some View {
+        Section {
+            GroupedCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .top, spacing: 16) {
+                        ProgressRing(
+                            value: topic.mastery,
+                            size: 68,
+                            stroke: 7,
+                            tint: topic.isWeak ? DSColor.orange : DSColor.green
+                        )
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(topic.isWeak ? "Below target" : "On track")
+                                .font(DSFont.headline)
+                            Text("Target 65% for offers")
+                                .font(DSFont.footnote)
+                                .foregroundStyle(DSColor.secondaryLabel)
+                        }
+                        Spacer()
+                    }
+                    if !topic.questions.isEmpty {
+                        Button {
+                            let sorted = topic.questions.sorted { $0.id < $1.id }
+                            drillSession = DrillSession(questions: sorted)
+                        } label: {
+                            Text("Practice \(topic.questions.count) question\(topic.questions.count == 1 ? "" : "s")")
+                                .font(DSFont.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(DSColor.action)
+                                .foregroundStyle(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: DSRadius.button, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .listRowInsets(.init())
+            .listRowBackground(Color.clear)
+        }
+    }
+
+    // MARK: Lessons
+
+    @ViewBuilder private var lessonsSection: some View {
+        if !sortedLessons.isEmpty {
+            Section(header: SectionHeader("Lessons")) {
+                ForEach(sortedLessons) { lesson in
+                    HStack(spacing: 12) {
+                        Image(systemName: lesson.isComplete ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(lesson.isComplete ? DSColor.green : DSColor.tertiaryLabel)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(lesson.title).font(DSFont.body)
+                            Text("\(lesson.estimatedMinutes) min")
+                                .font(DSFont.footnote)
+                                .foregroundStyle(DSColor.secondaryLabel)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(DSColor.secondaryLabel)
+                    }
+                    .frame(minHeight: DSSpacing.rowMinHeight)
+                }
+            }
+        }
+    }
+
+    // MARK: Question bank
+
+    private var questionBankSection: some View {
+        Section(header: SectionHeader("Question Bank")) {
+            questionBankRow(kind: .multipleChoice, label: "Multiple choice",
+                            symbol: "checkmark.circle")
+            questionBankRow(kind: .code, label: "Code",
+                            symbol: "chevron.left.forwardslash.chevron.right")
+            questionBankRow(kind: .behavioral, label: "Behavioral",
+                            symbol: "message")
+        }
+    }
+
+    private func questionBankRow(kind: QuestionKind, label: String, symbol: String) -> some View {
+        let count = questionCount(for: kind)
+        return HStack {
+            Image(systemName: symbol)
+                .foregroundStyle(DSColor.secondaryLabel)
+                .frame(width: 24)
+            Text(label).font(DSFont.body)
+            Spacer()
+            Text("\(count)")
+                .font(DSFont.footnote)
+                .foregroundStyle(DSColor.secondaryLabel)
+                .monospacedDigit()
+        }
+        .frame(minHeight: DSSpacing.rowMinHeight)
+        .opacity(count == 0 ? 0.4 : 1)
+    }
+}
+
+#Preview {
+    let topic = Topic(
+        id: "swift", name: "Swift", section: .fundamentals,
+        symbolName: "swift", colorToken: "swift", order: 0, mastery: 42
+    )
+    return NavigationStack {
+        TopicDetailView(topic: topic)
+    }
+    .modelContainer(try! AppModelContainer.make(inMemory: true))
 }
