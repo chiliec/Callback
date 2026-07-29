@@ -3,11 +3,14 @@ import SwiftData
 import AppCore
 
 enum MockCompletion {
-    struct Result: Identifiable {
+    struct Result: Identifiable, Hashable {
         let id = UUID()
         let session: Session
         let readinessDelta: Int
         let toReviewCount: Int
+
+        static func == (lhs: Result, rhs: Result) -> Bool { lhs.id == rhs.id }
+        func hash(into hasher: inout Hasher) { hasher.combine(id) }
     }
 
     @MainActor
