@@ -1,1 +1,46 @@
-{ "version": 1, "topics": [] }
+{
+  "version": 1,
+  "topics": [
+    {
+      "id": "swift", "name": "Swift", "section": "fundamentals",
+      "symbolName": "swift", "colorToken": "swift", "order": 0,
+      "lessons": [
+        { "id": "swift-l1", "order": 0, "title": "Value vs Reference Types",
+          "estimatedMinutes": 4,
+          "body": "Structs and enums are value types; classes are reference types. Value types are copied on assignment.\n\n```swift\nstruct Point { var x: Int }\nvar a = Point(x: 1)\nvar b = a\nb.x = 2 // a.x is still 1\n```",
+          "quickCheck": {
+            "id": "swift-l1-qc", "kind": "multipleChoice",
+            "prompt": "Which is a value type?", "explanation": "Structs are value types; classes are reference types.",
+            "correctIndex": 0, "rubric": null, "codeSnippet": null,
+            "options": [ { "text": "struct", "isMonospaced": true }, { "text": "class", "isMonospaced": true } ]
+          } }
+      ],
+      "questions": [
+        { "id": "swift-q1", "kind": "multipleChoice",
+          "prompt": "What is the default access level in Swift?",
+          "explanation": "Declarations are `internal` by default — visible within the module.",
+          "correctIndex": 1, "rubric": null, "codeSnippet": null,
+          "options": [ { "text": "private", "isMonospaced": true }, { "text": "internal", "isMonospaced": true }, { "text": "public", "isMonospaced": true }, { "text": "open", "isMonospaced": true } ] },
+        { "id": "swift-q2", "kind": "code",
+          "prompt": "What does this print?",
+          "explanation": "Arrays are value types, so `b` is an independent copy; `a` stays [1, 2].",
+          "correctIndex": 0, "rubric": null,
+          "codeSnippet": { "filename": "main.swift", "language": "swift", "code": "var a = [1, 2]\nvar b = a\nb.append(3)\nprint(a)" },
+          "options": [ { "text": "[1, 2]", "isMonospaced": true }, { "text": "[1, 2, 3]", "isMonospaced": true } ] }
+      ]
+    },
+    {
+      "id": "behavioral", "name": "Behavioral", "section": "craft",
+      "symbolName": "message", "colorToken": "behavioral", "order": 0,
+      "lessons": [],
+      "questions": [
+        { "id": "beh-q1", "kind": "behavioral",
+          "prompt": "Tell me about a time you disagreed with a teammate on a technical decision.",
+          "explanation": "Use STAR: Situation, Task, Action, Result. Focus on the resolution and what you learned.",
+          "correctIndex": null,
+          "rubric": "Strong answers name the disagreement concretely, show respect for the other view, describe how a decision was reached (data, prototype, escalation), and end with an outcome plus a lesson.",
+          "codeSnippet": null, "options": [] }
+      ]
+    }
+  ]
+}
