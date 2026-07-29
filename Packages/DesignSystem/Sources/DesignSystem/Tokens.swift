@@ -14,6 +14,7 @@ public enum DSColor {
     public static let redText = Color(.sRGB, red: 0xD7/255, green: 0x00/255, blue: 0x15/255)
 
     // Surfaces / text — system semantics so dark mode derives.
+    #if canImport(UIKit)
     public static let groupedBackground = Color(.systemGroupedBackground)
     public static let card = Color(.secondarySystemGroupedBackground)
     public static let fill = Color(.sRGB, red: 118/255, green: 118/255, blue: 128/255).opacity(0.12)
@@ -23,6 +24,17 @@ public enum DSColor {
     public static let separator = Color(.sRGB, red: 60/255, green: 60/255, blue: 67/255).opacity(0.12)
     public static let ringTrack = Color(.systemGray5)
     public static let tabInactive = Color(.sRGB, red: 0x8E/255, green: 0x8E/255, blue: 0x93/255)
+    #else
+    public static let groupedBackground = Color(NSColor.windowBackgroundColor)
+    public static let card = Color(NSColor.controlBackgroundColor)
+    public static let fill = Color(.sRGB, red: 118/255, green: 118/255, blue: 128/255).opacity(0.12)
+    public static let label = Color(NSColor.labelColor)
+    public static let secondaryLabel = Color(NSColor.secondaryLabelColor)
+    public static let tertiaryLabel = Color(NSColor.tertiaryLabelColor)
+    public static let separator = Color(.sRGB, red: 60/255, green: 60/255, blue: 67/255).opacity(0.12)
+    public static let ringTrack = Color(NSColor.systemGray)
+    public static let tabInactive = Color(.sRGB, red: 0x8E/255, green: 0x8E/255, blue: 0x93/255)
+    #endif
 
     /// Topic tile colors keyed by `colorToken`.
     public static func topic(_ token: String) -> Color {
