@@ -1,0 +1,43 @@
+name: Callback
+options:
+  bundleIdPrefix: com.axveer
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "12"
+    DEVELOPMENT_TEAM: ""
+    GENERATE_INFOPLIST_FILE: YES
+    INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+    INFOPLIST_KEY_UILaunchScreen_Generation: YES
+packages:
+  DesignSystem:
+    path: Packages/DesignSystem
+  AppCore:
+    path: Packages/AppCore
+targets:
+  Callback:
+    type: application
+    platform: iOS
+    sources:
+      - App
+    dependencies:
+      - package: DesignSystem
+      - package: AppCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.axveer.callback
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+  CallbackTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Tests/CallbackTests
+    dependencies:
+      - target: Callback
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.axveer.callback.tests

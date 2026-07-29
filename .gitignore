@@ -1,0 +1,15 @@
+# Xcode
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+DerivedData/
+build/
+.DS_Store
+
+# SPM
+.build/
+.swiftpm/
+
+# Keep the design handoff out of the app repo history noise
+CallbackPrepDesign.zip
+design_handoff_callback_ios/
