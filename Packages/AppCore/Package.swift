@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "AppCore",
-    platforms: [.iOS(.v18)],
+    platforms: [.iOS(.v18), .macOS(.v14)],
     products: [
         .library(name: "AppCore", targets: ["AppCore"])
     ],
