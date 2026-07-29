@@ -9,7 +9,7 @@ Native iPhone app (iOS 18+) to prepare for iOS developer interviews. Local-first
 no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM packages
 (`DesignSystem`, `AppCore`) + app target, wired via XcodeGen.
 
-## Status: Phase 2 complete — pushed to GitHub
+## Status: Phase 3 complete — pushed to GitHub
 
 - **Repo:** https://github.com/chiliec/Callback (public, `main`)
 - **Spec:** `~/Develop/Pet/Journal/Projects/Callback/specs/2026-07-29-callback-design.md`
@@ -58,7 +58,14 @@ no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM pa
 - `QuestionPlayerView` — kicker, question (20/700), optional CodeBlock, A–D `OptionRow` answer mechanic, verdict chip + explanation, Next/Finish, drill-complete screen
 - `DrillCompletion.save(throws:)` — inserts `AnswerRecord`s, recomputes `Topic.mastery` + `UserProfile` (readiness, delta, answeredCount, accuracy, streakDays) via `ScoringEngine`
 
-## Known carry-forward items (for Phase 3)
+**App target (Phase 3):**
+- `MockSession` (`@MainActor @Observable`) — countdown timer, pause/resume, background persistence via `scenePhase`, flag toggle, pick/advance
+- `MockCompletion` — creates `Session` entity, links `AnswerRecord`s, recomputes multi-topic mastery + readiness, returns `readinessDelta` + `toReviewCount`
+- `MockSessionView` — fullscreen modal, toolbar (pause / mm:ss / flag), frosted pause overlay, same answer mechanic as `QuestionPlayerView`, pushes `SessionResultsView` on complete
+- `SessionResultsView` — 100pt ring, correct/total, meta line, readiness + review chips, by-topic mini-bar breakdown, CTA buttons
+- `PracticeView` — mock card with level segmented picker, timed drill rows (Rapid Fire / Code Review / System Design), recent sessions list
+
+## Known carry-forward items (for Phase 4)
 
 **From Phase 1 (unchanged):**
 - `weeklyActivity: [Int]` in UserProfile stored as Transformable — no SQL predicates on it
@@ -77,12 +84,18 @@ no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM pa
 - `try? DrillCompletion.save(...)` at call site silently swallows save errors — Phase 5 for user-facing error handling
 - Only available simulator is `iPad Pro 12.9 shots` (iOS 26.4) — iPhone 16 not installed
 
+**From Phase 3:**
+- `MockSessionView` progress bar height not enforced to 3pt (`.frame(height: 3)` missing — uses system default ~4pt)
+- `saveSession()` silently swallows `MockCompletion.save` errors via `try?`
+- `PracticeView` Start button uses `.padding(.vertical, 14)` bare literal; divider leading `56` has no named token
+
 ## Next session
 
-Write and execute **Phase 3 (Sessions)** plan just-in-time per the roadmap.
+Write and execute **Phase 4 (Review & Reader)** plan just-in-time per the roadmap.
 Start by reading `~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-29-callback-roadmap.md`
-to draft the Phase 3 plan before implementing.
+to draft the Phase 4 plan before implementing.
 
-Phase 3 scope: Practice hub (4c), Mock session (5a) — timer + pause overlay + background persistence — Session results (6a).
+Phase 4 scope: Review queue (6b), Review item (7a), Lesson reader (12a) with scroll-driven progress; empty states (9b, 9c).
+
 
 > `linear_project_id: skip` keeps Linear sync inert — change it if you want Linear tracking.
