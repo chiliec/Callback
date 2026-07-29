@@ -70,6 +70,7 @@ struct TopicDetailView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: DSRadius.button, style: .continuous))
                         }
                         .buttonStyle(.plain)
+                        .disabled(profile == nil)
                     }
                 }
             }

@@ -104,7 +104,7 @@ struct QuestionPlayerView: View {
     private func verdictView(_ question: Question) -> some View {
         let isBehavioral = question.kind == .behavioral
         if !isBehavioral, let picked = session.pickedIndex {
-            let correct = picked == question.correctIndex
+            let correct = question.correctIndex.map { picked == $0 } ?? false
             HStack(spacing: 6) {
                 Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
                 Text(correct ? "Correct" : "Not quite")
@@ -170,8 +170,7 @@ struct QuestionPlayerView: View {
         if question.kind == .behavioral {
             return optionIndex == picked ? .correct : .fadedIncorrect
         }
-        let correct = question.correctIndex
-        if optionIndex == correct { return .correct }
+        if let correct = question.correctIndex, optionIndex == correct { return .correct }
         if optionIndex == picked { return .wrongPick }
         return .fadedIncorrect
     }
