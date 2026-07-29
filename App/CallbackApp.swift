@@ -5,6 +5,7 @@ import AppCore
 @main
 struct CallbackApp: App {
     let container: ModelContainer
+    @State private var coordinator = AppCoordinator()
 
     init() {
         do {
@@ -18,6 +19,7 @@ struct CallbackApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .environment(coordinator)
         }
         .modelContainer(container)
     }
