@@ -1,8 +1,117 @@
 import SwiftUI
+import SwiftData
+import AppCore
+import DesignSystem
 
 struct TopicsView: View {
-    var body: some View {
-        Text("Topics — Phase 4")
-            .navigationTitle("Topics")
+    @Query(sort: \Topic.order) private var topics: [Topic]
+    @Environment(AppCoordinator.self) private var coordinator
+    @State private var searchText = ""
+
+    private var filtered: [Topic] {
+        topics.filter { topic in
+            let matchesSearch = searchText.isEmpty ||
+                topic.name.localizedCaseInsensitiveContains(searchText)
+            let matchesFilter: Bool
+            switch coordinator.topicsFilter {
+            case .all:   matchesFilter = true
+            case .weak:  matchesFilter = topic.isWeak
+            case .saved: matchesFilter = topic.isSaved
+            }
+            return matchesSearch && matchesFilter
+        }
     }
+
+    private func topics(for section: TopicSection) -> [Topic] {
+        filtered.filter { $0.section == section }
+    }
+
+    private var totalQuestions: Int { topics.reduce(0) { $0 + $1.questionCount } }
+
+    var body: some View {
+        @Bindable var coordinator = coordinator
+        List {
+            ForEach(TopicSection.allCases, id: \.self) { section in
+                let rows = self.topics(for: section)
+                if !rows.isEmpty {
+                    Section(header: SectionHeader(section.displayName)) {
+                        ForEach(rows) { topic in
+                            NavigationLink(value: topic) {
+                                TopicRow(topic: topic)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("Topics")
+        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
+        .navigationDestination(for: Topic.self) { topic in
+            TopicDetailView(topic: topic)
+        }
+        .safeAreaInset(edge: .top) {
+            VStack(spacing: 0) {
+                Text("\(topics.count) topics · \(totalQuestions) questions")
+                    .font(DSFont.footnote)
+                    .foregroundStyle(DSColor.secondaryLabel)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, DSSpacing.listInset)
+                    .padding(.top, 4)
+                SegmentedFilter(
+                    selection: $coordinator.topicsFilter,
+                    options: [(.all, "All"), (.weak, "Weak"), (.saved, "Saved")]
+                )
+                .padding(.horizontal, DSSpacing.listInset)
+                .padding(.vertical, 8)
+            }
+            .background(.bar)
+        }
+        .background(DSColor.groupedBackground.ignoresSafeArea())
+    }
+}
+
+// MARK: - TopicRow
+
+struct TopicRow: View {
+    let topic: Topic
+
+    var body: some View {
+        HStack(spacing: 12) {
+            IconTile(systemName: topic.symbolName,
+                     color: DSColor.topic(topic.colorToken))
+            Text(topic.name)
+                .font(DSFont.body)
+            Spacer()
+            if topic.isSaved {
+                Image(systemName: "bookmark.fill")
+                    .font(DSFont.footnote)
+                    .foregroundStyle(DSColor.action)
+            }
+            Text("\(topic.mastery)%")
+                .font(DSFont.footnote)
+                .foregroundStyle(topic.isWeak ? DSColor.orangeText : DSColor.secondaryLabel)
+                .monospacedDigit()
+        }
+        .frame(minHeight: DSSpacing.rowMinHeight)
+    }
+}
+
+// MARK: - TopicSection display name
+
+extension TopicSection {
+    public var displayName: String {
+        switch self {
+        case .fundamentals: return "Fundamentals"
+        case .frameworks:   return "Frameworks"
+        case .craft:        return "Craft"
+        }
+    }
+}
+
+#Preview {
+    NavigationStack {
+        TopicsView()
+    }
+    .modelContainer(try! AppModelContainer.make(inMemory: true))
+    .environment(AppCoordinator())
 }
