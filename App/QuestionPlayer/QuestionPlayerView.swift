@@ -1,8 +1,178 @@
 import SwiftUI
+import AppCore
+import DesignSystem
 
 struct QuestionPlayerView: View {
+    @State var session: DrillSession
+    let topic: Topic
+    let profile: UserProfile
+    @Environment(\.modelContext) private var context
+    @Environment(\.dismiss) private var dismiss
+
+    private static let labels = ["A", "B", "C", "D"]
+
     var body: some View {
-        Text("Player — Phase 6")
-            .navigationTitle("Practice")
+        if session.isComplete {
+            drillCompleteView
+        } else if let question = session.current {
+            questionView(question)
+        }
+    }
+
+    // MARK: Question screen
+
+    @ViewBuilder
+    private func questionView(_ question: Question) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // Kicker
+                Text(topic.name.uppercased())
+                    .font(DSFont.sectionHeader)
+                    .foregroundStyle(DSColor.secondaryLabel)
+
+                // Question text
+                Text(question.prompt)
+                    .font(DSFont.question)
+
+                // Optional code block
+                if let snippet = question.codeSnippet {
+                    CodeBlock(
+                        filename: snippet.filename,
+                        language: snippet.language,
+                        code: snippet.code
+                    )
+                }
+
+                // Options
+                let sortedOptions = question.options.sorted { $0.order < $1.order }
+                ForEach(Array(sortedOptions.enumerated()), id: \.element.persistentModelID) { i, option in
+                    let state = answerState(optionIndex: i, question: question)
+                    OptionRow(
+                        label: i < Self.labels.count ? Self.labels[i] : "\(i + 1)",
+                        text: option.text,
+                        isMonospaced: option.isMonospaced,
+                        state: state
+                    ) {
+                        session.pick(i)
+                    }
+                }
+
+                // Verdict + explanation (shown after answering)
+                if session.isAnswered {
+                    verdictView(question)
+                }
+            }
+            .padding(DSSpacing.listInset)
+        }
+        .background(DSColor.groupedBackground.ignoresSafeArea())
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Close") { dismiss() }
+            }
+            ToolbarItem(placement: .principal) {
+                Text("\(session.currentIndex + 1) / \(session.questions.count)")
+                    .font(DSFont.headline)
+                    .monospacedDigit()
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            if session.isAnswered {
+                Button(session.currentIndex < session.questions.count - 1 ? "Next" : "Finish") {
+                    if session.currentIndex < session.questions.count - 1 {
+                        session.advance()
+                    } else {
+                        // TODO: Task 7 — DrillCompletion.save(session: session, topic: topic, profile: profile, context: context)
+                        session.advance() // sets isComplete = true
+                    }
+                }
+                .font(DSFont.headline)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(DSColor.action)
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: DSRadius.button, style: .continuous))
+                .padding(DSSpacing.listInset)
+                .background(.bar)
+            }
+        }
+    }
+
+    // MARK: Verdict
+
+    @ViewBuilder
+    private func verdictView(_ question: Question) -> some View {
+        let isBehavioral = question.kind == .behavioral
+        if !isBehavioral, let picked = session.pickedIndex {
+            let correct = picked == question.correctIndex
+            HStack(spacing: 6) {
+                Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+                Text(correct ? "Correct" : "Not quite")
+                    .font(DSFont.headline)
+            }
+            .foregroundStyle(correct ? DSColor.greenText : DSColor.redText)
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background((correct ? DSColor.green : DSColor.red).opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: DSRadius.control, style: .continuous))
+        }
+
+        GroupedCard {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(isBehavioral ? "Guidance" : "Why")
+                    .font(DSFont.headline)
+                Text(isBehavioral ? (question.rubric ?? question.explanation) : question.explanation)
+                    .font(DSFont.body)
+                    .foregroundStyle(DSColor.secondaryLabel)
+            }
+        }
+    }
+
+    // MARK: Drill complete
+
+    private var drillCompleteView: some View {
+        VStack(spacing: 24) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 64))
+                .foregroundStyle(DSColor.green)
+            Text("Drill complete")
+                .font(DSFont.readerTitle)
+            let correct = zip(session.questions, session.picks)
+                .filter { q, p in p == q.correctIndex && q.correctIndex != nil }
+                .count
+            let total = session.questions.filter { $0.correctIndex != nil }.count
+            Text("\(correct) of \(total) correct")
+                .font(DSFont.body)
+                .foregroundStyle(DSColor.secondaryLabel)
+            Button("Done") { dismiss() }
+                .font(DSFont.headline)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(DSColor.action)
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: DSRadius.button, style: .continuous))
+                .padding(.horizontal, DSSpacing.listInset)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(DSColor.groupedBackground.ignoresSafeArea())
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Close") { dismiss() }
+            }
+        }
+    }
+
+    // MARK: Answer state helper
+
+    private func answerState(optionIndex: Int, question: Question) -> AnswerState {
+        guard session.isAnswered else { return .idle }
+        let picked = session.pickedIndex
+        if question.kind == .behavioral {
+            return optionIndex == picked ? .correct : .fadedIncorrect
+        }
+        let correct = question.correctIndex
+        if optionIndex == correct { return .correct }
+        if optionIndex == picked { return .wrongPick }
+        return .fadedIncorrect
     }
 }

@@ -7,7 +7,6 @@ struct TopicDetailView: View {
     let topic: Topic
     @Query private var profiles: [UserProfile]
     @State private var drillSession: DrillSession?
-    @Environment(\.modelContext) private var context
 
     private var profile: UserProfile? { profiles.first }
 
@@ -28,9 +27,10 @@ struct TopicDetailView: View {
         .navigationTitle(topic.name)
         .navigationBarTitleDisplayMode(.large)
         .background(DSColor.groupedBackground.ignoresSafeArea())
-        .navigationDestination(item: $drillSession) { _ in
-            Text("Player — coming in Task 6")
-                .navigationTitle("Practice")
+        .navigationDestination(item: $drillSession) { session in
+            if let profile {
+                QuestionPlayerView(session: session, topic: topic, profile: profile)
+            }
         }
     }
 
