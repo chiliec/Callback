@@ -4,7 +4,7 @@ import SwiftData
 @testable import Callback
 import AppCore
 
-@Suite("MockCompletion")
+@Suite("MockCompletion", .serialized)
 @MainActor
 struct MockCompletionTests {
 

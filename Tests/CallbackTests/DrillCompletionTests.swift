@@ -3,7 +3,7 @@ import SwiftData
 @testable import Callback
 import AppCore
 
-@Suite("DrillCompletion")
+@Suite("DrillCompletion", .serialized)
 @MainActor
 struct DrillCompletionTests {
 
