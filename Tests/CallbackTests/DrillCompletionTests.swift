@@ -35,7 +35,7 @@ struct DrillCompletionTests {
         let session = DrillSession(questions: [question])
         session.pick(0)  // correct answer
 
-        DrillCompletion.save(session: session, topic: topic, profile: profile, context: context)
+        try DrillCompletion.save(session: session, topic: topic, profile: profile, context: context)
 
         let records = try context.fetch(FetchDescriptor<AnswerRecord>())
         #expect(records.count == 1)
@@ -75,7 +75,7 @@ struct DrillCompletionTests {
         let session = DrillSession(questions: [question])
         session.pick(1)  // wrong answer (correct is 0)
 
-        DrillCompletion.save(session: session, topic: topic, profile: profile, context: context)
+        try DrillCompletion.save(session: session, topic: topic, profile: profile, context: context)
 
         let records = try context.fetch(FetchDescriptor<AnswerRecord>())
         #expect(records.count == 1)

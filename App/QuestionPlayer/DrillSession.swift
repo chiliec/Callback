@@ -10,6 +10,7 @@ import AppCore
     private(set) var isComplete: Bool = false
 
     init(questions: [Question]) {
+        precondition(!questions.isEmpty, "DrillSession requires at least one question")
         self.questions = questions
         self.picks = Array(repeating: nil, count: questions.count)
     }

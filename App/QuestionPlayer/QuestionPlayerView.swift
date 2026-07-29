@@ -82,7 +82,7 @@ struct QuestionPlayerView: View {
                     if session.currentIndex < session.questions.count - 1 {
                         session.advance()
                     } else {
-                        DrillCompletion.save(session: session, topic: topic, profile: profile, context: context)
+                        try? DrillCompletion.save(session: session, topic: topic, profile: profile, context: context)
                         session.advance() // sets isComplete = true
                     }
                 }

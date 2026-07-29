@@ -9,7 +9,7 @@ enum DrillCompletion {
         topic: Topic,
         profile: UserProfile,
         context: ModelContext
-    ) {
+    ) throws {
         let now = Date()
         let engine = ScoringEngine()
 
@@ -69,6 +69,6 @@ enum DrillCompletion {
             calendar: .current
         )
 
-        try? context.save()
+        try context.save()
     }
 }

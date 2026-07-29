@@ -26,8 +26,6 @@ struct TopicsView: View {
         filtered.filter { $0.section == section }
     }
 
-    private var totalQuestions: Int { topics.reduce(0) { $0 + $1.questionCount } }
-
     var body: some View {
         @Bindable var coordinator = coordinator
         List {
@@ -51,7 +49,7 @@ struct TopicsView: View {
         }
         .safeAreaInset(edge: .top) {
             VStack(spacing: 0) {
-                Text("\(topics.count) topics · \(totalQuestions) questions")
+                Text("\(filtered.count) topics · \(filtered.reduce(0) { $0 + $1.questionCount }) questions")
                     .font(DSFont.footnote)
                     .foregroundStyle(DSColor.secondaryLabel)
                     .frame(maxWidth: .infinity, alignment: .leading)

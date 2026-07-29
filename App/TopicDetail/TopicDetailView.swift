@@ -30,6 +30,9 @@ struct TopicDetailView: View {
         .navigationDestination(item: $drillSession) { session in
             if let profile {
                 QuestionPlayerView(session: session, topic: topic, profile: profile)
+            } else {
+                // Profile not yet available — pop immediately rather than showing a blank screen.
+                Color.clear.onAppear { drillSession = nil }
             }
         }
     }
