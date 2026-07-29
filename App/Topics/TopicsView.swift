@@ -98,8 +98,8 @@ struct TopicRow: View {
 
 // MARK: - TopicSection display name
 
-extension TopicSection {
-    public var displayName: String {
+private extension TopicSection {
+    var displayName: String {
         switch self {
         case .fundamentals: return "Fundamentals"
         case .frameworks:   return "Frameworks"
