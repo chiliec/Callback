@@ -161,16 +161,21 @@ struct SessionResultsView: View {
 
     // MARK: CTA buttons
 
+    @State private var showReview = false
+
     private var ctaButtons: some View {
         VStack(spacing: 12) {
             if result.toReviewCount > 0 {
-                Button("Review \(result.toReviewCount) questions") { onDone() }
+                Button("Review \(result.toReviewCount) questions") { showReview = true }
                     .font(DSFont.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .background(DSColor.action)
                     .foregroundStyle(.white)
                     .clipShape(RoundedRectangle(cornerRadius: DSRadius.button, style: .continuous))
+                    .navigationDestination(isPresented: $showReview) {
+                        ReviewQueueView()
+                    }
             }
             Button("Back to practice") { onDone() }
                 .font(DSFont.headline)

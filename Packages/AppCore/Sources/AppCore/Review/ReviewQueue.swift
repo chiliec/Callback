@@ -5,6 +5,7 @@ public enum ReviewFilter: Sendable { case all, wrong, flagged }
 public struct ReviewItem: Sendable, Identifiable {
     public let questionID: String
     public let topicID: String
+    public let pickedIndex: Int?
     public let wasWrong: Bool
     public let isFlagged: Bool
     public let answeredAt: Date
@@ -28,6 +29,7 @@ public enum ReviewQueue {
 
         let items = candidates.map {
             ReviewItem(questionID: $0.questionID, topicID: $0.topicID,
+                       pickedIndex: $0.pickedIndex,
                        wasWrong: !$0.isCorrect, isFlagged: $0.isFlagged,
                        answeredAt: $0.answeredAt)
         }

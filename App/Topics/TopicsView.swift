@@ -42,6 +42,22 @@ struct TopicsView: View {
                 }
             }
         }
+        .overlay {
+            if coordinator.topicsFilter == .saved && filtered.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "bookmark.circle")
+                        .font(.system(size: 52))
+                        .foregroundStyle(DSColor.secondaryLabel)
+                    Text("No saved topics")
+                        .font(DSFont.headline)
+                    Text("Bookmark topics you want to revisit.")
+                        .font(DSFont.footnote)
+                        .foregroundStyle(DSColor.secondaryLabel)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(32)
+            }
+        }
         .navigationTitle("Topics")
         .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
         .navigationDestination(for: Topic.self) { topic in

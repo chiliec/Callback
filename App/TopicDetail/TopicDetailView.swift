@@ -35,6 +35,20 @@ struct TopicDetailView: View {
                 Color.clear.onAppear { drillSession = nil }
             }
         }
+        .navigationDestination(for: Lesson.self) { lesson in
+            let idx = (sortedLessons.firstIndex(where: { $0.id == lesson.id }) ?? 0) + 1
+            LessonReaderView(
+                lesson: lesson,
+                lessonIndex: idx,
+                totalLessons: sortedLessons.count,
+                nextLesson: nextLesson(after: lesson)
+            )
+        }
+    }
+
+    private func nextLesson(after lesson: Lesson) -> Lesson? {
+        guard let idx = sortedLessons.firstIndex(where: { $0.id == lesson.id }) else { return nil }
+        return sortedLessons.indices.contains(idx + 1) ? sortedLessons[idx + 1] : nil
     }
 
     // MARK: Mastery card
@@ -88,21 +102,19 @@ struct TopicDetailView: View {
         if !sortedLessons.isEmpty {
             Section(header: SectionHeader("Lessons")) {
                 ForEach(sortedLessons) { lesson in
-                    HStack(spacing: 12) {
-                        Image(systemName: lesson.isComplete ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(lesson.isComplete ? DSColor.green : DSColor.tertiaryLabel)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(lesson.title).font(DSFont.body)
-                            Text("\(lesson.estimatedMinutes) min")
-                                .font(DSFont.footnote)
-                                .foregroundStyle(DSColor.secondaryLabel)
+                    NavigationLink(value: lesson) {
+                        HStack(spacing: 12) {
+                            Image(systemName: lesson.isComplete ? "checkmark.circle.fill" : "circle")
+                                .foregroundStyle(lesson.isComplete ? DSColor.green : DSColor.tertiaryLabel)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(lesson.title).font(DSFont.body)
+                                Text("\(lesson.estimatedMinutes) min")
+                                    .font(DSFont.footnote)
+                                    .foregroundStyle(DSColor.secondaryLabel)
+                            }
                         }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(DSColor.secondaryLabel)
+                        .frame(minHeight: DSSpacing.rowMinHeight)
                     }
-                    .frame(minHeight: DSSpacing.rowMinHeight)
                 }
             }
         }

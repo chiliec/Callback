@@ -9,7 +9,7 @@ Native iPhone app (iOS 18+) to prepare for iOS developer interviews. Local-first
 no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM packages
 (`DesignSystem`, `AppCore`) + app target, wired via XcodeGen.
 
-## Status: Phase 3 complete — pushed to GitHub
+## Status: Phase 4 planned — ready to execute
 
 - **Repo:** https://github.com/chiliec/Callback (public, `main`)
 - **Spec:** `~/Develop/Pet/Journal/Projects/Callback/specs/2026-07-29-callback-design.md`
@@ -91,11 +91,13 @@ no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM pa
 
 ## Next session
 
-Write and execute **Phase 4 (Review & Reader)** plan just-in-time per the roadmap.
-Start by reading `~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-29-callback-roadmap.md`
-to draft the Phase 4 plan before implementing.
+Execute **Phase 4 (Review & Reader)** plan. Plan is written and ready at:
+`~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-29-callback-phase4-review-reader.md`
+
+Use `/executing-plans` to drive execution with review checkpoints.
 
 Phase 4 scope: Review queue (6b), Review item (7a), Lesson reader (12a) with scroll-driven progress; empty states (9b, 9c).
+Steps: 1) Topics saved empty (9c) → 2) ReviewQueueView → 3) ReviewItemView → 4) AppCore ReviewItem.pickedIndex → 5) LessonReaderView → 6) navigation wiring → 7) xcodegen + build → 8) tests.
 
 
 > `linear_project_id: skip` keeps Linear sync inert — change it if you want Linear tracking.
