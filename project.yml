@@ -31,6 +31,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.axveer.callback
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        INFOPLIST_KEY_UILaunchScreen_BackgroundColorName: AccentColor
   CallbackTests:
     type: bundle.unit-test
     platform: iOS
