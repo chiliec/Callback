@@ -63,7 +63,9 @@ enum MockCompletion {
                 pickedIndex: picked,
                 isCorrect: isCorrect,
                 isFlagged: flagged,
-                answeredAt: now
+                // Sub-second offsets keep the in-session order intact for the
+                // chronological sort below; one shared `now` makes it arbitrary.
+                answeredAt: now.addingTimeInterval(Double(i) / 1000)
             )
             record.session = session
             context.insert(record)

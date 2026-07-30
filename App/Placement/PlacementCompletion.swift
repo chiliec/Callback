@@ -42,7 +42,11 @@ enum PlacementCompletion {
                 pickedIndex: picked,
                 isCorrect: isCorrect,
                 isFlagged: false,
-                answeredAt: now
+                // Nudge each stamp forward so the quiz order survives the
+                // `sorted { $0.answeredAt < $1.answeredAt }` below. With one shared
+                // `now` the sort is arbitrary and recency-weighted mastery comes out
+                // differently run to run. Sub-second, so streak days are unaffected.
+                answeredAt: now.addingTimeInterval(Double(i) / 1000)
             )
             context.insert(record)
         }

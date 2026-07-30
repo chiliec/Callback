@@ -28,7 +28,9 @@ enum DrillCompletion {
                 pickedIndex: picked,
                 isCorrect: isCorrect,
                 isFlagged: false,
-                answeredAt: now
+                // Sub-second offsets keep the in-drill order intact for the
+                // chronological sort below; one shared `now` makes it arbitrary.
+                answeredAt: now.addingTimeInterval(Double(i) / 1000)
             )
             context.insert(record)
         }
