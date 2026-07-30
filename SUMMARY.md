@@ -9,7 +9,7 @@ Native iPhone app (iOS 18+) to prepare for iOS developer interviews. Local-first
 no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM packages
 (`DesignSystem`, `AppCore`) + app target, wired via XcodeGen.
 
-## Status: Phase 7 complete — Phase 8 next
+## Status: Phase 8 complete — all phases done
 
 - **Repo:** https://github.com/chiliec/Callback (public, `main`)
 - **Spec:** `~/Develop/Pet/Journal/Projects/Callback/specs/2026-07-29-callback-design.md`
@@ -18,6 +18,7 @@ no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM pa
 - **Phase 5 plan (executed):** `~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-30-callback-phase5-onboarding-profile.md`
 - **Phase 6 plan (executed):** `~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-30-callback-phase6-content.md` — Core-6 content bundle (v2), Standard depth (3 lessons + 10 Q/topic), + idempotent seeding
 - **Phase 7 plan (executed):** `~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-30-callback-phase7-accessibility.md` — Dynamic Type (`DSFont` → system text styles), `DSMotion` + Reduce Motion audit, `DSFeedback` haptics, VoiceOver labels/values/identifiers, `CallbackUITests` target + `SmokeTests.swift`. 10 DS tests + 22 AppCore tests green.
+- **Phase 8 plan (executed):** `~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-30-callback-phase8-distribution.md` — App icon (1024×1024, curlybraces on blue), AccentColor, blue launch-screen background; UX fix: behavioral-drill "N questions reviewed"; UX fix: MockSession 3pt progress bar + `.clipped()`; UITest SmokeTests green on iPhone 16 iOS 26.4 (tab-bar queries + global topic-row indices); README; build 13; ExportOptions.plist for TestFlight.
 - **Design handoff (reference):** `design_handoff_callback_ios/` (open `Interview Prep iOS.dc.html`; README has all tokens/screens).
 
 ## Key decisions
@@ -131,13 +132,28 @@ no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM pa
 - **UITest target:** `CallbackUITests` added to `project.yml`; `CallbackApp` handles `--uitest` (in-memory container) and `--uitest-placement-done` (pre-sets `hasCompletedPlacement`); `SmokeTests.swift` covers core drill loop. **Green run is a carry-forward** — requires installing a simulator runtime (open Xcode.app to trigger download).
 - **10 DS tests** passing (new: `motionReturnsNilWhenReduceMotion`, `motionReturnsBaseWhenNotReduceMotion`, `feedbackMappingIsExhaustive`).
 
+## App target (Phase 8)
+
+- **App icon:** `App/Assets.xcassets/AppIcon.appiconset/AppIcon.png` — 1024×1024 PNG (curlybraces SF Symbol, white on `#007AFF`). `scripts/generate-icon.swift` (AppKit, dev-time). Single-size universal format (Xcode 15+ / iOS 16.4+ single-image appiconset).
+- **AccentColor:** `App/Assets.xcassets/AccentColor.colorset` — sRGB(0, 0.478, 1.0) = `#007AFF`. Applied as global tint and launch-screen background via `project.yml`.
+- **Launch screen:** `INFOPLIST_KEY_UILaunchScreen_BackgroundColorName: AccentColor` — blue system launch screen transitions seamlessly into `LaunchView`.
+- **UX fix:** `QuestionPlayerView` drill-complete — behavioral-only drills now show "N questions reviewed" instead of "0 of 0 correct".
+- **UX fix:** `MockSessionView` progress bar — `.frame(height: 3).clipped()` for exact 3pt spec.
+- **UITest green:** `SmokeTests.swift` passes on iPhone 16 iOS 26.4. Fixes: tab-bar queries use label text (iOS 18 `Tab(value:).accessibilityIdentifier` doesn't propagate to `UITabBarItem` in XCTest); `TopicsView` topic-row-N now globally unique across sections; `PlacementCompletionTests` missing `import SwiftData` added.
+- **README:** build/run/test commands, architecture overview, content JSON schema, MIT license.
+- **Build 13:** `CURRENT_PROJECT_VERSION: "13"`, `DEVELOPMENT_TEAM: "XXXXXXXXXX"` placeholder, `CODE_SIGN_STYLE: Automatic`.
+- **ExportOptions.plist:** `method: app-store`, automatic signing — at repo root (tracked in git; `build/` is gitignored).
+
 ## Next session
 
-**Phase 8** — Distribution prep: app icon, TestFlight build, and any UX improvements from dogfooding.
+All 8 phases complete. To ship TestFlight build:
+1. Replace `XXXXXXXXXX` in `project.yml` and `ExportOptions.plist` with your Apple Developer Team ID.
+2. Register `com.axveer.callback` in App Store Connect.
+3. `xcodegen generate && xcodebuild archive -scheme Callback -configuration Release -destination 'generic/platform=iOS' -archivePath build/Callback.xcarchive`
+4. `xcodebuild -exportArchive -archivePath build/Callback.xcarchive -exportPath build/export -exportOptionsPlist ExportOptions.plist`
+5. Upload `build/export/Callback.ipa` via Transporter.
 
-**Carry-forward:** `xcodebuild test` / `SmokeTests` green-run pending simulator runtime. Open Xcode.app to download.
-
-**All tests:** 22 AppCore + 10 DesignSystem pass via `swift test`.
+**All tests:** 22 AppCore + 10 DesignSystem pass via `swift test`. UITest `SmokeTests` passes on iPhone 16 iOS 26.4.
 
 
 > `linear_project_id: skip` keeps Linear sync inert — change it if you want Linear tracking.
