@@ -17,18 +17,21 @@ final class SmokeTests: XCTestCase {
     }
 
     func testCoreDrillLoop() throws {
-        // Home tab should be visible
-        let homeTab = app.tabBars.buttons["home-tab"]
-        XCTAssertTrue(homeTab.waitForExistence(timeout: 5))
+        // Home tab should be visible.
+        // Note: iOS 18+ Tab(value:) API does not propagate .accessibilityIdentifier to
+        // UITabBarItem buttons in XCTest — use the tab label text instead.
+        let homeTab = app.tabBars.buttons["Home"]
+        XCTAssertTrue(homeTab.waitForExistence(timeout: 10))
 
         // Navigate to Topics tab
-        let topicsTab = app.tabBars.buttons["topics-tab"]
+        let topicsTab = app.tabBars.buttons["Topics"]
         XCTAssertTrue(topicsTab.waitForExistence(timeout: 5))
         topicsTab.tap()
 
-        // Tap the first topic row
-        let firstTopicRow = app.cells["topic-row-0"]
-        XCTAssertTrue(firstTopicRow.waitForExistence(timeout: 5))
+        // Tap the first topic row (allow extra time for in-memory SwiftData seed to render).
+        // NavigationLink in a List surfaces as a Button in the iOS 26.4 accessibility hierarchy.
+        let firstTopicRow = app.buttons["topic-row-0"]
+        XCTAssertTrue(firstTopicRow.waitForExistence(timeout: 10))
         firstTopicRow.tap()
 
         // Tap Practice CTA on TopicDetail
