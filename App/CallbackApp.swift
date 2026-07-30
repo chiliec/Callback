@@ -9,10 +9,13 @@ struct CallbackApp: App {
 
     private static let isUITest = ProcessInfo.processInfo.arguments.contains("--uitest")
     private static let placementDone = ProcessInfo.processInfo.arguments.contains("--uitest-placement-done")
+    /// App Store screenshot capture. Implies an in-memory store — demo progress
+    /// must never land in a real user's database.
+    private static let demoSeed = ProcessInfo.processInfo.arguments.contains("--demo-seed")
 
     init() {
         do {
-            if Self.isUITest {
+            if Self.isUITest || Self.demoSeed {
                 container = try AppModelContainer.make(inMemory: true)
                 try Self.bootstrapUITest(container, placementDone: Self.placementDone)
             } else {
@@ -26,7 +29,7 @@ struct CallbackApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(skipSplash: Self.isUITest)
+            RootView(skipSplash: Self.isUITest || Self.demoSeed)
                 .environment(coordinator)
         }
         .modelContainer(container)
@@ -57,6 +60,9 @@ struct CallbackApp: App {
         }
         context.insert(profile)
         ContentLoader.seedIfNeeded(into: context, profile: profile, bundle: bundle)
+        if demoSeed {
+            try DemoSeed.apply(to: context)
+        }
         try context.save()
     }
 }
