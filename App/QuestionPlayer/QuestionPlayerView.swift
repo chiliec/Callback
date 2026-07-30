@@ -159,9 +159,15 @@ struct QuestionPlayerView: View {
                 .filter { q, p in p == q.correctIndex && q.correctIndex != nil }
                 .count
             let total = session.questions.filter { $0.correctIndex != nil }.count
-            Text("\(correct) of \(total) correct")
-                .font(DSFont.body)
-                .foregroundStyle(DSColor.secondaryLabel)
+            if total > 0 {
+                Text("\(correct) of \(total) correct")
+                    .font(DSFont.body)
+                    .foregroundStyle(DSColor.secondaryLabel)
+            } else {
+                Text("\(session.questions.count) questions reviewed")
+                    .font(DSFont.body)
+                    .foregroundStyle(DSColor.secondaryLabel)
+            }
             Button("Done") { dismiss() }
                 .font(DSFont.headline)
                 .frame(maxWidth: .infinity)
