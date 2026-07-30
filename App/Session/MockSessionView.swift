@@ -10,6 +10,7 @@ struct MockSessionView: View {
 
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(SaveErrorState.self) private var saveError
     @Query private var profiles: [UserProfile]
 
     @State private var showPauseOverlay = false
@@ -213,12 +214,12 @@ struct MockSessionView: View {
 
     private func saveSession() {
         guard let profile else { return }
-        guard let result = try? MockCompletion.save(
-            mockSession: session,
-            profile: profile,
-            context: context
-        ) else { return }
-        savedResult = result
+        do {
+            let result = try MockCompletion.save(mockSession: session, profile: profile, context: context)
+            savedResult = result
+        } catch {
+            saveError.message = "Couldn't save your session. Please try again."
+        }
     }
 
     private func answerState(optionIndex: Int, question: Question) -> AnswerState {

@@ -6,6 +6,7 @@ public enum AnswerState: Equatable, Sendable {
     case wrongPick       // the option the user wrongly picked
     case fadedCorrect    // unrelated correct-position row faded (n/a) — kept for symmetry
     case fadedIncorrect  // other options, faded to 45%
+    case selected        // tapped during placement — blue highlight, no verdict
 }
 
 public struct OptionRow: View {
@@ -61,6 +62,7 @@ public struct OptionRow: View {
         switch state {
         case .correct:   return DSColor.green.opacity(0.12)
         case .wrongPick: return DSColor.red.opacity(0.12)
+        case .selected:  return DSColor.actionTint
         default:         return DSColor.fill
         }
     }
@@ -68,6 +70,7 @@ public struct OptionRow: View {
         switch state {
         case .correct:   return DSColor.green
         case .wrongPick: return DSColor.red
+        case .selected:  return DSColor.action
         default:         return .clear
         }
     }
@@ -75,6 +78,7 @@ public struct OptionRow: View {
         switch state {
         case .correct:   return DSColor.greenText
         case .wrongPick: return DSColor.redText
+        case .selected:  return DSColor.action
         default:         return DSColor.secondaryLabel
         }
     }
@@ -82,6 +86,7 @@ public struct OptionRow: View {
         switch state {
         case .correct:   return DSColor.green.opacity(0.2)
         case .wrongPick: return DSColor.red.opacity(0.2)
+        case .selected:  return DSColor.actionTint
         default:         return DSColor.fill
         }
     }

@@ -12,6 +12,26 @@ struct HomeView: View {
     private var weakTopics: [Topic] { topics.filter { $0.isWeak } }
 
     var body: some View {
+        @Bindable var coordinator = coordinator
+        Group {
+            if profile?.hasCompletedPlacement == true {
+                normalHomeContent
+            } else {
+                FirstRunHomeView()
+            }
+        }
+        .navigationTitle("Home")
+        .fullScreenCover(isPresented: $coordinator.showPlacement) {
+            PlacementQuizView(
+                session: PlacementSession(
+                    questions: PlacementSession.makeQuestions(from: topics)
+                )
+            )
+            .environment(coordinator)
+        }
+    }
+
+    private var normalHomeContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 dateKicker
@@ -24,7 +44,6 @@ struct HomeView: View {
             .padding(.horizontal, DSSpacing.listInset)
             .padding(.vertical, 8)
         }
-        .navigationTitle("Home")
         .background(DSColor.groupedBackground.ignoresSafeArea())
     }
 

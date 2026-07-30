@@ -8,6 +8,7 @@ struct QuestionPlayerView: View {
     let profile: UserProfile
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @Environment(SaveErrorState.self) private var saveError
 
     private static let labels = ["A", "B", "C", "D"]
 
@@ -82,7 +83,11 @@ struct QuestionPlayerView: View {
                     if session.currentIndex < session.questions.count - 1 {
                         session.advance()
                     } else {
-                        try? DrillCompletion.save(session: session, topic: topic, profile: profile, context: context)
+                        do {
+                            try DrillCompletion.save(session: session, topic: topic, profile: profile, context: context)
+                        } catch {
+                            saveError.message = "Couldn't save your progress. Please try again."
+                        }
                         session.advance() // sets isComplete = true
                     }
                 }

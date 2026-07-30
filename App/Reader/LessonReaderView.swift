@@ -266,6 +266,8 @@ struct QuickCheckView: View {
     let question: Question
 
     @State private var pickedIndex: Int? = nil
+    @Environment(\.modelContext) private var context
+    @Environment(SaveErrorState.self) private var saveError
 
     private static let labels = ["A", "B", "C", "D"]
 
@@ -287,7 +289,9 @@ struct QuickCheckView: View {
                         isMonospaced: option.isMonospaced,
                         state: optionState(index: i)
                     ) {
-                        if pickedIndex == nil { pickedIndex = i }
+                        guard pickedIndex == nil else { return }
+                        pickedIndex = i
+                        persistAnswer(pickedIndex: i)
                     }
                 }
 
@@ -308,5 +312,52 @@ struct QuickCheckView: View {
         }
         if index == question.correctIndex { return .correct }
         return .idle
+    }
+
+    private func recomputeReadiness() {
+        let profiles = (try? context.fetch(FetchDescriptor<UserProfile>())) ?? []
+        guard let profile = profiles.first else { return }
+        let topics = (try? context.fetch(FetchDescriptor<Topic>())) ?? []
+        let records = (try? context.fetch(FetchDescriptor<AnswerRecord>())) ?? []
+        let countsByTopic = Dictionary(grouping: records, by: \.topicID).mapValues { $0.count }
+        let inputs = topics.map {
+            ScoringEngine.TopicReadinessInput(mastery: $0.mastery, answeredCount: countsByTopic[$0.id] ?? 0)
+        }
+        profile.readiness = ScoringEngine().readiness(topics: inputs)
+    }
+
+    private func persistAnswer(pickedIndex: Int) {
+        let isCorrect: Bool
+        if let correct = question.correctIndex {
+            isCorrect = pickedIndex == correct
+        } else {
+            isCorrect = false
+        }
+        let record = AnswerRecord(
+            questionID: question.id,
+            topicID: question.topic?.id ?? "",
+            pickedIndex: pickedIndex,
+            isCorrect: isCorrect,
+            isFlagged: false,
+            answeredAt: Date()
+        )
+        context.insert(record)
+
+        // Recompute mastery and readiness for the affected topic.
+        if let topic = question.topic {
+            let topicID = topic.id
+            let topicRecords = (try? context.fetch(
+                FetchDescriptor<AnswerRecord>(predicate: #Predicate { $0.topicID == topicID })
+            )) ?? []
+            let correctness = topicRecords.sorted { $0.answeredAt < $1.answeredAt }.map { $0.isCorrect }
+            topic.mastery = ScoringEngine().mastery(fromChronological: correctness)
+        }
+        recomputeReadiness()
+
+        do {
+            try context.save()
+        } catch {
+            saveError.message = "Couldn't save your progress. Please try again."
+        }
     }
 }

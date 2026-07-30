@@ -9,12 +9,13 @@ Native iPhone app (iOS 18+) to prepare for iOS developer interviews. Local-first
 no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM packages
 (`DesignSystem`, `AppCore`) + app target, wired via XcodeGen.
 
-## Status: Phase 4 complete — Phase 5 next
+## Status: Phase 5 complete — Phase 6 next
 
 - **Repo:** https://github.com/chiliec/Callback (public, `main`)
 - **Spec:** `~/Develop/Pet/Journal/Projects/Callback/specs/2026-07-29-callback-design.md`
 - **Roadmap:** `~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-29-callback-roadmap.md`
 - **Phase 1 plan (executed):** `~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-29-callback-phase1-foundations.md`
+- **Phase 5 plan (executed):** `~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-30-callback-phase5-onboarding-profile.md`
 - **Design handoff (reference):** `design_handoff_callback_ios/` (open `Interview Prep iOS.dc.html`; README has all tokens/screens).
 
 ## Key decisions
@@ -73,7 +74,22 @@ no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM pa
 - `AppCore ReviewItem` — `pickedIndex: Int?` added; `ReviewQueue.build()` copies it from `AnswerRecord`
 - Navigation: TopicDetailView lessons → `NavigationLink(value: Lesson)`; SessionResultsView "Review N" → `ReviewQueueView`; ReviewItemView covers-gap → `LessonReaderView`
 
-## Known carry-forward items (for Phase 5)
+**App target (Phase 5):**
+- `LaunchView` + `RootView` — brand splash (96pt rounded tile, `DSColor.action`, curlybraces, "Get the callback."), ZStack overlay with 1.1s auto-dismiss + `.easeOut(0.18)` fade; `reduceMotion` skips animation
+- `SaveErrorState` (`@Observable`) — app-level error presenter injected via `.environment()`; `.saveErrorAlert()` ViewModifier
+- `FirstRunHomeView` — dashed placeholder readiness ring, blue CTA card, zeroed stats, starter topic chips; shown when `!profile.hasCompletedPlacement`
+- `HomeView` — branches on `hasCompletedPlacement` in body; `.fullScreenCover` drives `PlacementQuizView` via `$coordinator.showPlacement`
+- `PlacementSession` (`@Observable`) — `questions`, `picks`, `currentIndex`, `advance()`, `skip()`, `makeQuestions(from:)` (round-robin, min 12)
+- `PlacementQuizView` — progress bar, `AnswerState.selected` (blue, no verdict), 450ms auto-advance `Task`, skip button, save via `PlacementCompletion`, pushes `PlacementResultsView`
+- `PlacementCompletion` — inserts `AnswerRecord`s for answered (not skipped), recomputes mastery + readiness + profile stats, sets `hasCompletedPlacement = true`; `PlacementResult` (readiness, solid/focus topics, weekPlan)
+- `PlacementResultsView` — 100pt ring, topic chips via custom `FlowLayout: Layout`, solid (green) / focus (orange) chips, 5-day week plan, "Start day 1" CTA
+- `PlacementCompletionTests` — 5 Swift Testing tests covering mastery seeding, skipped record count, solid/focus split, readiness equality
+- `ProfileView` (full replacement) — Goal (role/level/date/daily goal), Activity (WeeklyBarChart, all sessions, answer history), Notifications (toggle + async auth + `UNCalendarNotificationTrigger`), Data (export via ShareSheet, reset via confirmationDialog), version footer
+- `DataExport` — `Codable` snapshot structs + `DataExporter.makeJSON` (prettyPrinted, sortedKeys, iso8601)
+- `OptionRow.AnswerState.selected` — new case; blue fill/border (`DSColor.actionTint` / `DSColor.action`), no verdict icon
+- Carry-forwards: `ReviewItemView` Retry → single-question `DrillSession`; `PracticeView` ReviewQueue entry; `QuickCheckView` persists `AnswerRecord` + updates mastery; `QuestionPlayerView` + `MockSessionView` surface save errors via `SaveErrorState` (replaces `try?`)
+
+## Known carry-forward items (for Phase 6)
 
 **From Phase 1 (unchanged):**
 - `weeklyActivity: [Int]` in UserProfile stored as Transformable — no SQL predicates on it
@@ -99,11 +115,9 @@ no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM pa
 
 ## Next session
 
-Plan and execute **Phase 5**. Carry-forward from Phase 4 to address in Phase 5:
-- `ReviewItemView` "Retry" button: launch single-question `DrillSession`
-- Standalone ReviewQueue entry in `PracticeView` (reachable without completing a session)
-- `QuickCheckView` answer → updates `Topic.mastery`
-- `saveSession()` error surfacing (from Phase 3 carry-forward)
+**Phase 6** — Content expansion: fully populate `content-v1.json` with the full Core 6 topic set (Swift, Memory, Concurrency, SwiftUI, UIKit, Behavioral — each with ~10 questions + 2 lessons), refine placement quiz UX with real questions, and verify PlacementCompletionTests pass in the simulator (pending iOS runtime download — open Xcode.app to trigger).
+
+**Pending test run:** `xcodebuild test -project Callback.xcodeproj -scheme Callback -destination 'platform=iOS Simulator,name=iPad Pro 12.9 shots'` — blocked by missing iOS simulator runtime (CoreSimulator has no runtimes; opening Xcode.app should trigger the download). All 25 test targets typechecked clean; AppCore 20/20 + DesignSystem 7/7 pass via `swift test`.
 
 
 > `linear_project_id: skip` keeps Linear sync inert — change it if you want Linear tracking.

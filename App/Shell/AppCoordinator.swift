@@ -7,4 +7,6 @@ enum AppTab: Int, Hashable {
 @Observable final class AppCoordinator {
     var selectedTab: AppTab = .home
     var topicsFilter: TopicFilter = .all
+    var showLaunchSplash: Bool = true
+    var showPlacement: Bool = false
 }

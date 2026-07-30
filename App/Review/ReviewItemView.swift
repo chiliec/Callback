@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import AppCore
 import DesignSystem
 
@@ -8,6 +9,9 @@ struct ReviewItemView: View {
 
     @State private var currentIndex: Int = 0
     @State private var selectedLesson: Lesson? = nil
+    @State private var retrySession: DrillSession? = nil
+    @Query private var profiles: [UserProfile]
+    private var profile: UserProfile? { profiles.first }
 
     private var entry: ReviewEntry { entries[currentIndex] }
     private var question: Question { entry.question }
@@ -52,13 +56,15 @@ struct ReviewItemView: View {
                 .foregroundStyle(.white)
                 .clipShape(RoundedRectangle(cornerRadius: DSRadius.button, style: .continuous))
 
-                Button("Retry") { onDone() }
-                    .font(DSFont.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(DSColor.actionTint)
-                    .foregroundStyle(DSColor.action)
-                    .clipShape(RoundedRectangle(cornerRadius: DSRadius.button, style: .continuous))
+                Button("Retry") {
+                    retrySession = DrillSession(questions: [entry.question])
+                }
+                .font(DSFont.headline)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(DSColor.actionTint)
+                .foregroundStyle(DSColor.action)
+                .clipShape(RoundedRectangle(cornerRadius: DSRadius.button, style: .continuous))
             }
             .padding(DSSpacing.sessionInset)
             .background(.bar)
@@ -77,6 +83,13 @@ struct ReviewItemView: View {
             }
         }
         .background(DSColor.groupedBackground.ignoresSafeArea())
+        .fullScreenCover(item: $retrySession) { session in
+            NavigationStack {
+                if let profile {
+                    QuestionPlayerView(session: session, topic: entry.topic, profile: profile)
+                }
+            }
+        }
         .navigationDestination(item: $selectedLesson) { lesson in
             let sorted = topic.lessons.sorted { $0.order < $1.order }
             let idx = sorted.firstIndex(where: { $0.id == lesson.id }) ?? 0

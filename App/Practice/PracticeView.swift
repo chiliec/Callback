@@ -7,9 +7,14 @@ import DesignSystem
 struct PracticeView: View {
     @Query(sort: \Topic.order) private var topics: [Topic]
     @Query(sort: \Session.startedAt, order: .reverse) private var recentSessions: [Session]
+    @Query private var answers: [AnswerRecord]
 
     @State private var selectedLevel: Level = .mid
     @State private var activeMockSession: MockSession? = nil
+
+    private var reviewQueueCount: Int {
+        ReviewQueue.build(from: answers, filter: .all).count
+    }
 
     private var allQuestions: [Question] {
         topics.flatMap { $0.questions }
@@ -20,6 +25,9 @@ struct PracticeView: View {
             VStack(alignment: .leading, spacing: 16) {
                 mockCard
                 timedDrillsSection
+                if reviewQueueCount > 0 {
+                    reviewQueueSection
+                }
                 if !recentSessions.isEmpty {
                     recentSessionsSection
                 }
@@ -100,6 +108,36 @@ struct PracticeView: View {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    // MARK: Review queue section
+
+    private var reviewQueueSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader("Review")
+            GroupedCard(padding: 0) {
+                NavigationLink(destination: ReviewQueueView()) {
+                    HStack(spacing: 12) {
+                        IconTile(systemName: "arrow.counterclockwise", color: DSColor.orange)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Review queue")
+                                .font(DSFont.body)
+                                .foregroundStyle(DSColor.label)
+                            Text("\(reviewQueueCount) to review")
+                                .font(DSFont.footnote)
+                                .foregroundStyle(DSColor.secondaryLabel)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(DSColor.secondaryLabel)
+                    }
+                    .padding(.horizontal, 16)
+                    .frame(minHeight: DSSpacing.rowMinHeight)
+                }
+                .buttonStyle(.plain)
             }
         }
     }
