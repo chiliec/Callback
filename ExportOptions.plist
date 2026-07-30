@@ -6,6 +6,7 @@
     <string>app-store</string>
     <key>destination</key>
     <string>export</string>
+    <!-- Replace XXXXXXXXXX with your 10-character Apple Developer Team ID -->
     <key>teamID</key>
     <string>XXXXXXXXXX</string>
     <key>signingStyle</key>

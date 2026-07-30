@@ -88,6 +88,7 @@ struct MockSessionView: View {
             ProgressView(value: session.progress)
                 .tint(DSColor.action)
                 .frame(height: 3)
+                .clipped()
                 .padding(.horizontal, DSSpacing.sessionInset)
                 .padding(.top, 4)
             if let question = session.current {

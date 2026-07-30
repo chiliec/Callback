@@ -17,8 +17,11 @@ Tagline: *Get the callback.*
 xcodegen generate
 xcodebuild build \
   -scheme Callback \
-  -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest'
+  -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+  CODE_SIGNING_ALLOWED=NO
 ```
+
+Before archiving for distribution, replace `XXXXXXXXXX` in `project.yml` and `ExportOptions.plist` with your 10-character Apple Developer Team ID.
 
 ## Run Tests
 
