@@ -9,13 +9,14 @@ Native iPhone app (iOS 18+) to prepare for iOS developer interviews. Local-first
 no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM packages
 (`DesignSystem`, `AppCore`) + app target, wired via XcodeGen.
 
-## Status: Phase 5 complete — Phase 6 next
+## Status: Phase 6 complete — Phase 7 next
 
 - **Repo:** https://github.com/chiliec/Callback (public, `main`)
 - **Spec:** `~/Develop/Pet/Journal/Projects/Callback/specs/2026-07-29-callback-design.md`
 - **Roadmap:** `~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-29-callback-roadmap.md`
 - **Phase 1 plan (executed):** `~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-29-callback-phase1-foundations.md`
 - **Phase 5 plan (executed):** `~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-30-callback-phase5-onboarding-profile.md`
+- **Phase 6 plan (executed):** `~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-30-callback-phase6-content.md` — Core-6 content bundle (v2), Standard depth (3 lessons + 10 Q/topic), + idempotent seeding
 - **Design handoff (reference):** `design_handoff_callback_ios/` (open `Interview Prep iOS.dc.html`; README has all tokens/screens).
 
 ## Key decisions
@@ -113,11 +114,16 @@ no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM pa
 - `saveSession()` silently swallows `MockCompletion.save` errors via `try?`
 - `PracticeView` Start button uses `.padding(.vertical, 14)` bare literal; divider leading `56` has no named token
 
+**App target (Phase 6):**
+- `content-v1.json` — bumped to **version 2** (file renamed stays `content-v1.json`); 6 topics × 3 lessons × 10 questions = 18 lessons + 60 questions + 18 quickChecks (96 question objects total)
+- `ContentLoader.seed` — rewritten to **upsert by id**; author-owned fields updated, user progress (mastery, isSaved, isComplete, AnswerRecords) preserved on version bump
+- **22 AppCore tests** passing (added: `seedIsIdempotentOnReseed`, `contentBundleIsValid`)
+
 ## Next session
 
-**Phase 6** — Content expansion: fully populate `content-v1.json` with the full Core 6 topic set (Swift, Memory, Concurrency, SwiftUI, UIKit, Behavioral — each with ~10 questions + 2 lessons), refine placement quiz UX with real questions, and verify PlacementCompletionTests pass in the simulator (pending iOS runtime download — open Xcode.app to trigger).
+**Phase 7** — Polish + distribution prep: app icon, launch screen polish, TestFlight build, and/or any UX improvements surfaced from dogfooding with real content.
 
-**Pending test run:** `xcodebuild test -project Callback.xcodeproj -scheme Callback -destination 'platform=iOS Simulator,name=iPad Pro 12.9 shots'` — blocked by missing iOS simulator runtime (CoreSimulator has no runtimes; opening Xcode.app should trigger the download). All 25 test targets typechecked clean; AppCore 20/20 + DesignSystem 7/7 pass via `swift test`.
+**Pending test run:** `xcodebuild test -project Callback.xcodeproj -scheme Callback -destination 'platform=iOS Simulator,name=iPad Pro 12.9 shots'` — blocked by missing iOS simulator runtime (CoreSimulator has no runtimes; opening Xcode.app should trigger the download). All 22 AppCore + 7 DesignSystem tests pass via `swift test`.
 
 
 > `linear_project_id: skip` keeps Linear sync inert — change it if you want Linear tracking.

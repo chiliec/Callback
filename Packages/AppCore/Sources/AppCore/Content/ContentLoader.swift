@@ -13,29 +13,70 @@ public enum ContentLoader {
         return try Data(contentsOf: url)
     }
 
-    /// Inserts the full content graph. Assumes an empty (or additive) store.
+    /// Upserts the content graph by id. Author-owned fields are updated; user-progress
+    /// (mastery, isSaved, isComplete, completedAt, AnswerRecords) is never touched.
     public static func seed(_ bundle: ContentBundle, into context: ModelContext) {
+        let existingTopics = (try? context.fetch(FetchDescriptor<Topic>())) ?? []
+        var topicMap = Dictionary(uniqueKeysWithValues: existingTopics.map { ($0.id, $0) })
+
+        let existingLessons = (try? context.fetch(FetchDescriptor<Lesson>())) ?? []
+        var lessonMap = Dictionary(uniqueKeysWithValues: existingLessons.map { ($0.id, $0) })
+
+        let existingQuestions = (try? context.fetch(FetchDescriptor<Question>())) ?? []
+        var questionMap = Dictionary(uniqueKeysWithValues: existingQuestions.map { ($0.id, $0) })
+
         for t in bundle.topics {
-            let topic = Topic(
-                id: t.id, name: t.name, section: t.section,
-                symbolName: t.symbolName, colorToken: t.colorToken, order: t.order
-            )
-            context.insert(topic)
+            let topic: Topic
+            if let existing = topicMap[t.id] {
+                existing.name = t.name
+                existing.sectionRaw = t.section.rawValue
+                existing.symbolName = t.symbolName
+                existing.colorToken = t.colorToken
+                existing.order = t.order
+                topic = existing
+            } else {
+                topic = Topic(
+                    id: t.id, name: t.name, section: t.section,
+                    symbolName: t.symbolName, colorToken: t.colorToken, order: t.order
+                )
+                context.insert(topic)
+            }
 
             for l in t.lessons {
-                let lesson = Lesson(
-                    id: l.id, order: l.order, title: l.title,
-                    estimatedMinutes: l.estimatedMinutes, body: l.body,
-                    quickCheck: l.quickCheck.map(makeQuestion)
-                )
-                lesson.topic = topic
-                topic.lessons.append(lesson)
+                if let existing = lessonMap[l.id] {
+                    existing.order = l.order
+                    existing.title = l.title
+                    existing.estimatedMinutes = l.estimatedMinutes
+                    existing.body = l.body
+                    if let qcDTO = l.quickCheck {
+                        if let existingQC = existing.quickCheck {
+                            updateQuestion(existingQC, from: qcDTO, context: context)
+                        } else {
+                            existing.quickCheck = makeQuestion(qcDTO)
+                        }
+                    } else if let oldQC = existing.quickCheck {
+                        context.delete(oldQC)
+                        existing.quickCheck = nil
+                    }
+                } else {
+                    let lesson = Lesson(
+                        id: l.id, order: l.order, title: l.title,
+                        estimatedMinutes: l.estimatedMinutes, body: l.body,
+                        quickCheck: l.quickCheck.map(makeQuestion)
+                    )
+                    lesson.topic = topic
+                    topic.lessons.append(lesson)
+                }
             }
 
             for q in t.questions {
-                let question = makeQuestion(q)
-                question.topic = topic
-                topic.questions.append(question)
+                if let existing = questionMap[q.id] {
+                    updateQuestion(existing, from: q, context: context)
+                } else {
+                    let question = makeQuestion(q)
+                    question.topic = topic
+                    topic.questions.append(question)
+                }
             }
         }
     }
@@ -63,5 +104,21 @@ public enum ContentLoader {
             correctIndex: q.correctIndex, rubric: q.rubric,
             codeSnippet: snippet, options: options
         )
+    }
+
+    private static func updateQuestion(_ question: Question, from dto: QuestionDTO, context: ModelContext) {
+        question.kindRaw = dto.kind.rawValue
+        question.prompt = dto.prompt
+        question.explanation = dto.explanation
+        question.correctIndex = dto.correctIndex
+        question.rubric = dto.rubric
+        for opt in question.options { context.delete(opt) }
+        question.options = dto.options.enumerated().map { idx, o in
+            Option(text: o.text, isMonospaced: o.isMonospaced, order: idx)
+        }
+        if let old = question.codeSnippet { context.delete(old) }
+        question.codeSnippet = dto.codeSnippet.map {
+            CodeSnippet(filename: $0.filename, language: $0.language, code: $0.code)
+        }
     }
 }
