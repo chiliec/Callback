@@ -36,6 +36,11 @@ public struct CodeBlock: View {
             RoundedRectangle(cornerRadius: DSRadius.control, style: .continuous)
                 .stroke(DSCode.border, lineWidth: 1)
         )
+        // Monospaced code doesn't benefit from AX sizes — clamp so layout stays usable.
+        .dynamicTypeSize(.xSmall...DynamicTypeSize.accessibility1)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Code sample")
+        .accessibilityValue(lines.joined(separator: "\n"))
     }
 
     private var header: some View {

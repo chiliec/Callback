@@ -14,6 +14,7 @@ struct LaunchView: View {
                         .font(.system(size: 44, weight: .semibold))
                         .foregroundStyle(.white)
                 }
+                .accessibilityHidden(true)
                 Text("Callback")
                     .font(DSFont.readerTitle)
                     .foregroundStyle(DSColor.label)

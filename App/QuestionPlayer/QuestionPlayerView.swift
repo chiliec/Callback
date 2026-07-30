@@ -47,15 +47,17 @@ struct QuestionPlayerView: View {
                 // Options
                 let sortedOptions = question.options.sorted { $0.order < $1.order }
                 ForEach(Array(sortedOptions.enumerated()), id: \.element.persistentModelID) { i, option in
+                    let label = i < Self.labels.count ? Self.labels[i] : "\(i + 1)"
                     let state = answerState(optionIndex: i, question: question)
                     OptionRow(
-                        label: i < Self.labels.count ? Self.labels[i] : "\(i + 1)",
+                        label: label,
                         text: option.text,
                         isMonospaced: option.isMonospaced,
                         state: state
                     ) {
                         session.pick(i)
                     }
+                    .accessibilityIdentifier("option-\(label)")
                 }
 
                 // Verdict + explanation (shown after answering)
@@ -77,6 +79,13 @@ struct QuestionPlayerView: View {
                     .monospacedDigit()
             }
         }
+        .sensoryFeedback(trigger: session.pickedIndex) { _, _ in .selection }
+        .sensoryFeedback(trigger: session.isAnswered) { _, isAnswered -> SensoryFeedback? in
+            guard isAnswered, let q = session.current, q.kind != .behavioral,
+                  let picked = session.pickedIndex, let correct = q.correctIndex else { return nil }
+            return picked == correct ? .success : .warning
+        }
+        .sensoryFeedback(.success, trigger: session.isComplete)
         .safeAreaInset(edge: .bottom) {
             if session.isAnswered {
                 Button(session.currentIndex < session.questions.count - 1 ? "Next" : "Finish") {
@@ -99,6 +108,7 @@ struct QuestionPlayerView: View {
                 .clipShape(RoundedRectangle(cornerRadius: DSRadius.button, style: .continuous))
                 .padding(DSSpacing.listInset)
                 .background(.bar)
+                .accessibilityIdentifier("next-finish-button")
             }
         }
     }
@@ -112,6 +122,7 @@ struct QuestionPlayerView: View {
             let correct = question.correctIndex.map { picked == $0 } ?? false
             HStack(spacing: 6) {
                 Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .accessibilityHidden(true)
                 Text(correct ? "Correct" : "Not quite")
                     .font(DSFont.headline)
             }
@@ -120,6 +131,8 @@ struct QuestionPlayerView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background((correct ? DSColor.green : DSColor.red).opacity(0.12))
             .clipShape(RoundedRectangle(cornerRadius: DSRadius.control, style: .continuous))
+            .accessibilityIdentifier("verdict-chip")
+            .accessibilityAddTraits(.isStaticText)
         }
 
         GroupedCard {

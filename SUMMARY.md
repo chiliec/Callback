@@ -9,7 +9,7 @@ Native iPhone app (iOS 18+) to prepare for iOS developer interviews. Local-first
 no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM packages
 (`DesignSystem`, `AppCore`) + app target, wired via XcodeGen.
 
-## Status: Phase 6 complete — Phase 7 next
+## Status: Phase 7 complete — Phase 8 next
 
 - **Repo:** https://github.com/chiliec/Callback (public, `main`)
 - **Spec:** `~/Develop/Pet/Journal/Projects/Callback/specs/2026-07-29-callback-design.md`
@@ -17,6 +17,7 @@ no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM pa
 - **Phase 1 plan (executed):** `~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-29-callback-phase1-foundations.md`
 - **Phase 5 plan (executed):** `~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-30-callback-phase5-onboarding-profile.md`
 - **Phase 6 plan (executed):** `~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-30-callback-phase6-content.md` — Core-6 content bundle (v2), Standard depth (3 lessons + 10 Q/topic), + idempotent seeding
+- **Phase 7 plan (executed):** `~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-30-callback-phase7-accessibility.md` — Dynamic Type (`DSFont` → system text styles), `DSMotion` + Reduce Motion audit, `DSFeedback` haptics, VoiceOver labels/values/identifiers, `CallbackUITests` target + `SmokeTests.swift`. 10 DS tests + 22 AppCore tests green.
 - **Design handoff (reference):** `design_handoff_callback_ios/` (open `Interview Prep iOS.dc.html`; README has all tokens/screens).
 
 ## Key decisions
@@ -119,11 +120,24 @@ no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM pa
 - `ContentLoader.seed` — rewritten to **upsert by id**; author-owned fields updated, user progress (mastery, isSaved, isComplete, AnswerRecords) preserved on version bump
 - **22 AppCore tests** passing (added: `seedIsIdempotentOnReseed`, `contentBundleIsValid`)
 
+## App target (Phase 7)
+
+- **Dynamic Type:** `DSFont` converted from fixed `Font.system(size:weight:)` to `Font.system(_:design:)` text-style initializers (`.largeTitle`, `.title`, `.title2`, `.title3`, `.headline`, `.body`, `.subheadline`, `.footnote`, `.caption2`) — all text scales with user size setting.
+- **Reduce Motion:** `DSMotion` enum (`quick/standard/emphasis` durations + `animation(_:reduceMotion:)` helper). `LessonReaderView`, `PlacementQuizView` progress bars gated via `DSMotion`. `RootView` already reduce-motion-aware (reference pattern).
+- **Haptics:** `DSFeedback` enum mapping to `SensoryFeedback` (`.selection`, `.success`, `.warning`, `.impactLight`). Wired: option tap → `.selection`, correct → `.success`, incorrect → `.warning`, drill/session/placement complete → `.success`, lesson mark-complete → `.success`.
+- **Dynamic Type layout:** `CodeBlock` clamped at `.accessibility1`; `ProgressRing` numeric label clamped at `.accessibility3`; `MockSessionView` pause overlay timer converted to scalable `.largeTitle` font clamped at `.accessibility2`.
+- **VoiceOver:** `ProgressRing` combined element (`label + "percent"` value); `CodeBlock` combined element ("Code sample" label + code text value); `OptionRow` label = option text, `.isButton` trait, value = correct/incorrect/selected after answer; Home readiness ring uses "Readiness" label; stats grid cells combined with `"label, value"` label; timer with `.updatesFrequently`; decorative icons `.accessibilityHidden(true)`.
+- **Identifiers:** `home-tab`, `topics-tab`, `practice-tab`, `profile-tab`; `home-root`, `home-readiness-ring`; `topic-row-N` (per section); `topic-practice-cta`; `option-A/B/C/D`; `verdict-chip`; `next-finish-button`.
+- **UITest target:** `CallbackUITests` added to `project.yml`; `CallbackApp` handles `--uitest` (in-memory container) and `--uitest-placement-done` (pre-sets `hasCompletedPlacement`); `SmokeTests.swift` covers core drill loop. **Green run is a carry-forward** — requires installing a simulator runtime (open Xcode.app to trigger download).
+- **10 DS tests** passing (new: `motionReturnsNilWhenReduceMotion`, `motionReturnsBaseWhenNotReduceMotion`, `feedbackMappingIsExhaustive`).
+
 ## Next session
 
-**Phase 7** — Polish + distribution prep: app icon, launch screen polish, TestFlight build, and/or any UX improvements surfaced from dogfooding with real content.
+**Phase 8** — Distribution prep: app icon, TestFlight build, and any UX improvements from dogfooding.
 
-**Pending test run:** `xcodebuild test -project Callback.xcodeproj -scheme Callback -destination 'platform=iOS Simulator,name=iPad Pro 12.9 shots'` — blocked by missing iOS simulator runtime (CoreSimulator has no runtimes; opening Xcode.app should trigger the download). All 22 AppCore + 7 DesignSystem tests pass via `swift test`.
+**Carry-forward:** `xcodebuild test` / `SmokeTests` green-run pending simulator runtime. Open Xcode.app to download.
+
+**All tests:** 22 AppCore + 10 DesignSystem pass via `swift test`.
 
 
 > `linear_project_id: skip` keeps Linear sync inert — change it if you want Linear tracking.

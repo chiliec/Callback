@@ -33,10 +33,11 @@ struct TopicsView: View {
                 let rows = self.topics(for: section)
                 if !rows.isEmpty {
                     Section(header: SectionHeader(section.displayName)) {
-                        ForEach(rows) { topic in
+                        ForEach(Array(rows.enumerated()), id: \.element.id) { index, topic in
                             NavigationLink(value: topic) {
                                 TopicRow(topic: topic)
                             }
+                            .accessibilityIdentifier("topic-row-\(index)")
                         }
                     }
                 }

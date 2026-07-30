@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct RootView: View {
+    var skipSplash: Bool = false
+
     @Environment(AppCoordinator.self) private var coordinator
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var saveErrorState = SaveErrorState()
@@ -16,7 +18,7 @@ struct RootView: View {
             }
         }
         .task {
-            if reduceMotion {
+            if skipSplash || reduceMotion {
                 coordinator.showLaunchSplash = false
             } else {
                 try? await Task.sleep(for: .milliseconds(1100))

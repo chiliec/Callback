@@ -88,6 +88,7 @@ struct TopicDetailView: View {
                         }
                         .buttonStyle(.plain)
                         .disabled(profile == nil)
+                        .accessibilityIdentifier("topic-practice-cta")
                     }
                 }
             }

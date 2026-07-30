@@ -7,10 +7,18 @@ struct CallbackApp: App {
     let container: ModelContainer
     @State private var coordinator = AppCoordinator()
 
+    private static let isUITest = ProcessInfo.processInfo.arguments.contains("--uitest")
+    private static let placementDone = ProcessInfo.processInfo.arguments.contains("--uitest-placement-done")
+
     init() {
         do {
-            container = try AppModelContainer.make()
-            try Self.bootstrap(container)
+            if Self.isUITest {
+                container = try AppModelContainer.make(inMemory: true)
+                try Self.bootstrapUITest(container, placementDone: Self.placementDone)
+            } else {
+                container = try AppModelContainer.make()
+                try Self.bootstrap(container)
+            }
         } catch {
             fatalError("Failed to set up model container: \(error)")
         }
@@ -18,7 +26,7 @@ struct CallbackApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            RootView(skipSplash: Self.isUITest)
                 .environment(coordinator)
         }
         .modelContainer(container)
@@ -34,6 +42,20 @@ struct CallbackApp: App {
             return p
         }()
         let bundle = try ContentLoader.decode(try ContentLoader.bundledContentData())
+        ContentLoader.seedIfNeeded(into: context, profile: profile, bundle: bundle)
+        try context.save()
+    }
+
+    @MainActor
+    private static func bootstrapUITest(_ container: ModelContainer, placementDone: Bool) throws {
+        let context = container.mainContext
+        let bundle = try ContentLoader.decode(try ContentLoader.bundledContentData())
+        let profile = UserProfile()
+        if placementDone {
+            profile.hasCompletedPlacement = true
+            profile.readiness = 42
+        }
+        context.insert(profile)
         ContentLoader.seedIfNeeded(into: context, profile: profile, bundle: bundle)
         try context.save()
     }

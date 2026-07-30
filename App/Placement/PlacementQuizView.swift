@@ -13,6 +13,7 @@ struct PlacementQuizView: View {
 
     @State private var autoAdvanceTask: Task<Void, Never>? = nil
     @State private var resultPath: [PlacementResult] = []
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var profile: UserProfile? { profiles.first }
     private static let labels = ["A", "B", "C", "D"]
@@ -47,6 +48,8 @@ struct PlacementQuizView: View {
                 PlacementResultsView(result: result)
             }
         }
+        .sensoryFeedback(trigger: session.currentIndex) { _, _ in .selection }
+        .sensoryFeedback(.success, trigger: session.isComplete)
     }
 
     // MARK: Progress bar
@@ -56,7 +59,10 @@ struct PlacementQuizView: View {
             Rectangle()
                 .fill(DSColor.action)
                 .frame(width: geo.size.width * session.progress, height: 3)
-                .animation(.linear(duration: 0.2), value: session.progress)
+                .animation(
+                    DSMotion.animation(.linear(duration: DSMotion.standard), reduceMotion: reduceMotion),
+                    value: session.progress
+                )
         }
         .frame(height: 3)
     }

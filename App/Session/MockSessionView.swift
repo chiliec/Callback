@@ -37,12 +37,16 @@ struct MockSessionView: View {
                         Image(systemName: "pause.fill")
                     }
                     .disabled(session.isComplete)
+                    .accessibilityLabel("Pause session")
                 }
                 ToolbarItem(placement: .principal) {
                     Text(timerDisplay)
                         .font(DSFont.scoreHeadline)
                         .monospacedDigit()
                         .foregroundStyle(session.timeRemaining < 60 ? DSColor.red : DSColor.label)
+                        .accessibilityLabel("Time remaining")
+                        .accessibilityValue(timerDisplay)
+                        .accessibilityAddTraits(.updatesFrequently)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button { session.toggleFlag() } label: {
@@ -50,9 +54,17 @@ struct MockSessionView: View {
                             .foregroundStyle(session.isFlagged ? DSColor.orange : DSColor.secondaryLabel)
                     }
                     .disabled(session.isComplete)
+                    .accessibilityLabel(session.isFlagged ? "Unflag question" : "Flag question")
                 }
             }
         }
+        .sensoryFeedback(trigger: session.pickedIndex) { _, _ in .selection }
+        .sensoryFeedback(trigger: session.isAnswered) { _, isAnswered -> SensoryFeedback? in
+            guard isAnswered, let q = session.current, q.kind != .behavioral,
+                  let picked = session.pickedIndex, let correct = q.correctIndex else { return nil }
+            return picked == correct ? .success : .warning
+        }
+        .sensoryFeedback(.success, trigger: session.isComplete)
         .onAppear { session.startTimer() }
         .onDisappear { session.stopTimer() }
         .onChange(of: scenePhase) { _, phase in
@@ -174,8 +186,9 @@ struct MockSessionView: View {
                     .font(DSFont.headline)
                     .foregroundStyle(DSColor.secondaryLabel)
                 Text(timerDisplay)
-                    .font(.system(size: 48, weight: .bold))
+                    .font(Font.system(.largeTitle, design: .default).weight(.bold))
                     .monospacedDigit()
+                    .dynamicTypeSize(.xSmall...DynamicTypeSize.accessibility2)
                 VStack(spacing: 12) {
                     Button("Resume") {
                         session.resume()

@@ -9,15 +9,19 @@ struct AppTabView: View {
             Tab("Home", systemImage: "house", value: AppTab.home) {
                 NavigationStack { HomeView() }
             }
+            .accessibilityIdentifier("home-tab")
             Tab("Topics", systemImage: "books.vertical", value: AppTab.topics) {
                 NavigationStack { TopicsView() }
             }
+            .accessibilityIdentifier("topics-tab")
             Tab("Practice", systemImage: "scope", value: AppTab.practice) {
                 NavigationStack { PracticeView() }
             }
+            .accessibilityIdentifier("practice-tab")
             Tab("Profile", systemImage: "person", value: AppTab.profile) {
                 NavigationStack { ProfileView() }
             }
+            .accessibilityIdentifier("profile-tab")
         }
     }
 }

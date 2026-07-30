@@ -69,17 +69,17 @@ public enum DSSpacing {
 }
 
 public enum DSFont {
-    public static let largeTitle = Font.system(size: 34, weight: .bold)
-    public static let readerTitle = Font.system(size: 28, weight: .bold)
-    public static let scoreHeadline = Font.system(size: 22, weight: .bold)
-    public static let question = Font.system(size: 20, weight: .bold)
-    public static let headline = Font.system(size: 17, weight: .semibold)
-    public static let body = Font.system(size: 17, weight: .regular)
-    public static let subheadline = Font.system(size: 15)
-    public static let sectionHeader = Font.system(size: 13, weight: .semibold)
-    public static let footnote = Font.system(size: 13)
-    public static let badge = Font.system(size: 11)
-    public static let tabLabel = Font.system(size: 10)
+    public static let largeTitle   = Font.system(.largeTitle, design: .default).weight(.bold)
+    public static let readerTitle  = Font.system(.title, design: .default).weight(.bold)
+    public static let scoreHeadline = Font.system(.title2, design: .default).weight(.bold)
+    public static let question     = Font.system(.title3, design: .default).weight(.bold)
+    public static let headline     = Font.system(.headline, design: .default)
+    public static let body         = Font.system(.body, design: .default)
+    public static let subheadline  = Font.system(.subheadline, design: .default)
+    public static let sectionHeader = Font.system(.subheadline, design: .default).weight(.semibold)
+    public static let footnote     = Font.system(.footnote, design: .default)
+    public static let badge        = Font.system(.caption2, design: .default)
+    public static let tabLabel     = Font.system(.caption2, design: .default)
 }
 
 public enum DSCode {

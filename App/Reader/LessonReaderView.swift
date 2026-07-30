@@ -70,6 +70,7 @@ struct LessonReaderView: View {
     @State private var readingProgress: Double = 0
     @State private var isComplete: Bool
     @Environment(\.modelContext) private var context
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(lesson: Lesson, lessonIndex: Int, totalLessons: Int, nextLesson: Lesson?) {
         self.lesson = lesson
@@ -118,10 +119,14 @@ struct LessonReaderView: View {
                 Rectangle()
                     .fill(DSColor.action)
                     .frame(width: geo.size.width * readingProgress, height: 3)
-                    .animation(.linear(duration: 0.1), value: readingProgress)
+                    .animation(
+                        DSMotion.animation(.linear(duration: 0.1), reduceMotion: reduceMotion),
+                        value: readingProgress
+                    )
             }
             .frame(height: 3)
         }
+        .sensoryFeedback(.success, trigger: isComplete)
         .navigationTitle(lesson.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

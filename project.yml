@@ -41,3 +41,14 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.axveer.callback.tests
+  CallbackUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - Tests/CallbackUITests
+    dependencies:
+      - target: Callback
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.axveer.callback.uitests
+        TEST_TARGET_NAME: Callback

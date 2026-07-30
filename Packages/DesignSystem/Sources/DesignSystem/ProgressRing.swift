@@ -6,14 +6,17 @@ public struct ProgressRing: View {
     private let stroke: CGFloat
     private let tint: Color
     private let showsValue: Bool
+    private let accessibilityLabel: String
 
     public init(value: Int, size: CGFloat, stroke: CGFloat,
-                tint: Color = DSColor.action, showsValue: Bool = true) {
+                tint: Color = DSColor.action, showsValue: Bool = true,
+                accessibilityLabel: String = "Progress") {
         self.value = value
         self.size = size
         self.stroke = stroke
         self.tint = tint
         self.showsValue = showsValue
+        self.accessibilityLabel = accessibilityLabel
     }
 
     public var body: some View {
@@ -29,9 +32,13 @@ public struct ProgressRing: View {
                     .font(.system(size: size * 0.32, weight: .bold))
                     .monospacedDigit()
                     .foregroundStyle(DSColor.label)
+                    .dynamicTypeSize(.xSmall...DynamicTypeSize.accessibility3)
             }
         }
         .frame(width: size, height: size)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue("\(value) percent")
     }
 }
 

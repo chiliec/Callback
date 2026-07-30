@@ -21,6 +21,7 @@ struct HomeView: View {
             }
         }
         .navigationTitle("Home")
+        .accessibilityIdentifier("home-root")
         .fullScreenCover(isPresented: $coordinator.showPlacement) {
             PlacementQuizView(
                 session: PlacementSession(
@@ -63,8 +64,10 @@ struct HomeView: View {
                 ProgressRing(
                     value: profile?.readiness ?? 0,
                     size: 76,
-                    stroke: 7
+                    stroke: 7,
+                    accessibilityLabel: "Readiness"
                 )
+                .accessibilityIdentifier("home-readiness-ring")
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Readiness")
                         .font(DSFont.headline)
@@ -101,6 +104,8 @@ struct HomeView: View {
                 .foregroundStyle(DSColor.secondaryLabel)
         }
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label), \(value)")
     }
 
     // MARK: Continue card
@@ -123,10 +128,13 @@ struct HomeView: View {
                     Image(systemName: "chevron.right")
                         .font(DSFont.subheadline)
                         .foregroundStyle(DSColor.secondaryLabel)
+                        .accessibilityHidden(true)
                 }
             }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Continue")
+        .accessibilityHint("Double-tap to browse topics")
     }
 
     // MARK: Weak areas

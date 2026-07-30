@@ -54,6 +54,19 @@ public struct OptionRow: View {
         .buttonStyle(.plain)
         .disabled(state != .idle)
         .animation(.easeInOut(duration: 0.18), value: state)
+        .accessibilityLabel(text)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityValue(accessibilityStateValue)
+        .accessibilityAddTraits(state == .correct ? .isSelected : [])
+    }
+
+    private var accessibilityStateValue: String {
+        switch state {
+        case .correct:        return "correct"
+        case .wrongPick:      return "incorrect"
+        case .selected:       return "selected"
+        case .fadedIncorrect, .fadedCorrect, .idle: return ""
+        }
     }
 
     private var isFaded: Bool { state == .fadedIncorrect || state == .fadedCorrect }
