@@ -1,6 +1,7 @@
 // Tests/CallbackTests/PlacementCompletionTests.swift
 import Foundation
 import Testing
+import SwiftData
 @testable import Callback
 import AppCore
 
