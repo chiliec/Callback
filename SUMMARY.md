@@ -160,10 +160,15 @@ no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM pa
 
 ## Next session
 
-Build 14 is installable **right now** — the `Internals` group is attached and processing is complete. Nothing is pending in App Store Connect.
-1. Install TestFlight on the iPhone and run build 14 — first real-hardware run of the app.
-2. Dogfood, then log UX findings. Everything so far has only been seen in a simulator.
-3. For each new build: bump `CURRENT_PROJECT_VERSION` in `project.yml`, then follow the README "TestFlight" section. `ruby scripts/asc_status.rb` confirms it landed.
+Build 14 is installable **right now** — the `Internals` group is attached and processing is complete. Nothing is pending in App Store Connect for TestFlight.
+
+**Next session = execute the App Store submission plan:** `~/Develop/Pet/Journal/Projects/Callback/plans/2026-07-30-callback-appstore-submission.md` (6 tasks). Start a fresh session and use `superpowers:subagent-driven-development`. Decisions already made and baked into the plan: iPhone-only device family, sim-runtime screenshot capture, App Store name `Callback` (drop the trailing period on the ASC record), privacy policy hosted on GitHub Pages from `docs/`.
+
+Two user actions gate that plan and can be done any time beforehand:
+- **Install an iOS simulator runtime** (Xcode → Settings → Components) — none are currently installed, which blocks screenshot capture entirely.
+- **Enable GitHub Pages** on `chiliec/Callback` (Settings → Pages → branch `main`, folder `/docs`) once Task 2 has pushed the files.
+
+Also worth doing independently: install build 14 via TestFlight and dogfood it. The app has never run on real hardware — only simulators — so UX findings from a real device should feed back before submission.
 
 Not yet done for an App Store submission (TestFlight internal doesn't need them): `PrivacyInfo.xcprivacy`, screenshots, store listing text, privacy-policy URL, App Privacy answers.
 
