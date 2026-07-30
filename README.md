@@ -21,7 +21,31 @@ xcodebuild build \
   CODE_SIGNING_ALLOWED=NO
 ```
 
-Before archiving for distribution, replace `XXXXXXXXXX` in `project.yml` and `ExportOptions.plist` with your 10-character Apple Developer Team ID.
+## TestFlight
+
+Signing uses Apple team `7JF6XQC536` and bundle ID `cx.viz.callback` (set in
+`project.yml`). Bump `CURRENT_PROJECT_VERSION` in `project.yml` first — App Store
+Connect rejects a build number it has already seen, and `ExportOptions.plist` sets
+`manageAppVersionAndBuildNumber: false` so the export won't quietly renumber it
+for you.
+
+```bash
+xcodegen generate
+xcodebuild archive -scheme Callback -configuration Release \
+  -destination 'generic/platform=iOS' -archivePath build/Callback.xcarchive
+xcodebuild -exportArchive -archivePath build/Callback.xcarchive \
+  -exportPath build/export -exportOptionsPlist ExportOptions.plist
+xcrun altool --upload-app -f build/export/Callback.ipa -t ios \
+  --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+```
+
+The App Store Connect API key lives at
+`~/.appstoreconnect/private_keys/AuthKey_<ASC_KEY_ID>.p8` (never in this repo).
+Swap `--upload-app` for `--validate-app` to dry-run the checks without consuming
+the build number.
+
+`ruby scripts/asc_status.rb` (same env vars) prints build processing/beta state
+and the beta groups, read-only — no gems required.
 
 ## Run Tests
 

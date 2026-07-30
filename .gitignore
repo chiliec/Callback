@@ -8,6 +8,7 @@ build/
 
 # SPM
 .build/
+*.o
 .swiftpm/
 
 # Keep the design handoff out of the app repo history noise

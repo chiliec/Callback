@@ -3,14 +3,20 @@
 <plist version="1.0">
 <dict>
     <key>method</key>
-    <string>app-store</string>
+    <string>app-store-connect</string>
+    <!-- Export the .ipa to disk; upload separately with `xcrun altool --upload-app`. -->
     <key>destination</key>
     <string>export</string>
-    <!-- Replace XXXXXXXXXX with your 10-character Apple Developer Team ID -->
     <key>teamID</key>
-    <string>XXXXXXXXXX</string>
+    <string>7JF6XQC536</string>
     <key>signingStyle</key>
     <string>automatic</string>
+    <!-- Without this, xcodebuild silently auto-increments CFBundleVersion at export
+         time when App Store Connect already has that build number, so the .ipa no
+         longer matches CURRENT_PROJECT_VERSION in project.yml. Keep exports
+         deterministic and bump the build number in project.yml instead. -->
+    <key>manageAppVersionAndBuildNumber</key>
+    <false/>
     <key>uploadSymbols</key>
     <true/>
 </dict>

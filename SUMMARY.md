@@ -9,7 +9,7 @@ Native iPhone app (iOS 18+) to prepare for iOS developer interviews. Local-first
 no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM packages
 (`DesignSystem`, `AppCore`) + app target, wired via XcodeGen.
 
-## Status: Phase 8 complete — all phases done
+## Status: live on TestFlight — builds 13 + 14 in beta testing (2026-07-30)
 
 - **Repo:** https://github.com/chiliec/Callback (public, `main`)
 - **Spec:** `~/Develop/Pet/Journal/Projects/Callback/specs/2026-07-29-callback-design.md`
@@ -141,17 +141,31 @@ no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM pa
 - **UX fix:** `MockSessionView` progress bar — `.frame(height: 3).clipped()` for exact 3pt spec.
 - **UITest green:** `SmokeTests.swift` passes on iPhone 16 iOS 26.4. Fixes: tab-bar queries use label text (iOS 18 `Tab(value:).accessibilityIdentifier` doesn't propagate to `UITabBarItem` in XCTest); `TopicsView` topic-row-N now globally unique across sections; `PlacementCompletionTests` missing `import SwiftData` added.
 - **README:** build/run/test commands, architecture overview, content JSON schema, MIT license.
-- **Build 13:** `CURRENT_PROJECT_VERSION: "13"`, `DEVELOPMENT_TEAM: "XXXXXXXXXX"` placeholder, `CODE_SIGN_STYLE: Automatic`.
-- **ExportOptions.plist:** `method: app-store`, automatic signing — at repo root (tracked in git; `build/` is gitignored).
+- **Build 13:** `CURRENT_PROJECT_VERSION: "13"`, `CODE_SIGN_STYLE: Automatic`.
+- **ExportOptions.plist:** `method: app-store-connect`, `destination: export`, automatic signing — at repo root (tracked in git; `build/` is gitignored).
+
+## Distribution (2026-07-30)
+
+- **Identity:** bundle ID `cx.viz.callback` (was `com.axveer.callback`), `DEVELOPMENT_TEAM: 7JF6XQC536` — the same Apple team as the Lancar/indonesian-app project.
+- **Info.plist additions:** `CFBundleDisplayName: Callback`, `UIRequiresFullScreen: YES`, `ITSAppUsesNonExemptEncryption: NO` (the last pre-answers the TestFlight export-compliance prompt, so builds go straight to Ready to Test).
+- **ASC app record:** name `Callback.` (with a trailing period), Apple ID `6796242315`.
+- **Uploaded:** two builds of `0.1.0`, both `processingState=VALID` and `internalBuildState=IN_BETA_TESTING`, signed *Cloud Managed Apple Distribution* with `beta-reports-active`:
+  - **build 13** — uploaded 16:29 local by the export-with-`destination: upload` run.
+  - **build 14** — uploaded 16:55 local via `altool` (delivery UUID `86164ccc-84b2-4f2a-a55f-689aa9976e36`). This is the current build and the one to test.
+- **Gotcha that produced build 14:** the archive contained `CFBundleVersion 13`, but `xcodebuild -exportArchive` **auto-incremented it to 14** in the `.ipa` because 13 already existed in App Store Connect. `manageAppVersionAndBuildNumber` defaults to *true* for app-store-connect distribution. `ExportOptions.plist` now pins it to `false`, and `CURRENT_PROJECT_VERSION` is bumped to **15** for the next release.
+- **Beta group:** `Internals` (internal, 1 tester) already exists and both builds are attached — new builds flow to it automatically.
+- **Status tooling:** `scripts/asc_status.rb` — read-only ASC query (builds, processing/beta state, groups). Signs its own ES256 JWT with the OpenSSL stdlib, so it runs on system Ruby 2.6 with no gems.
+- **Credentials:** ASC API key `AuthKey_948K3FKL2H.p8` copied to `~/.appstoreconnect/private_keys/` (user-level, never in this repo). `ASC_KEY_ID` / `ASC_ISSUER_ID` are sourced from `~/Develop/Pet/indonesian-app/fastlane/.env` (gitignored there).
+- **Release runbook worth cribbing:** `~/Develop/Pet/indonesian-app/docs/release-ios.md` — covers the ASC gates that only surface at submit time (App Privacy must be *published*, not just answered; pricing is web-UI only; age rating + content rights are API-automatable).
 
 ## Next session
 
-All 8 phases complete. To ship TestFlight build:
-1. Replace `XXXXXXXXXX` in `project.yml` and `ExportOptions.plist` with your Apple Developer Team ID.
-2. Register `com.axveer.callback` in App Store Connect.
-3. `xcodegen generate && xcodebuild archive -scheme Callback -configuration Release -destination 'generic/platform=iOS' -archivePath build/Callback.xcarchive`
-4. `xcodebuild -exportArchive -archivePath build/Callback.xcarchive -exportPath build/export -exportOptionsPlist ExportOptions.plist`
-5. Upload `build/export/Callback.ipa` via Transporter.
+Build 14 is installable **right now** — the `Internals` group is attached and processing is complete. Nothing is pending in App Store Connect.
+1. Install TestFlight on the iPhone and run build 14 — first real-hardware run of the app.
+2. Dogfood, then log UX findings. Everything so far has only been seen in a simulator.
+3. For each new build: bump `CURRENT_PROJECT_VERSION` in `project.yml`, then follow the README "TestFlight" section. `ruby scripts/asc_status.rb` confirms it landed.
+
+Not yet done for an App Store submission (TestFlight internal doesn't need them): `PrivacyInfo.xcprivacy`, screenshots, store listing text, privacy-policy URL, App Privacy answers.
 
 **All tests:** 22 AppCore + 10 DesignSystem pass via `swift test`. UITest `SmokeTests` passes on iPhone 16 iOS 26.4.
 
