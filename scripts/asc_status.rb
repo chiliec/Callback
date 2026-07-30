@@ -4,42 +4,13 @@
 #   set -a; . ~/Develop/Pet/indonesian-app/fastlane/.env; set +a
 #   ruby scripts/asc_status.rb
 #
-# Signs its own ES256 JWT with the OpenSSL stdlib, so no gems are required.
-require "net/http"
-require "json"
-require "openssl"
-require "base64"
+# JWT signing and transport live in scripts/asc_client.rb (no gems required).
+require_relative "asc_client"
 
-KEY_ID  = ENV.fetch("ASC_KEY_ID")
-ISSUER  = ENV.fetch("ASC_ISSUER_ID")
-P8_PATH = File.expand_path("~/.appstoreconnect/private_keys/AuthKey_#{KEY_ID}.p8")
-BUNDLE  = "cx.viz.callback"
-
-def b64(data)
-  Base64.urlsafe_encode64(data, padding: false)
-end
-
-# ASN.1 DER (what OpenSSL emits) -> raw r||s concatenation (what JWS wants).
-def der_to_raw(der)
-  r, s = OpenSSL::ASN1.decode(der).value.map { |v| v.value.to_s(2) }
-  r.rjust(32, "\0") + s.rjust(32, "\0")
-end
-
-def token
-  now = Time.now.to_i
-  header  = b64(JSON.dump(alg: "ES256", kid: KEY_ID, typ: "JWT"))
-  payload = b64(JSON.dump(iss: ISSUER, iat: now, exp: now + 600, aud: "appstoreconnect-v1"))
-  signing_input = "#{header}.#{payload}"
-  key = OpenSSL::PKey::EC.new(File.read(P8_PATH))
-  "#{signing_input}.#{b64(der_to_raw(key.sign(OpenSSL::Digest.new('SHA256'), signing_input)))}"
-end
+BUNDLE = "cx.viz.callback"
 
 def get(path)
-  uri = URI("https://api.appstoreconnect.apple.com#{path}")
-  req = Net::HTTP::Get.new(uri)
-  req["Authorization"] = "Bearer #{token}"
-  res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |h| h.request(req) }
-  [res.code, (JSON.parse(res.body) rescue res.body)]
+  ASCClient.get(path)
 end
 
 code, apps = get("/v1/apps?filter[bundleId]=#{BUNDLE}")
@@ -58,6 +29,29 @@ if builds.is_a?(Hash) && builds["data"]
   end
 else
   puts "  HTTP #{code} #{builds.inspect[0, 300]}"
+end
+
+puts "\n== App Store versions =="
+code, versions = get("/v1/apps/#{app['id']}/appStoreVersions?limit=5")
+if versions.is_a?(Hash) && versions["data"]
+  puts "  (none — no App Store version record exists yet)" if versions["data"].empty?
+  versions["data"].each do |v|
+    a = v["attributes"]
+    puts "  #{a['versionString']}  state=#{a['appStoreState'] || a['appVersionState']}  release=#{a['releaseType']}  id=#{v['id']}"
+    c, b = get("/v1/appStoreVersions/#{v['id']}/build")
+    puts "    attached build=#{b.dig('data', 'attributes', 'version') || '(none)'}" if b.is_a?(Hash)
+    c, s = get("/v1/appStoreVersions/#{v['id']}/appStoreVersionLocalizations?limit=5")
+    if s.is_a?(Hash) && s["data"]
+      s["data"].each do |l|
+        la = l["attributes"]
+        desc = la["description"].to_s
+        puts "    #{la['locale']}: description=#{desc.length}ch keywords=#{la['keywords'].to_s.length}ch " \
+             "support=#{la['supportUrl'].inspect}"
+      end
+    end
+  end
+else
+  puts "  HTTP #{code} #{versions.inspect[0, 300]}"
 end
 
 puts "\n== Beta groups =="
