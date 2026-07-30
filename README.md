@@ -44,8 +44,27 @@ The App Store Connect API key lives at
 Swap `--upload-app` for `--validate-app` to dry-run the checks without consuming
 the build number.
 
-`ruby scripts/asc_status.rb` (same env vars) prints build processing/beta state
-and the beta groups, read-only — no gems required.
+`ruby scripts/asc_status.rb` (same env vars) prints build processing/beta state,
+the beta groups, and App Store version state, read-only — no gems required.
+
+## App Store listing
+
+`docs/store-listing.md` is the source of truth for the listing copy. Edit it
+there, never in the web UI, then push it:
+
+```bash
+scripts/capture-screenshots.sh                   # six 1320x2868 PNGs → docs/store-assets/ios
+scripts/verify_bundle.sh build/Callback.xcarchive/Products/Applications/Callback.app
+ruby scripts/asc_metadata.rb --dry-run           # print what would be sent
+ruby scripts/asc_metadata.rb                     # push copy, categories, age rating, screenshots
+```
+
+Review-contact details are personal and stay out of git — export
+`ASC_CONTACT_FIRST`, `ASC_CONTACT_LAST`, `ASC_CONTACT_EMAIL`, and
+`ASC_CONTACT_PHONE` before the run, or the review-details step is skipped.
+
+App Privacy (answer *and* Publish) and Pricing and Availability have no usable
+API and must be done in the browser.
 
 ## Run Tests
 
