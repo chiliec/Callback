@@ -61,6 +61,9 @@ struct TopicsView: View {
             }
         }
         .navigationTitle("Topics")
+        // Inline, not large: the pinned `.safeAreaInset(edge: .top)` below swallows
+        // the large-title row, leaving an empty strip where "Topics" should be.
+        .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
         .navigationDestination(for: Topic.self) { topic in
             TopicDetailView(topic: topic)
