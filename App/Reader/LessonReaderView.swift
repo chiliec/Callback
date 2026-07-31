@@ -3,62 +3,6 @@ import SwiftData
 import AppCore
 import DesignSystem
 
-// MARK: - Body parser
-
-enum BodySegment {
-    case prose(String)
-    case code(filename: String?, language: String, body: String)
-    case keyIdea(String)
-}
-
-struct LessonBodyParser {
-    static func parse(_ markdown: String) -> [BodySegment] {
-        var segments: [BodySegment] = []
-        var proseLines: [String] = []
-        var inCode = false
-        var codeLang = ""
-        var codeLines: [String] = []
-
-        func flushProse() {
-            let block = proseLines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-            if !block.isEmpty { segments.append(.prose(block)) }
-            proseLines = []
-        }
-
-        for line in markdown.components(separatedBy: "\n") {
-            if inCode {
-                if line.hasPrefix("```") {
-                    // Extract optional filename from first code line
-                    var filename: String? = nil
-                    var body = codeLines
-                    if let first = body.first, first.hasPrefix("// "), first.hasSuffix(".swift") {
-                        filename = String(first.dropFirst(3))
-                        body = Array(body.dropFirst())
-                    }
-                    segments.append(.code(filename: filename, language: codeLang, body: body.joined(separator: "\n")))
-                    codeLines = []
-                    inCode = false
-                } else {
-                    codeLines.append(line)
-                }
-            } else if line.hasPrefix("```") {
-                flushProse()
-                codeLang = String(line.dropFirst(3)).trimmingCharacters(in: .whitespaces)
-                if codeLang.isEmpty { codeLang = "swift" }
-                inCode = true
-            } else if line.hasPrefix("> KEY:") {
-                flushProse()
-                let idea = String(line.dropFirst(6)).trimmingCharacters(in: .whitespaces)
-                segments.append(.keyIdea(idea))
-            } else {
-                proseLines.append(line)
-            }
-        }
-        flushProse()
-        return segments
-    }
-}
-
 // MARK: - LessonReaderView
 
 struct LessonReaderView: View {
@@ -175,7 +119,43 @@ struct LessonReaderView: View {
             .padding(14)
             .background(DSColor.actionTint)
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        case .heading(let title):
+            Text(title)
+                .font(DSFont.headline)
+                .foregroundStyle(DSColor.label)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 4)
+        case .bulletList(let items):
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                    listRow(marker: "•", text: item)
+                }
+            }
+        case .numberedList(let items):
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                    listRow(marker: "\(index + 1).", text: item)
+                }
+            }
         }
+    }
+
+    /// Shared row for both list kinds. The marker column is fixed-width so
+    /// wrapped lines align under the text, not under the marker.
+    private func listRow(marker: String, text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(marker)
+                .font(DSFont.body)
+                .foregroundStyle(DSColor.secondaryLabel)
+                .frame(minWidth: 20, alignment: .trailing)
+            if let attributed = try? AttributedString(markdown: text) {
+                Text(attributed).font(DSFont.body)
+            } else {
+                Text(text).font(DSFont.body)
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Mark complete
