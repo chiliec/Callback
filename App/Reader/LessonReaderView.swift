@@ -120,7 +120,9 @@ struct LessonReaderView: View {
             .background(DSColor.actionTint)
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         case .heading(let title):
-            Text(title)
+            // Markdown-parsed like prose: headings such as "### What `async` marks"
+            // otherwise show their backticks verbatim.
+            Text((try? AttributedString(markdown: title)) ?? AttributedString(title))
                 .font(DSFont.headline)
                 .foregroundStyle(DSColor.label)
                 .frame(maxWidth: .infinity, alignment: .leading)

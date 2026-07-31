@@ -79,6 +79,34 @@ import Testing
     #expect(idea == "Values copy, references share.")
 }
 
+@Test func blankLineSplitsProseIntoSeparateParagraphs() {
+    // One segment per paragraph: `AttributedString(markdown:)` throws away block
+    // structure, so a merged block renders as "first paragraph.Second paragraph."
+    let segments = LessonBodyParser.parse("First para.\n\n**Second para:**\n\nThird para.")
+    #expect(segments.count == 3)
+    guard case .prose(let a) = segments[0], case .prose(let b) = segments[1],
+          case .prose(let c) = segments[2] else {
+        Issue.record("expected three prose segments, got \(segments)"); return
+    }
+    #expect(a == "First para.")
+    #expect(b == "**Second para:**")
+    #expect(c == "Third para.")
+}
+
+@Test func softWrappedLinesStayInOneParagraph() {
+    let segments = LessonBodyParser.parse("A sentence\ncontinued on the next line.")
+    #expect(segments.count == 1)
+    guard case .prose(let body) = segments[0] else {
+        Issue.record("expected one prose segment"); return
+    }
+    #expect(body == "A sentence\ncontinued on the next line.")
+}
+
+@Test func runsOfBlankLinesDoNotProduceEmptyParagraphs() {
+    let segments = LessonBodyParser.parse("One.\n\n\n \n\nTwo.")
+    #expect(segments.count == 2)
+}
+
 @Test func markersInsideFencedCodeAreNotParsedAsBlocks() {
     let body = "```swift\n// - not a bullet\n// ## not a heading\n```"
     let segments = LessonBodyParser.parse(body)

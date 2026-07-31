@@ -22,10 +22,25 @@ public struct LessonBodyParser {
         var codeLang = ""
         var codeLines: [String] = []
 
+        /// One segment per blank-line-separated paragraph. The reader renders prose
+        /// through `AttributedString(markdown:)`, which discards block structure —
+        /// two paragraphs in one segment come out as "…first.Second…".
         func flushProse() {
-            let block = proseLines.joined(separator: "\n")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            if !block.isEmpty { segments.append(.prose(block)) }
+            var paragraph: [String] = []
+            func emit() {
+                let text = paragraph.joined(separator: "\n")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if !text.isEmpty { segments.append(.prose(text)) }
+                paragraph = []
+            }
+            for line in proseLines {
+                if line.trimmingCharacters(in: .whitespaces).isEmpty {
+                    emit()
+                } else {
+                    paragraph.append(line)
+                }
+            }
+            emit()
             proseLines = []
         }
 
