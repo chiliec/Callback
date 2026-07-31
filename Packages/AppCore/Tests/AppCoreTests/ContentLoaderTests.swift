@@ -267,6 +267,43 @@ private let sampleJSON = """
     #expect(Set(bundle.topics.map(\.id)).count == bundle.topics.count)
 }
 
+@Test func reseedingIdenticalContentPreservesOptionObjects() throws {
+    let container = try AppModelContainer.make(inMemory: true)
+    let context = ModelContext(container)
+    let bundle = try ContentLoader.decode(Data(sampleJSON.utf8))
+
+    ContentLoader.seed(bundle, into: context)
+    try context.save()
+    let before = try context.fetch(FetchDescriptor<Option>())
+    let beforeIDs = Set(before.map(\.persistentModelID))
+    #expect(!beforeIDs.isEmpty)
+
+    ContentLoader.seed(bundle, into: context)   // same content again
+    try context.save()
+    let after = try context.fetch(FetchDescriptor<Option>())
+
+    #expect(after.count == before.count, "option count changed on an identical re-seed")
+    #expect(Set(after.map(\.persistentModelID)) == beforeIDs,
+            "options were rebuilt despite identical content")
+}
+
+@Test func reseedingChangedOptionsDoesRebuildThem() throws {
+    let container = try AppModelContainer.make(inMemory: true)
+    let context = ModelContext(container)
+    ContentLoader.seed(try ContentLoader.decode(Data(sampleJSON.utf8)), into: context)
+    try context.save()
+
+    let edited = sampleJSON.replacingOccurrences(
+        of: "\"text\": \"struct\"", with: "\"text\": \"A struct\"")
+    #expect(edited != sampleJSON, "fixture text not found — update this test's needle")
+    ContentLoader.seed(try ContentLoader.decode(Data(edited.utf8)), into: context)
+    try context.save()
+
+    let texts = try context.fetch(FetchDescriptor<Option>()).map(\.text)
+    #expect(texts.contains("A struct"))
+    #expect(!texts.contains("struct"))
+}
+
 @Test func bundledContentThrowsOnAMissingTopicFile() {
     #expect(throws: (any Error).self) {
         try ContentLoader.assembleContent(manifestName: "content-manifest-missing-fixture")

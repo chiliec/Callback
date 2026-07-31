@@ -146,13 +146,30 @@ public enum ContentLoader {
         question.correctIndex = dto.correctIndex
         question.rubric = dto.rubric
         question.levelRaw = dto.level.rawValue
-        for opt in question.options { context.delete(opt) }
-        question.options = dto.options.enumerated().map { idx, o in
-            Option(text: o.text, isMonospaced: o.isMonospaced, order: idx)
+        // Rewrite options only when they actually differ. A version bump would
+        // otherwise delete and re-insert every option in the store on the main
+        // actor during launch. Order matters, so compare as ordered pairs.
+        let incoming = dto.options.map { ($0.text, $0.isMonospaced) }
+        let existing = question.options
+            .sorted { $0.order < $1.order }
+            .map { ($0.text, $0.isMonospaced) }
+        if !(incoming.count == existing.count
+             && zip(incoming, existing).allSatisfy { $0 == $1 }) {
+            for opt in question.options { context.delete(opt) }
+            question.options = dto.options.enumerated().map { idx, o in
+                Option(text: o.text, isMonospaced: o.isMonospaced, order: idx)
+            }
         }
-        if let old = question.codeSnippet { context.delete(old) }
-        question.codeSnippet = dto.codeSnippet.map {
-            CodeSnippet(filename: $0.filename, language: $0.language, code: $0.code)
+
+        // Same reasoning for the snippet.
+        let snippetChanged = question.codeSnippet?.filename != dto.codeSnippet?.filename
+            || question.codeSnippet?.language != dto.codeSnippet?.language
+            || question.codeSnippet?.code != dto.codeSnippet?.code
+        if snippetChanged {
+            if let old = question.codeSnippet { context.delete(old) }
+            question.codeSnippet = dto.codeSnippet.map {
+                CodeSnippet(filename: $0.filename, language: $0.language, code: $0.code)
+            }
         }
     }
 }
