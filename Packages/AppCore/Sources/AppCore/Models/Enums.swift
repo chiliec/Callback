@@ -18,8 +18,8 @@ public enum QuestionKind: String, Codable, Sendable, CaseIterable {
     }
 }
 
-public enum SessionKind: String, Codable, Sendable {
-    case mock, rapidFire, codeReview, systemDesign
+public enum SessionKind: String, Codable, Sendable, CaseIterable {
+    case mock, rapidFire, codeReview, systemDesign, behavioral
 }
 
 public enum Level: String, Codable, Sendable, CaseIterable {

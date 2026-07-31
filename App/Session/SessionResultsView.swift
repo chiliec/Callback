@@ -69,6 +69,7 @@ struct SessionResultsView: View {
         case .rapidFire:    return "Rapid Fire"
         case .codeReview:   return "Code Review"
         case .systemDesign: return "System Design"
+        case .behavioral:   return "Behavioral"
         }
     }
 

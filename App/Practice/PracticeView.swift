@@ -94,6 +94,8 @@ struct PracticeView: View {
         DrillSpec(kind: .rapidFire, title: "Rapid Fire", icon: "bolt", minutes: 10, maxQuestions: 10),
         DrillSpec(kind: .codeReview, title: "Code Review", icon: "chevron.left.forwardslash.chevron.right", minutes: 15, maxQuestions: 8),
         DrillSpec(kind: .systemDesign, title: "System Design", icon: "point.3.connected.trianglepath.dotted", minutes: 20, maxQuestions: 6),
+        DrillSpec(kind: .behavioral, title: "Behavioral", icon: "message",
+                  minutes: 15, maxQuestions: 6),
     ]
 
     private var timedDrillsSection: some View {
@@ -230,6 +232,7 @@ struct PracticeView: View {
         case .rapidFire:    return "Rapid Fire"
         case .codeReview:   return "Code Review"
         case .systemDesign: return "System Design"
+        case .behavioral:   return "Behavioral"
         }
     }
 

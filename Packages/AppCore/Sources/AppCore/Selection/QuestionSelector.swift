@@ -19,6 +19,8 @@ public enum QuestionSelector {
             return questions.filter { $0.kind == .code }
         case .systemDesign:
             return questions.filter { $0.kind == .systemDesign }
+        case .behavioral:
+            return questions.filter { $0.kind == .behavioral }
         case .mock:
             return questions
         }

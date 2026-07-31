@@ -305,3 +305,23 @@ private func makeTopic(
     let second = QuestionSelector.placementQuestions(from: [t], count: 12).map(\.id)
     #expect(first == second)
 }
+
+@MainActor
+@Test func behavioralDrillTakesOnlyBehavioralQuestions() throws {
+    let context = ModelContext(try AppModelContainer.make(inMemory: true))
+    let t = makeTopic(id: "behavioral", order: 0, kinds: [
+        (.multipleChoice, .mid), (.behavioral, .mid), (.systemDesign, .mid)
+    ], in: context)
+    let eligible = QuestionSelector.eligible(t.questions, for: .behavioral)
+    #expect(eligible.map(\.kind) == [.behavioral])
+}
+
+@MainActor
+@Test func behavioralDrillIsAvailableFromTheExistingPool() throws {
+    // The 10 shipped behavioral questions already exceed the drill's 6-question
+    // draw, so the drill must not render as "Coming soon" in phase 1.
+    let context = ModelContext(try AppModelContainer.make(inMemory: true))
+    let t = makeTopic(id: "behavioral", order: 0,
+                      kinds: Array(repeating: (.behavioral, .mid), count: 10), in: context)
+    #expect(QuestionSelector.availableCount(in: t.questions, for: .behavioral) >= 6)
+}
