@@ -158,7 +158,7 @@ private let sampleJSON = """
                 if let ci = q.correctIndex {
                     #expect(ci >= 0 && ci < q.options.count)
                 }
-            case .behavioral:
+            case .behavioral, .systemDesign:
                 #expect(q.correctIndex == nil)
                 #expect(q.codeSnippet == nil)
                 #expect(q.options.isEmpty)

@@ -55,3 +55,18 @@ private func makeQuestion(kind: QuestionKind, correctIndex: Int?) -> Question {
     )
     #expect(wrong.credit == 0)
 }
+
+@Test func systemDesignQuestionIsSelfRated() {
+    #expect(QuestionKind.systemDesign.isSelfRated)
+    #expect(QuestionKind.behavioral.isSelfRated)
+    #expect(!QuestionKind.multipleChoice.isSelfRated)
+    #expect(!QuestionKind.code.isSelfRated)
+}
+
+@Test func systemDesignGradesFromSelfRating() {
+    let q = makeQuestion(kind: .systemDesign, correctIndex: nil)
+    #expect(Grading.isCorrect(question: q, pickedIndex: nil, selfRating: .strong))
+    #expect(Grading.isCorrect(question: q, pickedIndex: nil, selfRating: .ok))
+    #expect(!Grading.isCorrect(question: q, pickedIndex: nil, selfRating: .weak))
+    #expect(!Grading.isCorrect(question: q, pickedIndex: nil, selfRating: nil))
+}

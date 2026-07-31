@@ -4,8 +4,18 @@ public enum TopicSection: String, Codable, Sendable, CaseIterable {
     case fundamentals, frameworks, craft
 }
 
-public enum QuestionKind: String, Codable, Sendable {
-    case multipleChoice, code, behavioral
+public enum QuestionKind: String, Codable, Sendable, CaseIterable {
+    case multipleChoice, code, behavioral, systemDesign
+
+    /// Kinds with no gradable key — the user's `SelfRating` is the grade.
+    /// `Grading.isCorrect` and `ScoringEngine` already handle these via
+    /// `SelfRating.credit`; this exists so call sites don't enumerate kinds.
+    public var isSelfRated: Bool {
+        switch self {
+        case .behavioral, .systemDesign: return true
+        case .multipleChoice, .code: return false
+        }
+    }
 }
 
 public enum SessionKind: String, Codable, Sendable {
