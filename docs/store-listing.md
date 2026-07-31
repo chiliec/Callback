@@ -69,3 +69,35 @@ Get the callback.
 Callback is fully offline. No account or sign-in is required — launch the app
 and everything is immediately available. First launch offers an optional
 placement quiz which can be skipped with the Skip button.
+
+## TestFlight
+
+Pushed by `scripts/asc_testflight.rb`. "Beta app description" and "Beta
+feedback email" are app-level Beta App Information; "What to test" is per-build.
+
+**Beta app description:**
+Callback is an offline iOS interview-prep app — lessons, question drills, timed
+mock interviews, and a review queue that resurfaces whatever you got wrong.
+There is no account and no network access of any kind; everything runs on your
+device.
+
+**Beta feedback email:** vovababin@gmail.com
+
+**Beta group:** Public Beta
+
+**Public link limit:** 100
+
+**What to test:**
+Please focus on the Behavioral topic — it was broken in earlier builds and is
+new in this one.
+
+• Open Topics → Behavioral → run the drill. Each question shows a model-answer
+rubric, then asks you to rate yourself Shaky, Decent, or Solid. Confirm the
+drill can be completed end to end and that the Next/Finish button always
+advances.
+• Start a mock interview and let it draw a Behavioral question. Confirm the
+session doesn't stall on it.
+• Check that the Behavioral topic's mastery percentage moves after rating —
+Shaky counts as no credit, Decent as half, Solid as full.
+• Anything else worth a look: backgrounding the app mid-mock (the timer should
+survive), VoiceOver, and large Dynamic Type sizes.
