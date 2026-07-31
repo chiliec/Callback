@@ -72,10 +72,10 @@ struct PracticeView: View {
                 .font(DSFont.headline)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(allQuestions.isEmpty ? DSColor.action.opacity(0.3) : DSColor.action)
+                .background(availableCount(for: .mock) == 0 ? DSColor.action.opacity(0.3) : DSColor.action)
                 .foregroundStyle(.white)
                 .clipShape(RoundedRectangle(cornerRadius: DSRadius.button, style: .continuous))
-                .disabled(allQuestions.isEmpty)
+                .disabled(availableCount(for: .mock) == 0)
             }
         }
     }
@@ -152,7 +152,8 @@ struct PracticeView: View {
                     Text(spec.title)
                         .font(DSFont.body)
                         .foregroundStyle(DSColor.label)
-                    Text("\(spec.minutes) min")
+                    Text(availableCount(for: spec.kind) == 0
+                         ? "Coming soon" : "\(spec.minutes) min")
                         .font(DSFont.footnote)
                         .foregroundStyle(DSColor.secondaryLabel)
                 }
@@ -163,9 +164,10 @@ struct PracticeView: View {
             }
             .padding(.horizontal, 16)
             .frame(minHeight: DSSpacing.rowMinHeight)
+            .opacity(availableCount(for: spec.kind) == 0 ? 0.4 : 1)
         }
         .buttonStyle(.plain)
-        .disabled(allQuestions.isEmpty)
+        .disabled(availableCount(for: spec.kind) == 0)
     }
 
     // MARK: Recent sessions
@@ -233,8 +235,40 @@ struct PracticeView: View {
 
     // MARK: Session factory
 
+    /// Screenshot captures must be reproducible, so `--demo-seed` runs draw from
+    /// a fixed seed instead of the system RNG.
+    private static let isDemoSeed = ProcessInfo.processInfo.arguments.contains("--demo-seed")
+
+    /// Question id → most recent answer date, so `QuestionSelector` can prefer
+    /// questions the user hasn't seen lately. Derived from the `AnswerRecord`s
+    /// already queried by this view rather than stored on `Question`, which keeps
+    /// the selector pure and adds no schema field.
+    private var lastSeenAt: [String: Date] {
+        var out: [String: Date] = [:]
+        for a in answers {
+            if let seen = out[a.questionID] {
+                if a.answeredAt > seen { out[a.questionID] = a.answeredAt }
+            } else {
+                out[a.questionID] = a.answeredAt
+            }
+        }
+        return out
+    }
+
     private func startSession(kind: SessionKind, totalSeconds: Int, maxQuestions: Int) {
-        let questions = Array(allQuestions.shuffled().prefix(maxQuestions))
+        let seen = lastSeenAt
+        var questions: [Question]
+        if Self.isDemoSeed {
+            var rng = SeededRandomNumberGenerator(seed: 20260731)
+            questions = QuestionSelector.select(
+                from: allQuestions, kind: kind, level: selectedLevel,
+                count: maxQuestions, lastSeenAt: seen, using: &rng)
+        } else {
+            var rng = SystemRandomNumberGenerator()
+            questions = QuestionSelector.select(
+                from: allQuestions, kind: kind, level: selectedLevel,
+                count: maxQuestions, lastSeenAt: seen, using: &rng)
+        }
         guard !questions.isEmpty else { return }
         activeMockSession = MockSession(
             sessionKind: kind,
@@ -242,6 +276,10 @@ struct PracticeView: View {
             questions: questions,
             totalSeconds: totalSeconds
         )
+    }
+
+    private func availableCount(for kind: SessionKind) -> Int {
+        QuestionSelector.availableCount(in: allQuestions, for: kind)
     }
 }
 
