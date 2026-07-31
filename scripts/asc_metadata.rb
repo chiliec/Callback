@@ -11,105 +11,16 @@
 # Review-contact details are personal, so they come from the environment and are
 # never committed: ASC_CONTACT_FIRST, ASC_CONTACT_LAST, ASC_CONTACT_EMAIL,
 # ASC_CONTACT_PHONE. Omit them and the review-details step is skipped.
-require_relative "asc_client"
+require_relative "asc_listing"
 
 BUNDLE  = "cx.viz.callback"
 VERSION = "0.1.0"
-LOCALE  = "en-US"
-ROOT    = File.expand_path("..", __dir__)
-LISTING = File.join(ROOT, "docs", "store-listing.md")
 SHOTS   = File.join(ROOT, "docs", "store-assets", "ios")
 # The API has no APP_IPHONE_69: 6.9" images (1320x2868) go in the 6.7" set,
 # which is the largest iPhone display type it accepts.
 DISPLAY = "APP_IPHONE_67"
 
-DRY_RUN          = ARGV.include?("--dry-run")
 SKIP_SCREENSHOTS = ARGV.include?("--skip-screenshots")
-
-LIMITS = {
-  "Name" => 30, "Subtitle" => 30, "Keywords" => 100,
-  "Promotional text" => 170, "Description" => 4000, "Release notes" => 4000
-}.freeze
-
-# --- listing file ------------------------------------------------------------
-
-# Reflows a hard-wrapped markdown block into App Store prose: blank lines stay
-# as paragraph breaks, "•" starts a new line, everything else joins with a space.
-def reflow(text)
-  text.split(/\n{2,}/).map { |para|
-    lines = para.split("\n").map(&:strip).reject(&:empty?)
-    out = []
-    lines.each do |line|
-      if line.start_with?("•") || out.empty?
-        out << line
-      else
-        out[-1] = "#{out[-1]} #{line}"
-      end
-    end
-    out.join("\n")
-  }.join("\n\n").strip
-end
-
-def parse_listing(path)
-  fields = {}
-  key = nil
-  File.readlines(path).each do |line|
-    if (m = line.match(/^\*\*(.+?):\*\*[ \t]*(.*)$/))
-      key = m[1]
-      fields[key] = m[2].to_s
-    elsif key
-      fields[key] = "#{fields[key]}\n#{line.chomp}"
-    end
-  end
-  fields.each { |k, v| fields[k] = reflow(v) }
-  fields
-end
-
-LISTING_FIELDS = parse_listing(LISTING)
-
-def field(name)
-  value = LISTING_FIELDS[name]
-  abort "missing '**#{name}:**' in #{LISTING}" if value.nil? || value.empty?
-  limit = LIMITS[name]
-  if limit && value.length > limit
-    abort "'#{name}' is #{value.length} chars, limit #{limit}"
-  end
-  value
-end
-
-# --- request helpers ---------------------------------------------------------
-
-def check(label, result)
-  code, body = result
-  ok = code >= 200 && code < 300
-  puts "  HTTP #{code}  #{label}"
-  unless ok
-    errors = body.is_a?(Hash) ? Array(body["errors"]) : []
-    errors.each { |e| puts "        #{e['title']}: #{e['detail']}" }
-    puts "        #{body.inspect[0, 400]}" if errors.empty?
-  end
-  [ok, body]
-end
-
-def write(verb, path, body, label)
-  if DRY_RUN
-    puts "  DRY  #{verb.to_s.upcase} #{path}"
-    puts "       #{JSON.dump(body)[0, 500]}" if body
-    return [true, nil]
-  end
-  check(label, ASCClient.send(verb, *[path, body].compact))
-end
-
-def patch_attrs(path, type, id, attributes, label)
-  write(:patch, path, { data: { type: type, id: id, attributes: attributes } }, label)
-end
-
-def fetch!(path, label)
-  code, body = ASCClient.get(path)
-  abort "GET #{path} failed: HTTP #{code} #{body.inspect[0, 300]}" unless code == 200
-  puts "  HTTP #{code}  #{label}" if label
-  body
-end
 
 # --- 1. app ------------------------------------------------------------------
 
@@ -276,17 +187,9 @@ if contact.values.all? { |v| v && !v.empty? }
   attrs = contact.merge(notes: field("Review notes"), demoAccountRequired: false)
   details = DRY_RUN ? nil : ASCClient.get("/v1/appStoreVersions/#{version_id}/appStoreReviewDetail")[1]
   existing_id = details.is_a?(Hash) ? details.dig("data", "id") : nil
-  if existing_id
-    patch_attrs("/v1/appStoreReviewDetails/#{existing_id}", "appStoreReviewDetails",
-                existing_id, attrs, "review contact + notes")
-  else
-    write(:post, "/v1/appStoreReviewDetails", {
-      data: {
-        type: "appStoreReviewDetails", attributes: attrs,
-        relationships: { appStoreVersion: { data: { type: "appStoreVersions", id: version_id } } }
-      }
-    }, "review contact + notes")
-  end
+  upsert("appStoreReviewDetails", "appStoreReviewDetails", existing_id, attrs,
+         { appStoreVersion: { data: { type: "appStoreVersions", id: version_id } } },
+         "review contact + notes")
 else
   puts "  SKIP ASC_CONTACT_* not set — enter review contact details in the browser"
 end
