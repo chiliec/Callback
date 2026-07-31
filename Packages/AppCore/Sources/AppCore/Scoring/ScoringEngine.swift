@@ -13,15 +13,20 @@ public struct ScoringEngine: Sendable {
 
     /// Recency-weighted accuracy → 0...100. `correctness` is chronological (oldest first).
     public func mastery(fromChronological correctness: [Bool]) -> Int {
-        guard !correctness.isEmpty else { return 0 }
-        let n = correctness.count
+        mastery(fromChronologicalCredit: correctness.map { $0 ? 1 : 0 })
+    }
+
+    /// Recency-weighted credit → 0...100. `credits` (each 0...1) is chronological (oldest first).
+    public func mastery(fromChronologicalCredit credits: [Double]) -> Int {
+        guard !credits.isEmpty else { return 0 }
+        let n = credits.count
         var weighted = 0.0
         var total = 0.0
-        for (i, correct) in correctness.enumerated() {
+        for (i, credit) in credits.enumerated() {
             let age = Double(n - 1 - i)          // newest has age 0
             let w = pow(decay, age)
             total += w
-            if correct { weighted += w }
+            weighted += w * credit
         }
         return Int((weighted / total * 100).rounded())
     }

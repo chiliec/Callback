@@ -9,6 +9,7 @@ public struct ReviewItem: Sendable, Identifiable {
     public let wasWrong: Bool
     public let isFlagged: Bool
     public let answeredAt: Date
+    public let selfRating: SelfRating?
     public var id: String { questionID }
 }
 
@@ -31,7 +32,7 @@ public enum ReviewQueue {
             ReviewItem(questionID: $0.questionID, topicID: $0.topicID,
                        pickedIndex: $0.pickedIndex,
                        wasWrong: !$0.isCorrect, isFlagged: $0.isFlagged,
-                       answeredAt: $0.answeredAt)
+                       answeredAt: $0.answeredAt, selfRating: $0.selfRating)
         }
 
         let filtered: [ReviewItem]

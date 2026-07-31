@@ -28,7 +28,9 @@ struct ReviewItemView: View {
                     CodeBlock(filename: cs.filename, language: cs.language, code: cs.code)
                 }
 
-                if question.kind != .behavioral {
+                if question.kind == .behavioral {
+                    behavioralAnswerSection
+                } else {
                     answersSection
                 }
 
@@ -135,6 +137,18 @@ struct ReviewItemView: View {
         return question.options.first(where: { $0.order == picked })?.text
     }
 
+    // MARK: - Behavioral answer section
+
+    private var behavioralAnswerSection: some View {
+        let rating = entry.item.selfRating
+        return answerRow(
+            label: "You rated yourself",
+            text: rating?.label ?? "Skipped",
+            isCorrect: rating?.countsAsCorrect ?? false,
+            icon: (rating?.countsAsCorrect ?? false) ? "checkmark.circle.fill" : "xmark.circle.fill"
+        )
+    }
+
     private func answerRow(label: String, text: String, isCorrect: Bool, icon: String) -> some View {
         GroupedCard {
             HStack(spacing: 12) {
@@ -164,7 +178,7 @@ struct ReviewItemView: View {
                 Text("Why")
                     .font(DSFont.footnote)
                     .foregroundStyle(DSColor.secondaryLabel)
-                Text(question.explanation)
+                Text(question.kind == .behavioral ? (question.rubric ?? question.explanation) : question.explanation)
                     .font(DSFont.body)
             }
         }

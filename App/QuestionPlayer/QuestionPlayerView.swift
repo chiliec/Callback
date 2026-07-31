@@ -60,8 +60,17 @@ struct QuestionPlayerView: View {
                     .accessibilityIdentifier("option-\(label)")
                 }
 
-                // Verdict + explanation (shown after answering)
-                if session.isAnswered {
+                // Verdict + explanation (shown after answering); self-assessment
+                // for behavioral questions renders before answering too — that's the fix.
+                if question.kind == .behavioral {
+                    SelfAssessCard(
+                        rubric: question.rubric ?? question.explanation,
+                        isRevealed: session.isGuidanceRevealed,
+                        selection: session.rating,
+                        onReveal: { session.revealGuidance() },
+                        onRate: { session.rate($0) }
+                    )
+                } else if session.isAnswered {
                     verdictView(question)
                 }
             }
@@ -117,8 +126,7 @@ struct QuestionPlayerView: View {
 
     @ViewBuilder
     private func verdictView(_ question: Question) -> some View {
-        let isBehavioral = question.kind == .behavioral
-        if !isBehavioral, let picked = session.pickedIndex {
+        if let picked = session.pickedIndex {
             let correct = question.correctIndex.map { picked == $0 } ?? false
             HStack(spacing: 6) {
                 Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
@@ -137,9 +145,9 @@ struct QuestionPlayerView: View {
 
         GroupedCard {
             VStack(alignment: .leading, spacing: 6) {
-                Text(isBehavioral ? "Guidance" : "Why")
+                Text("Why")
                     .font(DSFont.headline)
-                Text(isBehavioral ? (question.rubric ?? question.explanation) : question.explanation)
+                Text(question.explanation)
                     .font(DSFont.body)
                     .foregroundStyle(DSColor.secondaryLabel)
             }

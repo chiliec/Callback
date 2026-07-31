@@ -27,13 +27,9 @@ enum MockCompletion {
         let toReviewCount = (0..<mockSession.questions.count).filter { i in
             let q = mockSession.questions[i]
             let picked = i < mockSession.picks.count ? mockSession.picks[i] : nil
+            let rating = i < mockSession.ratings.count ? mockSession.ratings[i] : nil
             let flagged = i < mockSession.flags.count ? mockSession.flags[i] : false
-            let isCorrect: Bool
-            if let correct = q.correctIndex, let p = picked {
-                isCorrect = p == correct
-            } else {
-                isCorrect = false
-            }
+            let isCorrect = Grading.isCorrect(question: q, pickedIndex: picked, selfRating: rating)
             return !isCorrect || flagged
         }.count
 
@@ -50,13 +46,9 @@ enum MockCompletion {
         // 3. Insert AnswerRecords linked to the session and their topic.
         for (i, question) in mockSession.questions.enumerated() {
             let picked = i < mockSession.picks.count ? mockSession.picks[i] : nil
+            let rating = i < mockSession.ratings.count ? mockSession.ratings[i] : nil
             let flagged = i < mockSession.flags.count ? mockSession.flags[i] : false
-            let isCorrect: Bool
-            if let correct = question.correctIndex, let p = picked {
-                isCorrect = p == correct
-            } else {
-                isCorrect = false
-            }
+            let isCorrect = Grading.isCorrect(question: question, pickedIndex: picked, selfRating: rating)
             let record = AnswerRecord(
                 questionID: question.id,
                 topicID: question.topic?.id ?? "",
@@ -65,7 +57,8 @@ enum MockCompletion {
                 isFlagged: flagged,
                 // Sub-second offsets keep the in-session order intact for the
                 // chronological sort below; one shared `now` makes it arbitrary.
-                answeredAt: now.addingTimeInterval(Double(i) / 1000)
+                answeredAt: now.addingTimeInterval(Double(i) / 1000),
+                selfRating: rating
             )
             record.session = session
             context.insert(record)
@@ -77,13 +70,13 @@ enum MockCompletion {
             let topicRecords = (try? context.fetch(
                 FetchDescriptor<AnswerRecord>(predicate: #Predicate { $0.topicID == topicID })
             )) ?? []
-            let correctness = topicRecords
+            let credits = topicRecords
                 .sorted { $0.answeredAt < $1.answeredAt }
-                .map { $0.isCorrect }
+                .map { $0.credit }
             let topics = (try? context.fetch(
                 FetchDescriptor<Topic>(predicate: #Predicate { $0.id == topicID })
             )) ?? []
-            topics.first.map { $0.mastery = engine.mastery(fromChronological: correctness) }
+            topics.first.map { $0.mastery = engine.mastery(fromChronologicalCredit: credits) }
         }
 
         // 5. Recompute overall readiness from all topics.

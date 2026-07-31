@@ -126,6 +126,40 @@ struct MockSessionTests {
         #expect(s.isComplete)
     }
 
+    @Test func rateFlipsIsAnswered() {
+        let s = makeSession()
+        #expect(!s.isAnswered)
+        s.rate(.ok)
+        #expect(s.rating == .ok)
+        #expect(s.isAnswered)
+    }
+
+    @Test func advancingThenReturningRestoresIsAnsweredFromRating() {
+        let s = makeSession(count: 2)
+        s.rate(.strong)
+        s.advance()
+        #expect(!s.isAnswered)
+        s.rate(.weak)
+        s.advance()
+        #expect(s.isComplete)
+    }
+
+    @Test func reRatingOverwrites() {
+        let s = makeSession()
+        s.rate(.weak)
+        s.rate(.strong)
+        #expect(s.rating == .strong)
+    }
+
+    @Test func revealGuidanceIsPerIndex() {
+        let s = makeSession(count: 2)
+        s.revealGuidance()
+        #expect(s.isGuidanceRevealed)
+        s.rate(.ok)
+        s.advance()
+        #expect(!s.isGuidanceRevealed)
+    }
+
     @Test func progressReflectsCurrentIndex() {
         let s = makeSession(count: 4)
         // currentIndex = 0, progress = 1/4 = 0.25
