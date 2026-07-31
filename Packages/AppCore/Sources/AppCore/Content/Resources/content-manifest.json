@@ -1,0 +1,11 @@
+{
+  "version": 3,
+  "topics": [
+    "swift",
+    "memory",
+    "concurrency",
+    "swiftui",
+    "uikit",
+    "behavioral"
+  ]
+}

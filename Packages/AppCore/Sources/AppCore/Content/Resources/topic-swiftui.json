@@ -1,0 +1,392 @@
+{
+  "id": "swiftui",
+  "name": "SwiftUI",
+  "section": "frameworks",
+  "symbolName": "square.stack.3d.up.fill",
+  "colorToken": "swiftui",
+  "order": 3,
+  "lessons": [
+    {
+      "id": "swiftui-l1",
+      "order": 0,
+      "title": "View Identity & the Render Loop",
+      "estimatedMinutes": 4,
+      "body": "SwiftUI views are **value types** — plain structs. Every time your state changes, SwiftUI calls `body` again and produces a fresh struct. It then **diffs the view tree** against the previous one to decide what actually needs updating on screen.\n\nThis diff relies on **identity**. SwiftUI uses two kinds:\n\n- **Structural identity** — the view's type and position in the hierarchy. Most views get this automatically.\n- **Explicit identity** — assigned with the `.id()` modifier. Use this to tell SwiftUI \"this is a new view\" even if it appears in the same position.\n\nA view's **lifetime** is tied to its identity. As long as identity is stable, SwiftUI keeps the view alive and preserves its `@State`. The moment identity changes, SwiftUI destroys the old view and creates a fresh one — **all local state resets**.\n\nThis is why `ForEach` requires a stable `id` parameter. If ids change (e.g., using array indices on a mutable list), SwiftUI may destroy and recreate views unnecessarily, causing flickering and lost state.\n\n```swift\n// Stable string ids — state survives reorders\nForEach(items, id: \\.id) { item in\n    ItemRow(item: item)\n}\n```\n\nPrefer `Identifiable` conformance or a stable, unique property as the id. Avoid using array indices when the array can be reordered or filtered.",
+      "quickCheck": {
+        "id": "swiftui-l1-qc",
+        "kind": "multipleChoice",
+        "prompt": "What happens to a view's state when its identity changes?",
+        "explanation": "Identity is the key SwiftUI uses to find existing state storage. A new identity means SwiftUI treats it as a brand-new view — no state is carried over.",
+        "correctIndex": 0,
+        "rubric": null,
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "It is destroyed and recreated from scratch",
+            "isMonospaced": false
+          },
+          {
+            "text": "State is preserved across identity changes",
+            "isMonospaced": false
+          },
+          {
+            "text": "State is migrated to the new identity",
+            "isMonospaced": false
+          },
+          {
+            "text": "A runtime error is thrown",
+            "isMonospaced": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "swiftui-l2",
+      "order": 1,
+      "title": "State Management — @State, @Binding, @Observable, @Environment",
+      "estimatedMinutes": 5,
+      "body": "SwiftUI offers several property wrappers that drive reactivity. Choosing the right one is critical.\n\n**`@State`** — local, owned by the view. SwiftUI allocates persistent storage keyed to the view's identity. The struct is recreated every render, but the value survives. Use it for simple, private UI state.\n\n**`@Binding`** — a two-way reference into a parent's `@State`. The child view does not own the value; it reads and writes through the binding. Created via the `$` prefix on a `@State` property.\n\n```swift\nstruct Parent: View {\n    @State private var isOn = false\n    var body: some View {\n        Toggle(\"Enable\", isOn: $isOn)\n        Child(flag: $isOn)\n    }\n}\n\nstruct Child: View {\n    @Binding var flag: Bool\n    var body: some View {\n        Button(\"Toggle\") { flag.toggle() }\n    }\n}\n```\n\n**`@Observable`** (iOS 17+) — a macro applied to a class. Replaces `ObservableObject`. No `@Published` needed — SwiftUI automatically tracks exactly which properties a view reads and only re-renders when those change.\n\n**`@Environment`** — reads values injected by ancestor views via `.environment(_:_:)`. Useful for passing theme, locale, or shared services deep into a hierarchy without explicit prop-drilling.",
+      "quickCheck": {
+        "id": "swiftui-l2-qc",
+        "kind": "multipleChoice",
+        "prompt": "What does @Binding give you?",
+        "explanation": "@Binding is a derived reference — it points into a parent's @State storage. The child can read and write, but the parent owns the value and its lifetime.",
+        "correctIndex": 0,
+        "rubric": null,
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "A two-way reference to a parent's @State",
+            "isMonospaced": false
+          },
+          {
+            "text": "An independent copy of a value",
+            "isMonospaced": false
+          },
+          {
+            "text": "A strong reference to an ObservableObject",
+            "isMonospaced": false
+          },
+          {
+            "text": "A persistent storage entry",
+            "isMonospaced": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "swiftui-l3",
+      "order": 2,
+      "title": "Layout System — Stacks, Frames, GeometryReader",
+      "estimatedMinutes": 4,
+      "body": "SwiftUI's layout follows a clear protocol: **parent offers size, child chooses its own size, parent places it**. Understanding this removes most layout mysteries.\n\n**The three stacks:**\n- `HStack` — horizontal axis\n- `VStack` — vertical axis\n- `ZStack` — z-axis (front to back layering)\n\n**`.frame()`** lets you propose a specific size to a child or constrain it. `minWidth/maxWidth` create flexible ranges.\n\n**`Spacer`** expands to fill available space along the stack's axis, pushing siblings apart.\n\n**`layoutPriority`** controls which views shrink last when space is tight. Higher priority = last to compress (default is 0).\n\n```swift\nVStack {\n    Text(\"Header\")\n        .frame(maxWidth: .infinity, alignment: .leading)\n    Spacer()\n    HStack {\n        Text(\"Left\").layoutPriority(1)\n        Text(\"Right side with more content\")\n    }\n    .padding()\n    .frame(height: 44)\n}\n```\n\n**`GeometryReader`** gives you the parent's offered size at render time. It's powerful but has a cost: it expands to fill all available space and can cause unexpected layouts. Use it only when you genuinely need dynamic sizing — not as a default wrapper.\n\nCommon pitfall: wrapping a simple view in `GeometryReader` just to get the screen width. Prefer `.frame(maxWidth: .infinity)` or environment values instead.",
+      "quickCheck": {
+        "id": "swiftui-l3-qc",
+        "kind": "multipleChoice",
+        "prompt": "Which stack layers views along the z-axis (front to back)?",
+        "explanation": "ZStack places its children on top of one another along the z-axis. The last child in the closure appears on top visually.",
+        "correctIndex": 0,
+        "rubric": null,
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "ZStack",
+            "isMonospaced": true
+          },
+          {
+            "text": "HStack",
+            "isMonospaced": true
+          },
+          {
+            "text": "VStack",
+            "isMonospaced": true
+          },
+          {
+            "text": "LazyVStack",
+            "isMonospaced": true
+          }
+        ]
+      }
+    }
+  ],
+  "questions": [
+    {
+      "id": "swiftui-q1",
+      "kind": "multipleChoice",
+      "prompt": "What triggers SwiftUI to re-render a view's body?",
+      "explanation": "SwiftUI tracks which state the body accessed during the last render. Only changes to those specific dependencies trigger a new render — unread state is invisible.",
+      "correctIndex": 1,
+      "rubric": null,
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Any property on the view changes",
+          "isMonospaced": false
+        },
+        {
+          "text": "Only @State, @Binding, @Observable, or @Environment dependencies that the body reads change",
+          "isMonospaced": false
+        },
+        {
+          "text": "A timer fires",
+          "isMonospaced": false
+        },
+        {
+          "text": "The app becomes active",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "swiftui-q2",
+      "kind": "multipleChoice",
+      "prompt": "What is the difference between @State and @Binding?",
+      "explanation": "@State is the source of truth — the view owns the storage. @Binding is a reference into that storage, letting child views read and write the parent's value.",
+      "correctIndex": 1,
+      "rubric": null,
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "@State is for classes; @Binding is for structs",
+          "isMonospaced": false
+        },
+        {
+          "text": "@State owns the value and is local to a view; @Binding is a derived two-way reference to a parent's state",
+          "isMonospaced": false
+        },
+        {
+          "text": "They are interchangeable",
+          "isMonospaced": false
+        },
+        {
+          "text": "@Binding owns the value; @State is a read-only projection",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "swiftui-q3",
+      "kind": "multipleChoice",
+      "prompt": "@Observable (iOS 17+) vs ObservableObject: what changed?",
+      "explanation": "@Observable auto-tracks exactly which properties a view reads, publishing changes only for those — no per-property @Published boilerplate and finer-grained updates.",
+      "correctIndex": 1,
+      "rubric": null,
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "ObservableObject is faster; @Observable is for legacy compatibility",
+          "isMonospaced": false
+        },
+        {
+          "text": "@Observable uses a macro for automatic fine-grained observation without needing @Published on every property",
+          "isMonospaced": false
+        },
+        {
+          "text": "They work identically — @Observable is just a shorthand",
+          "isMonospaced": false
+        },
+        {
+          "text": "@Observable requires @StateObject; ObservableObject works with @State",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "swiftui-q4",
+      "kind": "multipleChoice",
+      "prompt": "Views in SwiftUI are value types. What does this mean for state?",
+      "explanation": "The struct itself is recreated every render cycle, but @State and @Binding are backed by SwiftUI's persistent storage — keyed to the view's identity, not the struct instance.",
+      "correctIndex": 1,
+      "rubric": null,
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "State must be stored in a class to persist",
+          "isMonospaced": false
+        },
+        {
+          "text": "SwiftUI manages state storage separately — the struct is recreated on each render but @State persists via SwiftUI's storage",
+          "isMonospaced": false
+        },
+        {
+          "text": "Views cannot have mutable state",
+          "isMonospaced": false
+        },
+        {
+          "text": "Value-type views are always re-created from scratch, losing all state",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "swiftui-q5",
+      "kind": "code",
+      "prompt": "What does this render?",
+      "explanation": "@State persists across re-renders and triggers body re-evaluation when mutated — each tap increments count and SwiftUI updates the label automatically.",
+      "correctIndex": 0,
+      "rubric": null,
+      "codeSnippet": {
+        "filename": "Counter.swift",
+        "language": "swift",
+        "code": "struct Counter: View {\n    @State private var count = 0\n    var body: some View {\n        Button(\"Count: \\(count)\") { count += 1 }\n    }\n}"
+      },
+      "options": [
+        {
+          "text": "A button that increments a counter and updates its label each tap",
+          "isMonospaced": false
+        },
+        {
+          "text": "A button that always shows 'Count: 0'",
+          "isMonospaced": false
+        },
+        {
+          "text": "Compile error — @State cannot be used in a struct",
+          "isMonospaced": false
+        },
+        {
+          "text": "A button that crashes on tap",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "swiftui-q6",
+      "kind": "multipleChoice",
+      "prompt": "When does `.onAppear` fire?",
+      "explanation": ".onAppear runs once when the view becomes part of the visible hierarchy — not on every re-render. Its pair, .onDisappear, fires when the view is removed.",
+      "correctIndex": 1,
+      "rubric": null,
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "When the view struct is initialized",
+          "isMonospaced": false
+        },
+        {
+          "text": "When the view is first inserted into the visible hierarchy",
+          "isMonospaced": false
+        },
+        {
+          "text": "Every time the view's body is re-evaluated",
+          "isMonospaced": false
+        },
+        {
+          "text": "When the view moves offscreen",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "swiftui-q7",
+      "kind": "code",
+      "prompt": "What is the layout result?",
+      "explanation": "layoutPriority determines which view keeps its ideal size when the stack must compress. Higher priority = last to shrink. Text A (priority 1) resists compression; B is compressed first.",
+      "correctIndex": 0,
+      "rubric": null,
+      "codeSnippet": {
+        "filename": "Layout.swift",
+        "language": "swift",
+        "code": "HStack {\n    Text(\"A\").layoutPriority(1)\n    Text(\"B very long string that needs space\")\n}"
+      },
+      "options": [
+        {
+          "text": "Text A gets space preference; Text B is compressed or truncated if needed",
+          "isMonospaced": false
+        },
+        {
+          "text": "Text B gets space preference because it is longer",
+          "isMonospaced": false
+        },
+        {
+          "text": "Both texts get equal space",
+          "isMonospaced": false
+        },
+        {
+          "text": "Compile error",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "swiftui-q8",
+      "kind": "multipleChoice",
+      "prompt": "How does @Environment differ from @State?",
+      "explanation": "@Environment provides a read path for values placed in the view hierarchy with `.environment(_:_:)` or `.environmentObject`. It enables implicit dependency injection across deep view trees.",
+      "correctIndex": 1,
+      "rubric": null,
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "@Environment is for primitive values; @State is for objects",
+          "isMonospaced": false
+        },
+        {
+          "text": "@Environment reads values injected by ancestor views (.environment modifier); @State is local to a single view",
+          "isMonospaced": false
+        },
+        {
+          "text": "They are identical in behavior",
+          "isMonospaced": false
+        },
+        {
+          "text": "@Environment owns the value; @State only reads it",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "swiftui-q9",
+      "kind": "multipleChoice",
+      "prompt": "`some View` as a return type means…",
+      "explanation": "`some View` is an opaque return type — the compiler knows the exact type but hides it. Unlike `AnyView`, it preserves type information for optimization. The same concrete type must be returned on every path.",
+      "correctIndex": 1,
+      "rubric": null,
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "The return type is an existential — any view type at runtime",
+          "isMonospaced": false
+        },
+        {
+          "text": "The return type is an opaque type — a specific concrete type the compiler infers, erasing its name but not its identity",
+          "isMonospaced": false
+        },
+        {
+          "text": "The function can return different view types on different calls",
+          "isMonospaced": false
+        },
+        {
+          "text": "It is equivalent to AnyView",
+          "isMonospaced": true
+        }
+      ]
+    },
+    {
+      "id": "swiftui-q10",
+      "kind": "multipleChoice",
+      "prompt": "What is the difference between @StateObject and @ObservedObject?",
+      "explanation": "@StateObject ties the object's lifetime to the view — created once, persists until the view is destroyed. @ObservedObject just subscribes to changes on an already-existing object passed from outside.",
+      "correctIndex": 1,
+      "rubric": null,
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "They are interchangeable",
+          "isMonospaced": false
+        },
+        {
+          "text": "@StateObject creates and owns the object (persists across re-renders); @ObservedObject receives an externally-owned object",
+          "isMonospaced": false
+        },
+        {
+          "text": "@ObservedObject creates the object; @StateObject observes it",
+          "isMonospaced": false
+        },
+        {
+          "text": "@StateObject is for value types; @ObservedObject for reference types",
+          "isMonospaced": false
+        }
+      ]
+    }
+  ]
+}

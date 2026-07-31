@@ -3,6 +3,18 @@ import Foundation
 public struct ContentBundle: Codable, Sendable {
     public let version: Int
     public let topics: [TopicDTO]
+
+    public init(version: Int, topics: [TopicDTO]) {
+        self.version = version
+        self.topics = topics
+    }
+}
+
+/// Index of the content bundle. `version` gates re-seeding; `topics` lists the
+/// `topic-<id>.json` files to load, in order.
+public struct ContentManifest: Codable, Sendable {
+    public let version: Int
+    public let topics: [String]
 }
 
 public struct TopicDTO: Codable, Sendable {

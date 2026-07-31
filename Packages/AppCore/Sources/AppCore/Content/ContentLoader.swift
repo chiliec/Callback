@@ -6,11 +6,44 @@ public enum ContentLoader {
         try JSONDecoder().decode(ContentBundle.self, from: data)
     }
 
-    public static func bundledContentData() throws -> Data {
-        guard let url = Bundle.module.url(forResource: "content-v1", withExtension: "json") else {
-            throw CocoaError(.fileNoSuchFile)
+    public enum ContentError: Error, CustomStringConvertible {
+        case missingResource(String)
+
+        public var description: String {
+            switch self {
+            case .missingResource(let name):
+                return "Content resource '\(name).json' is missing from the bundle."
+            }
+        }
+    }
+
+    /// The bundle holding the content JSON. Exposed to the module because
+    /// `Bundle.module` referenced from the *test* target resolves to the test
+    /// bundle, which carries no resources — `ContentValidationTests` needs this.
+    static let resourceBundle = Bundle.module
+
+    private static func resourceData(_ name: String) throws -> Data {
+        guard let url = resourceBundle.url(forResource: name, withExtension: "json") else {
+            throw ContentError.missingResource(name)
         }
         return try Data(contentsOf: url)
+    }
+
+    /// Assembles the bundle from the manifest plus one file per topic. A missing
+    /// or malformed topic file throws rather than silently yielding a short
+    /// bundle — a partial seed would look like deleted content to the user.
+    public static func assembleContent(manifestName: String = "content-manifest") throws -> ContentBundle {
+        let manifest = try JSONDecoder().decode(
+            ContentManifest.self, from: try resourceData(manifestName))
+        let decoder = JSONDecoder()
+        let topics = try manifest.topics.map { id in
+            try decoder.decode(TopicDTO.self, from: try resourceData("topic-\(id)"))
+        }
+        return ContentBundle(version: manifest.version, topics: topics)
+    }
+
+    public static func bundledContent() throws -> ContentBundle {
+        try assembleContent()
     }
 
     /// Upserts the content graph by id. Author-owned fields are updated; user-progress

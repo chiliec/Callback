@@ -72,15 +72,13 @@ private let sampleJSON = """
 }
 
 @Test func bundledContentDecodes() throws {
-    let data = try ContentLoader.bundledContentData()
-    let bundle = try ContentLoader.decode(data)
+    let bundle = try ContentLoader.bundledContent()
     #expect(bundle.version >= 1)
     #expect(bundle.topics.isEmpty == false)
 }
 
 @Test func contentBundleIsValid() throws {
-    let data = try ContentLoader.bundledContentData()
-    let bundle = try ContentLoader.decode(data)
+    let bundle = try ContentLoader.bundledContent()
 
     // Version 2+
     #expect(bundle.version >= 2)
@@ -260,4 +258,17 @@ private let sampleJSON = """
     let questions = try context.fetch(FetchDescriptor<Question>())
     #expect(!questions.isEmpty)
     #expect(questions.allSatisfy { Level(rawValue: $0.levelRaw) != nil })
+}
+
+@Test func bundledContentLoadsEveryTopicInTheManifest() throws {
+    let bundle = try ContentLoader.bundledContent()
+    #expect(bundle.version == 3)
+    #expect(bundle.topics.count == 6)   // becomes 7 in Task 13
+    #expect(Set(bundle.topics.map(\.id)).count == bundle.topics.count)
+}
+
+@Test func bundledContentThrowsOnAMissingTopicFile() {
+    #expect(throws: (any Error).self) {
+        try ContentLoader.assembleContent(manifestName: "content-manifest-missing-fixture")
+    }
 }
