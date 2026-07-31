@@ -19,6 +19,7 @@
         "explanation": "viewDidLoad fires a single time after the view hierarchy is loaded. viewWillAppear and viewDidAppear fire on every appearance, and loadView is for creating the view itself — not responding to it being loaded.",
         "correctIndex": 0,
         "rubric": null,
+        "level": "junior",
         "codeSnippet": null,
         "options": [
           {
@@ -53,6 +54,7 @@
         "explanation": "UIKit generates implicit constraints from a view's autoresizingMask unless you opt out. Setting translatesAutoresizingMaskIntoConstraints to false removes those implicit constraints so your manual ones can work without conflicts.",
         "correctIndex": 0,
         "rubric": null,
+        "level": "junior",
         "codeSnippet": null,
         "options": [
           {
@@ -87,6 +89,7 @@
         "explanation": "The delegating object is usually owned by its delegate (e.g. a VC owns its subview). If the subview held a strong reference back to the VC, both objects would keep each other alive indefinitely — a retain cycle. weak breaks the cycle.",
         "correctIndex": 0,
         "rubric": null,
+        "level": "junior",
         "codeSnippet": null,
         "options": [
           {
@@ -117,6 +120,7 @@
       "explanation": "viewDidLoad fires once when the view loads into memory. viewWillAppear fires before each appearance, viewDidAppear after — the sequence is always load → willAppear → didAppear on first show.",
       "correctIndex": 0,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": null,
       "options": [
         {
@@ -144,6 +148,7 @@
       "explanation": "frame locates the view in its parent's coordinate space. bounds describes the view's own coordinate space — its origin is usually (0,0) unless scrolled. Auto Layout works in bounds.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": null,
       "options": [
         {
@@ -171,6 +176,7 @@
       "explanation": "Table views can have thousands of rows but only a dozen cells visible. Cell reuse pools off-screen cells and recycles them, keeping memory usage proportional to the visible area.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "mid",
       "codeSnippet": null,
       "options": [
         {
@@ -198,6 +204,7 @@
       "explanation": "The view hierarchy already retains subviews strongly. A weak outlet lets the VC reference the view without inflating its retain count — when the view is removed, it deallocates normally.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": null,
       "options": [
         {
@@ -225,6 +232,7 @@
       "explanation": "UIKit was not built for concurrent access — modifying views from background threads produces unpredictable rendering artifacts or crashes. Always marshal UI updates to the main thread.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": null,
       "options": [
         {
@@ -252,6 +260,7 @@
       "explanation": "Priorities (1–1000) let Auto Layout gracefully resolve conflicting constraints. A required constraint (1000) must hold; lower priorities can be sacrificed to satisfy higher ones.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "senior",
       "codeSnippet": null,
       "options": [
         {
@@ -279,6 +288,7 @@
       "explanation": "`layoutSubviews` is called by UIKit during the layout pass triggered by `setNeedsLayout` (deferred) or `layoutIfNeeded` (immediate). Override it to do custom subview positioning after bounds are known.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "senior",
       "codeSnippet": null,
       "options": [
         {
@@ -306,6 +316,7 @@
       "explanation": "The responder chain starts at the first responder (usually the hit-tested view), then moves up through the view hierarchy, view controllers, window, and application until someone handles the event.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "senior",
       "codeSnippet": null,
       "options": [
         {
@@ -333,6 +344,7 @@
       "explanation": "DataSource answers 'what data to show' (numberOfRows, cellForRowAt). Delegate answers 'how to behave' (didSelectRowAt, heightForRowAt). Separating concerns lets you reuse the same data source with different interaction behaviors.",
       "correctIndex": 0,
       "rubric": null,
+      "level": "mid",
       "codeSnippet": null,
       "options": [
         {
@@ -360,6 +372,7 @@
       "explanation": "intrinsicContentSize tells Auto Layout the natural dimensions a view prefers based on its content (e.g. a label's text size). Content hugging and compression resistance work relative to this size.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "mid",
       "codeSnippet": null,
       "options": [
         {

@@ -19,6 +19,7 @@
         "explanation": "STAR is an acronym for Situation, Task, Action, Result — a four-part structure for answering behavioral interview questions.",
         "correctIndex": 0,
         "rubric": null,
+        "level": "junior",
         "codeSnippet": null,
         "options": [
           {
@@ -53,6 +54,7 @@
         "explanation": "Interviewers use failure questions to assess ownership and growth mindset, not to catalog mistakes. Demonstrating what concretely changed is what distinguishes a strong answer.",
         "correctIndex": 0,
         "rubric": null,
+        "level": "junior",
         "codeSnippet": null,
         "options": [
           {
@@ -87,6 +89,7 @@
         "explanation": "Quantified outcomes give interviewers a concrete reference point and make your contribution memorable. Numbers do not have to be perfect — estimates with clear scope work too.",
         "correctIndex": 0,
         "rubric": null,
+        "level": "junior",
         "codeSnippet": null,
         "options": [
           {
@@ -117,6 +120,7 @@
       "explanation": "Use STAR: Situation, Task, Action, Result. Focus on the resolution and what you learned.",
       "correctIndex": null,
       "rubric": "Strong answers name the disagreement concretely, show respect for the other view, describe how a decision was reached (data, prototype, escalation), and end with an outcome plus a lesson.",
+      "level": "mid",
       "codeSnippet": null,
       "options": []
     },
@@ -127,6 +131,7 @@
       "explanation": "Interviewers use this to understand your sense of ownership, what you value in your work, and how you distinguish your contribution from the team's.",
       "correctIndex": null,
       "rubric": "Strong answers describe the project scope and stakes, isolate the candidate's specific contributions, explain why the outcome was meaningful (user impact, technical innovation, deadline pressure), and reflect on what made collaboration or execution work well.",
+      "level": "junior",
       "codeSnippet": null,
       "options": []
     },
@@ -137,6 +142,7 @@
       "explanation": "Interviewers are assessing ownership and growth mindset — they want to see how you process setbacks, not just that you have had them.",
       "correctIndex": null,
       "rubric": "Strong answers own the failure clearly (no deflection to teammates or circumstances), describe the concrete impact, explain the root cause analysis, and articulate specific behavioral changes made afterward — showing growth over recovery.",
+      "level": "junior",
       "codeSnippet": null,
       "options": []
     },
@@ -147,6 +153,7 @@
       "explanation": "This reveals your prioritization judgment and how you communicate scope changes to stakeholders under pressure.",
       "correctIndex": null,
       "rubric": "Strong answers frame the original scope, identify the constraint clearly, explain the prioritization framework used (user impact, reversibility, risk), describe what was deferred vs. cut and why, and note the outcome and any follow-up.",
+      "level": "senior",
       "codeSnippet": null,
       "options": []
     },
@@ -157,6 +164,7 @@
       "explanation": "Interviewers use this to assess whether you invest in others and whether you can explain how you teach — a strong signal for senior and staff roles.",
       "correctIndex": null,
       "rubric": "Strong answers describe the peer's gap and context, explain the specific approach taken (pair programming, code review, documentation, 1:1s), measure the outcome (skill gained, velocity change, promotion), and reflect on what the candidate learned about teaching.",
+      "level": "mid",
       "codeSnippet": null,
       "options": []
     },
@@ -167,6 +175,7 @@
       "explanation": "This question surfaces self-awareness and coachability — whether you can hear hard things and act on them without defensiveness.",
       "correctIndex": null,
       "rubric": "Strong answers describe the feedback concretely (not vaguely), show the candidate's initial reaction honestly, then describe the deliberate action taken — changed behavior, new habit, follow-up with the feedback giver — and the improved outcome.",
+      "level": "junior",
       "codeSnippet": null,
       "options": []
     },
@@ -177,6 +186,7 @@
       "explanation": "Interviewers want to see how you operate when the path is unclear — whether you create clarity or wait for it to arrive.",
       "correctIndex": null,
       "rubric": "Strong answers describe what was unclear, explain how the candidate reduced ambiguity (stakeholder interviews, prototypes, explicit assumptions, incremental delivery), describe trade-offs made under uncertainty, and reflect on the result and lessons for future scoping.",
+      "level": "mid",
       "codeSnippet": null,
       "options": []
     },
@@ -187,6 +197,7 @@
       "explanation": "This tests engineering maturity and honest self-reflection — whether you can revisit past decisions without either defending them blindly or disowning them entirely.",
       "correctIndex": null,
       "rubric": "Strong answers name the decision specifically, explain the reasoning at the time (not just hindsight), identify what changed (new information, experience, different constraints), and describe what the improved approach would be — demonstrating engineering maturity over regret.",
+      "level": "senior",
       "codeSnippet": null,
       "options": []
     },
@@ -197,6 +208,7 @@
       "explanation": "Senior roles require horizontal influence — this question reveals whether you can align people who do not report to you and who have competing priorities.",
       "correctIndex": null,
       "rubric": "Strong answers describe the stakeholders, the candidate's strategy for alignment (data, demonstrations, building champions, framing for others' goals), specific resistances overcome, and the outcome — showing collaborative leadership beyond direct control.",
+      "level": "senior",
       "codeSnippet": null,
       "options": []
     },
@@ -207,6 +219,7 @@
       "explanation": "Interviewers are checking for genuine preparation and self-awareness — whether your goals align with what the role actually offers, not just what looks good to say.",
       "correctIndex": null,
       "rubric": "Strong answers name specific, concrete aspects of the role/company (product, stack, mission, team structure), connect them to the candidate's demonstrated strengths and growth areas, and articulate a mutual benefit — what the candidate brings and what they want to build. Generic answers ('great culture', 'exciting opportunity') score low.",
+      "level": "junior",
       "codeSnippet": null,
       "options": []
     }

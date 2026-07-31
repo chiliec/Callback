@@ -19,6 +19,7 @@
         "explanation": "Structs are value types — they are copied on assignment, giving each variable an independent instance. Classes are reference types that share identity.",
         "correctIndex": 0,
         "rubric": null,
+        "level": "junior",
         "codeSnippet": null,
         "options": [
           {
@@ -49,6 +50,7 @@
         "explanation": "The nil-coalescing operator returns the right-hand side when the left is nil, providing a default value without force unwrapping.",
         "correctIndex": 0,
         "rubric": null,
+        "level": "junior",
         "codeSnippet": null,
         "options": [
           {
@@ -83,6 +85,7 @@
         "explanation": "Default implementations are added via `extension` on the protocol — conforming types inherit the default but can override it with their own implementation.",
         "correctIndex": 0,
         "rubric": null,
+        "level": "junior",
         "codeSnippet": null,
         "options": [
           {
@@ -113,6 +116,7 @@
       "explanation": "Declarations are `internal` by default — visible within the module but not outside.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": null,
       "options": [
         {
@@ -140,6 +144,7 @@
       "explanation": "Arrays are value types using copy-on-write, so `b` is an independent copy; appending to `b` doesn't affect `a`.",
       "correctIndex": 0,
       "rubric": null,
+      "level": "mid",
       "codeSnippet": {
         "filename": "main.swift",
         "language": "swift",
@@ -163,6 +168,7 @@
       "explanation": "`let` on a reference type prevents reassigning the variable, but the instance's own stored properties can still be mutated.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "senior",
       "codeSnippet": null,
       "options": [
         {
@@ -190,6 +196,7 @@
       "explanation": "Optional chaining short-circuits to nil if any step in the chain is nil, safely returning an Optional of the final expression's type.",
       "correctIndex": 0,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": null,
       "options": [
         {
@@ -217,6 +224,7 @@
       "explanation": "`compactMap` removes nil values, leaving [1, 2, 3, 5] — count 4.",
       "correctIndex": 0,
       "rubric": null,
+      "level": "mid",
       "codeSnippet": {
         "filename": "main.swift",
         "language": "swift",
@@ -248,6 +256,7 @@
       "explanation": "Capturing `[weak self]` makes self optional inside the closure, breaking a potential retain cycle between the closure and the owning object.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "senior",
       "codeSnippet": null,
       "options": [
         {
@@ -275,6 +284,7 @@
       "explanation": "By default, methods on value types cannot modify self; `mutating` opts in to that capability and synthesizes a copy on mutation.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": null,
       "options": [
         {
@@ -302,6 +312,7 @@
       "explanation": "Associated values let each case carry distinct, typed payloads — enabling pattern matching over data-rich discriminated unions.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": null,
       "options": [
         {
@@ -329,6 +340,7 @@
       "explanation": "`defer` runs at the end of the enclosing scope, after the other statements — so A prints first, then B.",
       "correctIndex": 0,
       "rubric": null,
+      "level": "mid",
       "codeSnippet": {
         "filename": "main.swift",
         "language": "swift",
@@ -360,6 +372,7 @@
       "explanation": "`Result` is an enum making success/failure explicit at the type level, enabling structured error handling without try/catch.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "senior",
       "codeSnippet": null,
       "options": [
         {

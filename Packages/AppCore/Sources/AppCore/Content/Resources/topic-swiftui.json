@@ -19,6 +19,7 @@
         "explanation": "Identity is the key SwiftUI uses to find existing state storage. A new identity means SwiftUI treats it as a brand-new view — no state is carried over.",
         "correctIndex": 0,
         "rubric": null,
+        "level": "junior",
         "codeSnippet": null,
         "options": [
           {
@@ -53,6 +54,7 @@
         "explanation": "@Binding is a derived reference — it points into a parent's @State storage. The child can read and write, but the parent owns the value and its lifetime.",
         "correctIndex": 0,
         "rubric": null,
+        "level": "junior",
         "codeSnippet": null,
         "options": [
           {
@@ -87,6 +89,7 @@
         "explanation": "ZStack places its children on top of one another along the z-axis. The last child in the closure appears on top visually.",
         "correctIndex": 0,
         "rubric": null,
+        "level": "junior",
         "codeSnippet": null,
         "options": [
           {
@@ -117,6 +120,7 @@
       "explanation": "SwiftUI tracks which state the body accessed during the last render. Only changes to those specific dependencies trigger a new render — unread state is invisible.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": null,
       "options": [
         {
@@ -144,6 +148,7 @@
       "explanation": "@State is the source of truth — the view owns the storage. @Binding is a reference into that storage, letting child views read and write the parent's value.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "mid",
       "codeSnippet": null,
       "options": [
         {
@@ -171,6 +176,7 @@
       "explanation": "@Observable auto-tracks exactly which properties a view reads, publishing changes only for those — no per-property @Published boilerplate and finer-grained updates.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "senior",
       "codeSnippet": null,
       "options": [
         {
@@ -198,6 +204,7 @@
       "explanation": "The struct itself is recreated every render cycle, but @State and @Binding are backed by SwiftUI's persistent storage — keyed to the view's identity, not the struct instance.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "senior",
       "codeSnippet": null,
       "options": [
         {
@@ -225,6 +232,7 @@
       "explanation": "@State persists across re-renders and triggers body re-evaluation when mutated — each tap increments count and SwiftUI updates the label automatically.",
       "correctIndex": 0,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": {
         "filename": "Counter.swift",
         "language": "swift",
@@ -256,6 +264,7 @@
       "explanation": ".onAppear runs once when the view becomes part of the visible hierarchy — not on every re-render. Its pair, .onDisappear, fires when the view is removed.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": null,
       "options": [
         {
@@ -283,6 +292,7 @@
       "explanation": "layoutPriority determines which view keeps its ideal size when the stack must compress. Higher priority = last to shrink. Text A (priority 1) resists compression; B is compressed first.",
       "correctIndex": 0,
       "rubric": null,
+      "level": "senior",
       "codeSnippet": {
         "filename": "Layout.swift",
         "language": "swift",
@@ -314,6 +324,7 @@
       "explanation": "@Environment provides a read path for values placed in the view hierarchy with `.environment(_:_:)` or `.environmentObject`. It enables implicit dependency injection across deep view trees.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "mid",
       "codeSnippet": null,
       "options": [
         {
@@ -341,6 +352,7 @@
       "explanation": "`some View` is an opaque return type — the compiler knows the exact type but hides it. Unlike `AnyView`, it preserves type information for optimization. The same concrete type must be returned on every path.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": null,
       "options": [
         {
@@ -368,6 +380,7 @@
       "explanation": "@StateObject ties the object's lifetime to the view — created once, persists until the view is destroyed. @ObservedObject just subscribes to changes on an already-existing object passed from outside.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "mid",
       "codeSnippet": null,
       "options": [
         {

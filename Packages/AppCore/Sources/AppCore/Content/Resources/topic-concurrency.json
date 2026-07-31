@@ -19,6 +19,7 @@
         "explanation": "`await` pauses the task and releases the thread to the scheduler — the thread is free for other work while the result is pending. This is not a blocking wait.",
         "correctIndex": 0,
         "rubric": null,
+        "level": "junior",
         "codeSnippet": null,
         "options": [
           {
@@ -53,6 +54,7 @@
         "explanation": "Actors serialize access to their mutable state — the runtime queues concurrent callers and lets only one execute at a time, eliminating unsynchronized shared-state writes.",
         "correctIndex": 1,
         "rubric": null,
+        "level": "junior",
         "codeSnippet": null,
         "options": [
           {
@@ -87,6 +89,7 @@
         "explanation": "Structured concurrency guarantees that every child task finishes before the enclosing scope returns, preventing orphaned background work and making lifetimes predictable.",
         "correctIndex": 0,
         "rubric": null,
+        "level": "junior",
         "codeSnippet": null,
         "options": [
           {
@@ -117,6 +120,7 @@
       "explanation": "`await` is a suspension point — the task pauses and the thread is released for other work. The task resumes on an appropriate executor when the result is ready.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": null,
       "options": [
         {
@@ -144,6 +148,7 @@
       "explanation": "Actors are reentrant: a suspension at `await` lets other callers execute on the actor. This means actor state can change between two awaits in the same method — guard against that.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "senior",
       "codeSnippet": null,
       "options": [
         {
@@ -171,6 +176,7 @@
       "explanation": "`Task { }` inherits the current actor (e.g. @MainActor if called from a @MainActor context). `Task.detached` runs as a free agent — no actor inherited, useful when you explicitly don't want to capture the surrounding context.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "mid",
       "codeSnippet": null,
       "options": [
         {
@@ -198,6 +204,7 @@
       "explanation": "`async let` starts both child tasks immediately in parallel. Awaiting them collects results in declaration order regardless of which finishes first.",
       "correctIndex": 0,
       "rubric": null,
+      "level": "mid",
       "codeSnippet": null,
       "options": [
         {
@@ -225,6 +232,7 @@
       "explanation": "UIKit's view hierarchy is not thread-safe — modifying views from a background thread causes undefined behavior. `@MainActor` confines code to the main thread, making safety explicit and compiler-enforced.",
       "correctIndex": 0,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": null,
       "options": [
         {
@@ -252,6 +260,7 @@
       "explanation": "Cancellation in Swift is cooperative — `Task.isCancelled` lets you check the flag and exit early. Tasks don't stop automatically; you must check and respond.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": null,
       "options": [
         {
@@ -279,6 +288,7 @@
       "explanation": "`MainActor.run` lets non-main-actor code hop to the main actor to perform UI work in a single call, equivalent to a hopped `await` onto MainActor.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": null,
       "options": [
         {
@@ -306,6 +316,7 @@
       "explanation": "Two concurrent tasks mutating the same variable without synchronization is a data race. Swift's strict concurrency checking would flag this; the fix is an actor or a Sendable value type.",
       "correctIndex": 0,
       "rubric": null,
+      "level": "senior",
       "codeSnippet": {
         "filename": "DataRace.swift",
         "language": "swift",
@@ -337,6 +348,7 @@
       "explanation": "Sendable marks types safe for cross-actor or cross-task transfer. Value types are implicitly Sendable; classes must be explicitly made Sendable (usually by being immutable or internally synchronized).",
       "correctIndex": 1,
       "rubric": null,
+      "level": "mid",
       "codeSnippet": null,
       "options": [
         {
@@ -364,6 +376,7 @@
       "explanation": "Structured concurrency ensures child tasks complete before their parent scope exits, cancellation propagates automatically, and the async/await type system enforces correct usage — things DispatchQueue cannot offer.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "senior",
       "codeSnippet": null,
       "options": [
         {

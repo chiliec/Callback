@@ -19,6 +19,7 @@
         "explanation": "ARC tracks the retain count for every class instance. The moment that count reaches 0 — meaning no strong references remain — ARC immediately calls deinit and frees the memory.",
         "correctIndex": 0,
         "rubric": null,
+        "level": "junior",
         "codeSnippet": null,
         "options": [
           {
@@ -53,6 +54,7 @@
         "explanation": "ARC automatically zeroes a weak reference when its target is deallocated. Optional is the correct type because the value can legitimately become nil at any point without programmer intervention.",
         "correctIndex": 0,
         "rubric": null,
+        "level": "junior",
         "codeSnippet": null,
         "options": [
           {
@@ -87,6 +89,7 @@
         "explanation": "Capturing self as weak gives it Optional type inside the closure, allowing ARC to nil it out if the object is deallocated before the closure runs — preventing both a cycle and a crash.",
         "correctIndex": 0,
         "rubric": null,
+        "level": "junior",
         "codeSnippet": null,
         "options": [
           {
@@ -117,6 +120,7 @@
       "explanation": "ARC analyzes object ownership at compile time and inserts retain/release calls, eliminating manual memory management while keeping deterministic deallocation timing.",
       "correctIndex": 0,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": null,
       "options": [
         {
@@ -144,6 +148,7 @@
       "explanation": "`unowned` assumes the object is always alive when accessed; use it only when the closure's lifetime is strictly shorter than the object's, to avoid the Optional overhead of `weak`.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "mid",
       "codeSnippet": null,
       "options": [
         {
@@ -171,6 +176,7 @@
       "explanation": "a.next holds b and b.next holds a — a strong cycle keeps both objects alive even after the variables are nil'd. Neither deinit is called.",
       "correctIndex": 0,
       "rubric": null,
+      "level": "senior",
       "codeSnippet": {
         "filename": "RetainCycle.swift",
         "language": "swift",
@@ -202,6 +208,7 @@
       "explanation": "A capture list prevents the closure from incrementing self's retain count, breaking the cycle and allowing deallocation.",
       "correctIndex": 0,
       "rubric": null,
+      "level": "mid",
       "codeSnippet": null,
       "options": [
         {
@@ -229,6 +236,7 @@
       "explanation": "`t` goes out of scope at the end of `test()`, so ARC calls deinit before `test()` returns — 'gone' prints before 'after'.",
       "correctIndex": 0,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": {
         "filename": "DeinitOrder.swift",
         "language": "swift",
@@ -260,6 +268,7 @@
       "explanation": "ARC tracks class instances only. Structs and enums are stored by value (on the stack or inline) and need no reference counting.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": null,
       "options": [
         {
@@ -287,6 +296,7 @@
       "explanation": "ARC zeroes a weak reference when its target is deallocated. Optional is the natural type for a value that can become nil at any time.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "junior",
       "codeSnippet": null,
       "options": [
         {
@@ -314,6 +324,7 @@
       "explanation": "Accessing an `unowned` reference after the object has been deallocated is undefined behavior and triggers an immediate crash.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "senior",
       "codeSnippet": null,
       "options": [
         {
@@ -341,6 +352,7 @@
       "explanation": "`a.b` is weak, so B's retain count doesn't include that reference. When `b = nil`, the only strong ref to B is gone, and deinit fires.",
       "correctIndex": 0,
       "rubric": null,
+      "level": "mid",
       "codeSnippet": {
         "filename": "WeakCycle.swift",
         "language": "swift",
@@ -372,6 +384,7 @@
       "explanation": "The cycle is: self.property → closure → self. Either side keeping the other alive prevents deallocation until the cycle is explicitly broken.",
       "correctIndex": 1,
       "rubric": null,
+      "level": "senior",
       "codeSnippet": null,
       "options": [
         {
