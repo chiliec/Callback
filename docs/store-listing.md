@@ -88,16 +88,22 @@ device.
 **Public link limit:** 100
 
 **What to test:**
-Please focus on the Behavioral topic — it was broken in earlier builds and is
-new in this one.
+This build adds a seventh topic — Mobile System Design — and tags every
+question with a difficulty level. If you tested an earlier build, your progress
+should carry over untouched.
 
-• Open Topics → Behavioral → run the drill. Each question shows a model-answer
-rubric, then asks you to rate yourself Shaky, Decent, or Solid. Confirm the
-drill can be completed end to end and that the Next/Finish button always
-advances.
-• Start a mock interview and let it draw a Behavioral question. Confirm the
-session doesn't stall on it.
-• Check that the Behavioral topic's mastery percentage moves after rating —
-Shaky counts as no credit, Decent as half, Solid as full.
+• Open Topics → Mobile System Design. It has 4 lessons and 27 questions, all
+open-ended: you read a model answer, then rate yourself Shaky, Decent or Solid.
+Confirm the drill completes and mastery moves afterwards.
+• Practice → System Design (20 min) and Behavioral (15 min). Both used to say
+"Coming soon"; confirm they now run and finish.
+• Profile → Level (Junior / Mid / Senior). Change it, then run a drill and see
+whether the questions feel pitched at that level.
+• Lessons: several bodies now render as headings, bullet lists and numbered
+steps — Concurrency → async/await Basics and UIKit → View Controller Lifecycle
+are the clearest examples. Report anything that reads as run-together text.
+• Tap the full-width rows (Practice drills, Home's weak areas) anywhere along
+their width, including over the chevron — a hit-testing bug in build 16 made
+those spots dead.
 • Anything else worth a look: backgrounding the app mid-mock (the timer should
 survive), VoiceOver, and large Dynamic Type sizes.
