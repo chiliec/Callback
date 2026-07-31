@@ -131,6 +131,8 @@ struct TopicDetailView: View {
                             symbol: "chevron.left.forwardslash.chevron.right")
             questionBankRow(kind: .behavioral, label: "Behavioral",
                             symbol: "message")
+            questionBankRow(kind: .systemDesign, label: "System design",
+                            symbol: "point.3.connected.trianglepath.dotted")
         }
     }
 

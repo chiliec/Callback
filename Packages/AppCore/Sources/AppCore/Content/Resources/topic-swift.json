@@ -1,0 +1,397 @@
+{
+  "id": "swift",
+  "name": "Swift",
+  "section": "fundamentals",
+  "symbolName": "swift",
+  "colorToken": "swift",
+  "order": 0,
+  "lessons": [
+    {
+      "id": "swift-l1",
+      "order": 0,
+      "title": "Value vs Reference Types",
+      "estimatedMinutes": 4,
+      "body": "Structs and enums are value types; classes are reference types. Value types are copied on assignment — mutations on a copy don't affect the original. Classes share identity: two variables can point to the same instance.\n\n```swift\nstruct Point { var x: Int }\nvar a = Point(x: 1)\nvar b = a\nb.x = 2 // a.x is still 1 — independent copy\n\nclass Box { var value = 1 }\nlet box1 = Box()\nlet box2 = box1\nbox2.value = 99 // box1.value is also 99 — same instance\n```\n\nThe key mental model: value types give you safety through isolation; reference types enable shared mutable state. Swift's standard library types (Array, String, Dictionary) are all value types — they use copy-on-write to keep performance acceptable.\n\nWhen to choose struct: modeling data, prefer predictability, default choice in Swift. When to choose class: need identity, inheritance, Objective-C interop, or shared mutable state.",
+      "quickCheck": {
+        "id": "swift-l1-qc",
+        "kind": "multipleChoice",
+        "prompt": "Which is a value type in Swift?",
+        "explanation": "Structs are value types — they are copied on assignment, giving each variable an independent instance. Classes are reference types that share identity.",
+        "correctIndex": 0,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "struct",
+            "isMonospaced": true
+          },
+          {
+            "text": "class",
+            "isMonospaced": true
+          },
+          {
+            "text": "UIViewController subclass",
+            "isMonospaced": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "swift-l2",
+      "order": 1,
+      "title": "Optionals & Unwrapping",
+      "estimatedMinutes": 5,
+      "body": "An `Optional<T>` is an enum with two cases: `.some(T)` wrapping a value, and `.none` representing absence. Swift forces you to acknowledge the possibility of nil before using a value.\n\n```swift\nvar name: String? = \"Alice\"\n\n// Safe unwrapping\nif let n = name { print(n) }\nguard let n = name else { return }\nlet length = name?.count       // optional chaining → Int?\nlet display = name ?? \"Guest\" // nil-coalescing → String\n\n// Optional map\nlet upper = name.map { $0.uppercased() } // Optional(\"ALICE\")\n\n// Unsafe — only when you are certain it's non-nil\nlet forced = name! // crashes at runtime if name is nil\n```\n\nPrefer `if let` or `guard let` for control flow, optional chaining for property/method access, and nil-coalescing for providing defaults. Force unwrap (`!`) is acceptable only when a nil value would represent a genuine programmer error — for example, loading a bundled asset that must exist.\n\n`compactMap` is the collection-level equivalent: it maps and discards nils in one pass, returning a non-optional array.",
+      "quickCheck": {
+        "id": "swift-l2-qc",
+        "kind": "multipleChoice",
+        "prompt": "What does `nil ?? 42` evaluate to when the left side is nil?",
+        "explanation": "The nil-coalescing operator returns the right-hand side when the left is nil, providing a default value without force unwrapping.",
+        "correctIndex": 0,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "42",
+            "isMonospaced": true
+          },
+          {
+            "text": "nil",
+            "isMonospaced": true
+          },
+          {
+            "text": "0",
+            "isMonospaced": true
+          },
+          {
+            "text": "Crash",
+            "isMonospaced": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "swift-l3",
+      "order": 2,
+      "title": "Protocols & Generics",
+      "estimatedMinutes": 5,
+      "body": "Protocols define contracts — a list of requirements (methods, properties, initializers) that conforming types must satisfy. Extensions let you add default implementations, enabling protocol-oriented programming without inheritance.\n\n```swift\nprotocol Greetable {\n    var name: String { get }\n    func greet() -> String\n}\n\nextension Greetable {\n    func greet() -> String { \"Hello, \\(name)!\" } // default impl\n}\n\nstruct User: Greetable { let name: String }\nprint(User(name: \"Alice\").greet()) // \"Hello, Alice!\"\n```\n\nGenerics let you write algorithms once and use them with any type that satisfies constraints:\n\n```swift\nfunc largest<T: Comparable>(_ a: T, _ b: T) -> T {\n    return a > b ? a : b\n}\n```\n\n`some Protocol` (opaque type) tells the compiler the concrete type is fixed but hidden — great for return types in SwiftUI views. `any Protocol` (existential) erases the concrete type entirely, enabling heterogeneous collections at the cost of dynamic dispatch.\n\nPrefer composition (multiple small protocols) over deep inheritance hierarchies. Protocols + generics + extensions form the backbone of Swift's standard library design.",
+      "quickCheck": {
+        "id": "swift-l3-qc",
+        "kind": "multipleChoice",
+        "prompt": "What keyword provides a default implementation for a protocol method?",
+        "explanation": "Default implementations are added via `extension` on the protocol — conforming types inherit the default but can override it with their own implementation.",
+        "correctIndex": 0,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "extension",
+            "isMonospaced": true
+          },
+          {
+            "text": "default",
+            "isMonospaced": true
+          },
+          {
+            "text": "impl",
+            "isMonospaced": true
+          },
+          {
+            "text": "override",
+            "isMonospaced": true
+          }
+        ]
+      }
+    }
+  ],
+  "questions": [
+    {
+      "id": "swift-q1",
+      "kind": "multipleChoice",
+      "prompt": "What is the default access level in Swift?",
+      "explanation": "Declarations are `internal` by default — visible within the module but not outside.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "private",
+          "isMonospaced": true
+        },
+        {
+          "text": "internal",
+          "isMonospaced": true
+        },
+        {
+          "text": "public",
+          "isMonospaced": true
+        },
+        {
+          "text": "open",
+          "isMonospaced": true
+        }
+      ]
+    },
+    {
+      "id": "swift-q2",
+      "kind": "code",
+      "prompt": "What does this print?",
+      "explanation": "Arrays are value types using copy-on-write, so `b` is an independent copy; appending to `b` doesn't affect `a`.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": {
+        "filename": "main.swift",
+        "language": "swift",
+        "code": "var a = [1, 2]\nvar b = a\nb.append(3)\nprint(a)"
+      },
+      "options": [
+        {
+          "text": "[1, 2]",
+          "isMonospaced": true
+        },
+        {
+          "text": "[1, 2, 3]",
+          "isMonospaced": true
+        }
+      ]
+    },
+    {
+      "id": "swift-q3",
+      "kind": "multipleChoice",
+      "prompt": "`let` with a class instance means…",
+      "explanation": "`let` on a reference type prevents reassigning the variable, but the instance's own stored properties can still be mutated.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "The instance's properties cannot be mutated",
+          "isMonospaced": false
+        },
+        {
+          "text": "The reference cannot be reassigned, but instance properties can change",
+          "isMonospaced": false
+        },
+        {
+          "text": "The instance is immutable like a struct",
+          "isMonospaced": false
+        },
+        {
+          "text": "The variable must be initialized immediately",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "swift-q4",
+      "kind": "multipleChoice",
+      "prompt": "What does optional chaining return when any link is nil?",
+      "explanation": "Optional chaining short-circuits to nil if any step in the chain is nil, safely returning an Optional of the final expression's type.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "nil",
+          "isMonospaced": true
+        },
+        {
+          "text": "crash",
+          "isMonospaced": false
+        },
+        {
+          "text": "0",
+          "isMonospaced": true
+        },
+        {
+          "text": "an empty Optional",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "swift-q5",
+      "kind": "code",
+      "prompt": "What does this print?",
+      "explanation": "`compactMap` removes nil values, leaving [1, 2, 3, 5] — count 4.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": {
+        "filename": "main.swift",
+        "language": "swift",
+        "code": "let nums: [Int?] = [1, 2, 3, nil, 5]\nlet result = nums.compactMap { $0 }\nprint(result.count)"
+      },
+      "options": [
+        {
+          "text": "4",
+          "isMonospaced": true
+        },
+        {
+          "text": "5",
+          "isMonospaced": true
+        },
+        {
+          "text": "3",
+          "isMonospaced": true
+        },
+        {
+          "text": "nil",
+          "isMonospaced": true
+        }
+      ]
+    },
+    {
+      "id": "swift-q6",
+      "kind": "multipleChoice",
+      "prompt": "In a closure, capturing `self` with `[weak self]` means…",
+      "explanation": "Capturing `[weak self]` makes self optional inside the closure, breaking a potential retain cycle between the closure and the owning object.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "self is captured as a strong reference",
+          "isMonospaced": false
+        },
+        {
+          "text": "self becomes nil if the object is deallocated, preventing retain cycles",
+          "isMonospaced": false
+        },
+        {
+          "text": "self is unowned and crashes if nil",
+          "isMonospaced": false
+        },
+        {
+          "text": "the closure is executed on a background thread",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "swift-q7",
+      "kind": "multipleChoice",
+      "prompt": "What does the `mutating` keyword do?",
+      "explanation": "By default, methods on value types cannot modify self; `mutating` opts in to that capability and synthesizes a copy on mutation.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Allows a class method to change stored properties",
+          "isMonospaced": false
+        },
+        {
+          "text": "Allows a struct method to modify the struct's stored properties",
+          "isMonospaced": false
+        },
+        {
+          "text": "Makes a property thread-safe",
+          "isMonospaced": false
+        },
+        {
+          "text": "Declares a mutable computed property",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "swift-q8",
+      "kind": "multipleChoice",
+      "prompt": "An enum with associated values is best described as…",
+      "explanation": "Associated values let each case carry distinct, typed payloads — enabling pattern matching over data-rich discriminated unions.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "A class with subclasses",
+          "isMonospaced": false
+        },
+        {
+          "text": "A type that can hold one of several named cases, each optionally carrying data",
+          "isMonospaced": false
+        },
+        {
+          "text": "A struct with optional properties",
+          "isMonospaced": false
+        },
+        {
+          "text": "A protocol with default implementations",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "swift-q9",
+      "kind": "code",
+      "prompt": "What does this print?",
+      "explanation": "`defer` runs at the end of the enclosing scope, after the other statements — so A prints first, then B.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": {
+        "filename": "main.swift",
+        "language": "swift",
+        "code": "func test() {\n    defer { print(\"B\") }\n    print(\"A\")\n}\ntest()"
+      },
+      "options": [
+        {
+          "text": "A then B",
+          "isMonospaced": false
+        },
+        {
+          "text": "B then A",
+          "isMonospaced": false
+        },
+        {
+          "text": "AB on one line",
+          "isMonospaced": false
+        },
+        {
+          "text": "compile error",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "swift-q10",
+      "kind": "multipleChoice",
+      "prompt": "In Swift, `Result<T, E>` is…",
+      "explanation": "`Result` is an enum making success/failure explicit at the type level, enabling structured error handling without try/catch.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "A protocol for async operations",
+          "isMonospaced": false
+        },
+        {
+          "text": "An enum with `.success(T)` and `.failure(E)` cases",
+          "isMonospaced": false
+        },
+        {
+          "text": "A class wrapping an Optional",
+          "isMonospaced": false
+        },
+        {
+          "text": "A generic struct for lazy evaluation",
+          "isMonospaced": false
+        }
+      ]
+    }
+  ]
+}

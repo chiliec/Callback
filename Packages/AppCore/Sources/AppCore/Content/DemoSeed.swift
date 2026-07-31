@@ -41,7 +41,8 @@ public enum DemoSeed {
         var recordsByTopic: [String: [AnswerRecord]] = [:]
 
         for topic in topics {
-            if topic.id == "behavioral" {
+            // Self-rated topics have no graded correctness — they use ratings.
+            if topic.id == "behavioral" || topic.id == "sysdesign" {
                 let ratings = behavioralRatings
                 let questions = topic.questions.sorted { $0.id < $1.id }.prefix(ratings.count)
 

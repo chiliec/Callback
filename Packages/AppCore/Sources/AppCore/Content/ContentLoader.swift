@@ -6,11 +6,44 @@ public enum ContentLoader {
         try JSONDecoder().decode(ContentBundle.self, from: data)
     }
 
-    public static func bundledContentData() throws -> Data {
-        guard let url = Bundle.module.url(forResource: "content-v1", withExtension: "json") else {
-            throw CocoaError(.fileNoSuchFile)
+    public enum ContentError: Error, CustomStringConvertible {
+        case missingResource(String)
+
+        public var description: String {
+            switch self {
+            case .missingResource(let name):
+                return "Content resource '\(name).json' is missing from the bundle."
+            }
+        }
+    }
+
+    /// The bundle holding the content JSON. Exposed to the module because
+    /// `Bundle.module` referenced from the *test* target resolves to the test
+    /// bundle, which carries no resources — `ContentValidationTests` needs this.
+    static let resourceBundle = Bundle.module
+
+    private static func resourceData(_ name: String) throws -> Data {
+        guard let url = resourceBundle.url(forResource: name, withExtension: "json") else {
+            throw ContentError.missingResource(name)
         }
         return try Data(contentsOf: url)
+    }
+
+    /// Assembles the bundle from the manifest plus one file per topic. A missing
+    /// or malformed topic file throws rather than silently yielding a short
+    /// bundle — a partial seed would look like deleted content to the user.
+    public static func assembleContent(manifestName: String = "content-manifest") throws -> ContentBundle {
+        let manifest = try JSONDecoder().decode(
+            ContentManifest.self, from: try resourceData(manifestName))
+        let decoder = JSONDecoder()
+        let topics = try manifest.topics.map { id in
+            try decoder.decode(TopicDTO.self, from: try resourceData("topic-\(id)"))
+        }
+        return ContentBundle(version: manifest.version, topics: topics)
+    }
+
+    public static func bundledContent() throws -> ContentBundle {
+        try assembleContent()
     }
 
     /// Upserts the content graph by id. Author-owned fields are updated; user-progress
@@ -101,7 +134,7 @@ public enum ContentLoader {
         }
         return Question(
             id: q.id, kind: q.kind, prompt: q.prompt, explanation: q.explanation,
-            correctIndex: q.correctIndex, rubric: q.rubric,
+            correctIndex: q.correctIndex, rubric: q.rubric, level: q.level,
             codeSnippet: snippet, options: options
         )
     }
@@ -112,13 +145,31 @@ public enum ContentLoader {
         question.explanation = dto.explanation
         question.correctIndex = dto.correctIndex
         question.rubric = dto.rubric
-        for opt in question.options { context.delete(opt) }
-        question.options = dto.options.enumerated().map { idx, o in
-            Option(text: o.text, isMonospaced: o.isMonospaced, order: idx)
+        question.levelRaw = dto.level.rawValue
+        // Rewrite options only when they actually differ. A version bump would
+        // otherwise delete and re-insert every option in the store on the main
+        // actor during launch. Order matters, so compare as ordered pairs.
+        let incoming = dto.options.map { ($0.text, $0.isMonospaced) }
+        let existing = question.options
+            .sorted { $0.order < $1.order }
+            .map { ($0.text, $0.isMonospaced) }
+        if !(incoming.count == existing.count
+             && zip(incoming, existing).allSatisfy { $0 == $1 }) {
+            for opt in question.options { context.delete(opt) }
+            question.options = dto.options.enumerated().map { idx, o in
+                Option(text: o.text, isMonospaced: o.isMonospaced, order: idx)
+            }
         }
-        if let old = question.codeSnippet { context.delete(old) }
-        question.codeSnippet = dto.codeSnippet.map {
-            CodeSnippet(filename: $0.filename, language: $0.language, code: $0.code)
+
+        // Same reasoning for the snippet.
+        let snippetChanged = question.codeSnippet?.filename != dto.codeSnippet?.filename
+            || question.codeSnippet?.language != dto.codeSnippet?.language
+            || question.codeSnippet?.code != dto.codeSnippet?.code
+        if snippetChanged {
+            if let old = question.codeSnippet { context.delete(old) }
+            question.codeSnippet = dto.codeSnippet.map {
+                CodeSnippet(filename: $0.filename, language: $0.language, code: $0.code)
+            }
         }
     }
 }

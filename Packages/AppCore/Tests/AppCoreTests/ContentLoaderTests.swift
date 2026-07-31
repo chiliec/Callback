@@ -72,26 +72,26 @@ private let sampleJSON = """
 }
 
 @Test func bundledContentDecodes() throws {
-    let data = try ContentLoader.bundledContentData()
-    let bundle = try ContentLoader.decode(data)
+    let bundle = try ContentLoader.bundledContent()
     #expect(bundle.version >= 1)
     #expect(bundle.topics.isEmpty == false)
 }
 
 @Test func contentBundleIsValid() throws {
-    let data = try ContentLoader.bundledContentData()
-    let bundle = try ContentLoader.decode(data)
+    let bundle = try ContentLoader.bundledContent()
 
     // Version 2+
     #expect(bundle.version >= 2)
 
-    // Exactly 6 topics with expected ids, orders 0–5 contiguous
-    let expectedTopicIds: Set<String> = ["swift", "memory", "concurrency", "swiftui", "uikit", "behavioral"]
+    // Exactly 7 topics with expected ids, orders 0–6 contiguous
+    let expectedTopicIds: Set<String> = [
+        "swift", "memory", "concurrency", "swiftui", "uikit", "behavioral", "sysdesign"
+    ]
     let topicIds = Set(bundle.topics.map(\.id))
     #expect(topicIds == expectedTopicIds)
-    #expect(bundle.topics.count == 6)
+    #expect(bundle.topics.count == 7)
     let orders = Set(bundle.topics.map(\.order))
-    #expect(orders == Set(0..<6))
+    #expect(orders == Set(0..<7))
 
     let validSections: Set<String> = ["fundamentals", "frameworks", "craft"]
     let validColorTokens: Set<String> = [
@@ -158,7 +158,7 @@ private let sampleJSON = """
                 if let ci = q.correctIndex {
                     #expect(ci >= 0 && ci < q.options.count)
                 }
-            case .behavioral:
+            case .behavioral, .systemDesign:
                 #expect(q.correctIndex == nil)
                 #expect(q.codeSnippet == nil)
                 #expect(q.options.isEmpty)
@@ -227,4 +227,87 @@ private let sampleJSON = """
     #expect(topicsAfter[0].mastery == 42)
     #expect(topicsAfter[0].isSaved == true)
     #expect(lessonsAfter[0].isComplete == true)
+}
+
+@Test func decodesQuestionLevel() throws {
+    let json = """
+    { "id": "q1", "kind": "multipleChoice", "prompt": "P", "explanation": "E",
+      "correctIndex": 0, "rubric": null, "codeSnippet": null, "level": "senior",
+      "options": [ { "text": "a", "isMonospaced": false },
+                   { "text": "b", "isMonospaced": false } ] }
+    """
+    let dto = try JSONDecoder().decode(QuestionDTO.self, from: Data(json.utf8))
+    #expect(dto.level == .senior)
+}
+
+@Test func missingLevelDefaultsToMid() throws {
+    let json = """
+    { "id": "q1", "kind": "multipleChoice", "prompt": "P", "explanation": "E",
+      "correctIndex": 0, "rubric": null, "codeSnippet": null,
+      "options": [ { "text": "a", "isMonospaced": false },
+                   { "text": "b", "isMonospaced": false } ] }
+    """
+    let dto = try JSONDecoder().decode(QuestionDTO.self, from: Data(json.utf8))
+    #expect(dto.level == .mid)
+}
+
+@MainActor
+@Test func seedPersistsQuestionLevel() throws {
+    let container = try AppModelContainer.make(inMemory: true)
+    let context = container.mainContext
+    let bundle = try ContentLoader.decode(Data(sampleJSON.utf8))
+    ContentLoader.seed(bundle, into: context)
+    let questions = try context.fetch(FetchDescriptor<Question>())
+    #expect(!questions.isEmpty)
+    #expect(questions.allSatisfy { Level(rawValue: $0.levelRaw) != nil })
+}
+
+@Test func bundledContentLoadsEveryTopicInTheManifest() throws {
+    let bundle = try ContentLoader.bundledContent()
+    #expect(bundle.version == 3)
+    #expect(bundle.topics.count == 7)
+    #expect(Set(bundle.topics.map(\.id)).count == bundle.topics.count)
+}
+
+@Test func reseedingIdenticalContentPreservesOptionObjects() throws {
+    let container = try AppModelContainer.make(inMemory: true)
+    let context = ModelContext(container)
+    let bundle = try ContentLoader.decode(Data(sampleJSON.utf8))
+
+    ContentLoader.seed(bundle, into: context)
+    try context.save()
+    let before = try context.fetch(FetchDescriptor<Option>())
+    let beforeIDs = Set(before.map(\.persistentModelID))
+    #expect(!beforeIDs.isEmpty)
+
+    ContentLoader.seed(bundle, into: context)   // same content again
+    try context.save()
+    let after = try context.fetch(FetchDescriptor<Option>())
+
+    #expect(after.count == before.count, "option count changed on an identical re-seed")
+    #expect(Set(after.map(\.persistentModelID)) == beforeIDs,
+            "options were rebuilt despite identical content")
+}
+
+@Test func reseedingChangedOptionsDoesRebuildThem() throws {
+    let container = try AppModelContainer.make(inMemory: true)
+    let context = ModelContext(container)
+    ContentLoader.seed(try ContentLoader.decode(Data(sampleJSON.utf8)), into: context)
+    try context.save()
+
+    let edited = sampleJSON.replacingOccurrences(
+        of: "\"text\": \"struct\"", with: "\"text\": \"A struct\"")
+    #expect(edited != sampleJSON, "fixture text not found — update this test's needle")
+    ContentLoader.seed(try ContentLoader.decode(Data(edited.utf8)), into: context)
+    try context.save()
+
+    let texts = try context.fetch(FetchDescriptor<Option>()).map(\.text)
+    #expect(texts.contains("A struct"))
+    #expect(!texts.contains("struct"))
+}
+
+@Test func bundledContentThrowsOnAMissingTopicFile() {
+    #expect(throws: (any Error).self) {
+        try ContentLoader.assembleContent(manifestName: "content-manifest-missing-fixture")
+    }
 }

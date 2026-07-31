@@ -11,7 +11,7 @@ struct DemoSeedTests {
         let context = ModelContext(container)
         let profile = UserProfile()
         context.insert(profile)
-        let bundle = try ContentLoader.decode(try ContentLoader.bundledContentData())
+        let bundle = try ContentLoader.bundledContent()
         ContentLoader.seedIfNeeded(into: context, profile: profile, bundle: bundle)
         try context.save()
         return context

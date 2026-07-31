@@ -44,7 +44,7 @@ struct CallbackApp: App {
             context.insert(p)
             return p
         }()
-        let bundle = try ContentLoader.decode(try ContentLoader.bundledContentData())
+        let bundle = try ContentLoader.bundledContent()
         ContentLoader.seedIfNeeded(into: context, profile: profile, bundle: bundle)
         try context.save()
     }
@@ -52,7 +52,7 @@ struct CallbackApp: App {
     @MainActor
     private static func bootstrapUITest(_ container: ModelContainer, placementDone: Bool) throws {
         let context = container.mainContext
-        let bundle = try ContentLoader.decode(try ContentLoader.bundledContentData())
+        let bundle = try ContentLoader.bundledContent()
         let profile = UserProfile()
         if placementDone {
             profile.hasCompletedPlacement = true

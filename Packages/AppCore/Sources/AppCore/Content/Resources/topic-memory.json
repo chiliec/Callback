@@ -1,0 +1,409 @@
+{
+  "id": "memory",
+  "name": "Memory Management",
+  "section": "fundamentals",
+  "symbolName": "memorychip",
+  "colorToken": "memory",
+  "order": 1,
+  "lessons": [
+    {
+      "id": "memory-l1",
+      "order": 0,
+      "title": "ARC & Retain Counts",
+      "estimatedMinutes": 4,
+      "body": "Swift uses **Automatic Reference Counting (ARC)** to manage memory. The compiler analyzes your code at compile time and automatically inserts `retain` and `release` calls — you never write them yourself.\n\nEvery class instance has an internal **retain count**. When you create an instance, the count starts at 1. Each new strong reference increments it; each reference going away decrements it. When the count reaches **0**, ARC immediately calls `deinit` and frees the memory.\n\n```swift\nclass Car {\n    let model: String\n    init(_ model: String) { self.model = model }\n    deinit { print(\"\\(model) deallocated\") }\n}\n\nvar first: Car? = Car(\"Tesla\")  // retain count = 1\nvar second: Car? = first         // retain count = 2\nfirst = nil                      // retain count = 1\nsecond = nil                     // retain count = 0 → deinit called\n```\n\nThis is fundamentally different from **garbage collection** (used by Java or Go). A garbage collector runs periodically on a separate thread and cleans up unreachable objects in batches — timing is non-deterministic. ARC is **deterministic**: deallocation happens the instant the last reference disappears, making resource cleanup predictable and tight.\n\nBecause ARC works at compile time rather than runtime, there is no GC pause or background scan. The trade-off is that ARC cannot automatically detect **retain cycles**, which you must handle yourself with `weak` and `unowned` references.",
+      "quickCheck": {
+        "id": "memory-l1-qc",
+        "kind": "multipleChoice",
+        "prompt": "When does ARC call deinit on an object?",
+        "explanation": "ARC tracks the retain count for every class instance. The moment that count reaches 0 — meaning no strong references remain — ARC immediately calls deinit and frees the memory.",
+        "correctIndex": 0,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "When retain count drops to 0",
+            "isMonospaced": false
+          },
+          {
+            "text": "When the app moves to background",
+            "isMonospaced": false
+          },
+          {
+            "text": "After every function returns",
+            "isMonospaced": false
+          },
+          {
+            "text": "At the end of the run loop",
+            "isMonospaced": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "memory-l2",
+      "order": 1,
+      "title": "strong, weak, and unowned",
+      "estimatedMinutes": 4,
+      "body": "Every reference in Swift has an **ownership qualifier** that controls whether it participates in ARC counting.\n\n**strong** (the default) increments the retain count. As long as at least one strong reference exists, the object stays alive.\n\n**weak** does *not* increment the retain count. If the object is deallocated, ARC automatically sets the weak reference to `nil`. For this reason, **weak references must always be Optional**.\n\n**unowned** also does not increment the retain count, but it is *never* Optional — it assumes the referenced object will always be alive when accessed. If you access an unowned reference after the object is gone, you get a crash.\n\n```swift\nprotocol DataDelegate: AnyObject {\n    func didUpdate()\n}\n\nclass DataSource {\n    weak var delegate: DataDelegate?  // weak: delegate may disappear\n\n    func fetch() {\n        delegate?.didUpdate()\n    }\n}\n\nclass Controller: DataDelegate {\n    let source = DataSource()  // strong: controller owns source\n\n    init() {\n        source.delegate = self  // weak back-reference avoids cycle\n    }\n\n    func didUpdate() { print(\"updated\") }\n}\n```\n\nThe **delegate pattern** is the canonical example: a parent holds its child strongly (`source`), while the child holds its parent weakly (`delegate`). This prevents a retain cycle while still allowing the child to communicate back. Use `unowned` only when you are certain the referenced object's lifetime strictly contains the referencing object's lifetime.",
+      "quickCheck": {
+        "id": "memory-l2-qc",
+        "kind": "multipleChoice",
+        "prompt": "What type must a `weak` variable be?",
+        "explanation": "ARC automatically zeroes a weak reference when its target is deallocated. Optional is the correct type because the value can legitimately become nil at any point without programmer intervention.",
+        "correctIndex": 0,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "Optional",
+            "isMonospaced": false
+          },
+          {
+            "text": "non-Optional",
+            "isMonospaced": false
+          },
+          {
+            "text": "AnyObject",
+            "isMonospaced": true
+          },
+          {
+            "text": "Any",
+            "isMonospaced": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "memory-l3",
+      "order": 2,
+      "title": "Retain Cycles & Closures",
+      "estimatedMinutes": 5,
+      "body": "A **retain cycle** occurs when two objects hold strong references to each other, keeping both retain counts above 0 forever — neither is ever deallocated.\n\nClosures are a common source of cycles. A closure **captures** variables from its surrounding context. When a closure is stored in a property on `self` and that closure references `self`, you have a cycle: `self → closure → self`.\n\n```swift\n// Retain cycle\nclass ViewModel {\n    var onUpdate: (() -> Void)?\n\n    func setup() {\n        onUpdate = {\n            self.render()  // self captured strongly\n        }\n    }\n\n    func render() { print(\"rendered\") }\n    deinit { print(\"ViewModel gone\") }  // never called!\n}\n```\n\nFix it with a **capture list**:\n\n```swift\n// Cycle broken\nfunc setup() {\n    onUpdate = { [weak self] in\n        self?.render()  // self is Optional — safe if deallocated\n    }\n}\n```\n\nUse **`[weak self]`** when the closure might outlive `self`. Inside the closure, `self` becomes `Optional`, so you use `self?.method()` or guard-unwrap it.\n\nUse **`[unowned self]`** only when the closure is guaranteed not to outlive `self`. If you're wrong, you get a crash.\n\nWhen in doubt, `[weak self]` is the safer default. The nil-check overhead is negligible compared to the cost of a memory leak or crash.",
+      "quickCheck": {
+        "id": "memory-l3-qc",
+        "kind": "multipleChoice",
+        "prompt": "In a closure capture list, `[weak self]` makes self…",
+        "explanation": "Capturing self as weak gives it Optional type inside the closure, allowing ARC to nil it out if the object is deallocated before the closure runs — preventing both a cycle and a crash.",
+        "correctIndex": 0,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "Optional inside the closure",
+            "isMonospaced": false
+          },
+          {
+            "text": "unowned",
+            "isMonospaced": false
+          },
+          {
+            "text": "a strong reference",
+            "isMonospaced": false
+          },
+          {
+            "text": "nil immediately",
+            "isMonospaced": false
+          }
+        ]
+      }
+    }
+  ],
+  "questions": [
+    {
+      "id": "memory-q1",
+      "kind": "multipleChoice",
+      "prompt": "What does ARC stand for, and what does it do?",
+      "explanation": "ARC analyzes object ownership at compile time and inserts retain/release calls, eliminating manual memory management while keeping deterministic deallocation timing.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Automatic Reference Counting — tracks object lifetimes and inserts retain/release automatically",
+          "isMonospaced": false
+        },
+        {
+          "text": "Async Resource Control — manages async tasks",
+          "isMonospaced": false
+        },
+        {
+          "text": "App Runtime Cache — caches frequently used objects",
+          "isMonospaced": false
+        },
+        {
+          "text": "Automatic Resource Cleanup — releases unused resources in the run loop",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "memory-q2",
+      "kind": "multipleChoice",
+      "prompt": "When should you use `unowned` instead of `weak`?",
+      "explanation": "`unowned` assumes the object is always alive when accessed; use it only when the closure's lifetime is strictly shorter than the object's, to avoid the Optional overhead of `weak`.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "When the captured object may be nil at access time",
+          "isMonospaced": false
+        },
+        {
+          "text": "When you are certain the captured object outlives the closure",
+          "isMonospaced": false
+        },
+        {
+          "text": "Always — unowned is more performant",
+          "isMonospaced": false
+        },
+        {
+          "text": "When the reference is to a struct",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "memory-q3",
+      "kind": "code",
+      "prompt": "What happens when this code runs?",
+      "explanation": "a.next holds b and b.next holds a — a strong cycle keeps both objects alive even after the variables are nil'd. Neither deinit is called.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "RetainCycle.swift",
+        "language": "swift",
+        "code": "class Node {\n    var next: Node?\n    deinit { print(\"deinit\") }\n}\nvar a: Node? = Node()\nvar b: Node? = Node()\na?.next = b\nb?.next = a\na = nil\nb = nil"
+      },
+      "options": [
+        {
+          "text": "deinit is never printed — retain cycle",
+          "isMonospaced": false
+        },
+        {
+          "text": "deinit prints twice",
+          "isMonospaced": false
+        },
+        {
+          "text": "deinit prints once",
+          "isMonospaced": false
+        },
+        {
+          "text": "compile error",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "memory-q4",
+      "kind": "multipleChoice",
+      "prompt": "What is the correct way to break a retain cycle in a stored closure property?",
+      "explanation": "A capture list prevents the closure from incrementing self's retain count, breaking the cycle and allowing deallocation.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Use [weak self] or [unowned self] in the closure capture list",
+          "isMonospaced": false
+        },
+        {
+          "text": "Mark the closure @escaping",
+          "isMonospaced": true
+        },
+        {
+          "text": "Declare the closure as a lazy var",
+          "isMonospaced": true
+        },
+        {
+          "text": "Use a local variable instead of self",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "memory-q5",
+      "kind": "code",
+      "prompt": "What does this print?",
+      "explanation": "`t` goes out of scope at the end of `test()`, so ARC calls deinit before `test()` returns — 'gone' prints before 'after'.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": {
+        "filename": "DeinitOrder.swift",
+        "language": "swift",
+        "code": "class Tracker {\n    deinit { print(\"gone\") }\n}\nfunc test() {\n    let t = Tracker()\n    _ = t\n}\ntest()\nprint(\"after\")"
+      },
+      "options": [
+        {
+          "text": "gone then after",
+          "isMonospaced": false
+        },
+        {
+          "text": "after then gone",
+          "isMonospaced": false
+        },
+        {
+          "text": "gone",
+          "isMonospaced": false
+        },
+        {
+          "text": "nothing",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "memory-q6",
+      "kind": "multipleChoice",
+      "prompt": "Value types (struct/enum) and ARC: which statement is correct?",
+      "explanation": "ARC tracks class instances only. Structs and enums are stored by value (on the stack or inline) and need no reference counting.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Value types are always reference-counted",
+          "isMonospaced": false
+        },
+        {
+          "text": "Value types are not reference-counted; ARC applies to class instances",
+          "isMonospaced": false
+        },
+        {
+          "text": "Value types use a separate reference counting system",
+          "isMonospaced": false
+        },
+        {
+          "text": "Only enums with associated values are reference-counted",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "memory-q7",
+      "kind": "multipleChoice",
+      "prompt": "Why must a `weak` reference always be declared as Optional?",
+      "explanation": "ARC zeroes a weak reference when its target is deallocated. Optional is the natural type for a value that can become nil at any time.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Because the compiler requires it for syntax",
+          "isMonospaced": false
+        },
+        {
+          "text": "Because the object may be deallocated and ARC sets the reference to nil automatically",
+          "isMonospaced": false
+        },
+        {
+          "text": "To allow the reference to be reassigned",
+          "isMonospaced": false
+        },
+        {
+          "text": "Because weak references are stored on the heap",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "memory-q8",
+      "kind": "multipleChoice",
+      "prompt": "In which scenario does `unowned` cause a crash?",
+      "explanation": "Accessing an `unowned` reference after the object has been deallocated is undefined behavior and triggers an immediate crash.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "When the captured object is still alive",
+          "isMonospaced": false
+        },
+        {
+          "text": "When the closure is stored longer than the captured object's lifetime",
+          "isMonospaced": false
+        },
+        {
+          "text": "When used inside an actor",
+          "isMonospaced": false
+        },
+        {
+          "text": "When the reference is to a struct",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "memory-q9",
+      "kind": "code",
+      "prompt": "Will `deinit` print after this runs?",
+      "explanation": "`a.b` is weak, so B's retain count doesn't include that reference. When `b = nil`, the only strong ref to B is gone, and deinit fires.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": {
+        "filename": "WeakCycle.swift",
+        "language": "swift",
+        "code": "class A {\n    weak var b: B?\n}\nclass B {\n    var a: A?\n    deinit { print(\"B gone\") }\n}\nvar a: A? = A()\nvar b: B? = B()\na?.b = b\nb?.a = a\na = nil\nb = nil"
+      },
+      "options": [
+        {
+          "text": "Yes — B gone prints",
+          "isMonospaced": false
+        },
+        {
+          "text": "No — retain cycle",
+          "isMonospaced": false
+        },
+        {
+          "text": "compile error",
+          "isMonospaced": false
+        },
+        {
+          "text": "runtime error",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "memory-q10",
+      "kind": "multipleChoice",
+      "prompt": "Capturing `self` in an escaping closure stored as a property creates a retain cycle because…",
+      "explanation": "The cycle is: self.property → closure → self. Either side keeping the other alive prevents deallocation until the cycle is explicitly broken.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "escaping closures always retain self strongly by default",
+          "isMonospaced": false
+        },
+        {
+          "text": "self retains the closure (via the property) and the closure retains self (via capture) — both keep each other alive",
+          "isMonospaced": false
+        },
+        {
+          "text": "the closure is reference-counted separately from self",
+          "isMonospaced": false
+        },
+        {
+          "text": "Swift does not allow closures to capture self",
+          "isMonospaced": false
+        }
+      ]
+    }
+  ]
+}

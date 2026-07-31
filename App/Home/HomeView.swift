@@ -168,8 +168,13 @@ struct HomeView: View {
                             }
                             .padding(.horizontal, 16)
                             .frame(minHeight: DSSpacing.rowMinHeight)
+                            // The card's background sits outside this Button, so
+                            // without a shape the `Spacer()` and chevron are not
+                            // hit-testable and most of the row ignores taps.
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("weak-area-row-\(topic.id)")
                         if index < weakTopics.count - 1 {
                             Divider().padding(.leading, 56)
                         }

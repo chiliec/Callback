@@ -61,8 +61,9 @@ struct QuestionPlayerView: View {
                 }
 
                 // Verdict + explanation (shown after answering); self-assessment
-                // for behavioral questions renders before answering too — that's the fix.
-                if question.kind == .behavioral {
+                // for self-rated questions (behavioral, system design) renders
+                // before answering too — that's the fix.
+                if question.kind.isSelfRated {
                     SelfAssessCard(
                         rubric: question.rubric ?? question.explanation,
                         isRevealed: session.isGuidanceRevealed,
@@ -90,7 +91,7 @@ struct QuestionPlayerView: View {
         }
         .sensoryFeedback(trigger: session.pickedIndex) { _, _ in .selection }
         .sensoryFeedback(trigger: session.isAnswered) { _, isAnswered -> SensoryFeedback? in
-            guard isAnswered, let q = session.current, q.kind != .behavioral,
+            guard isAnswered, let q = session.current, !q.kind.isSelfRated,
                   let picked = session.pickedIndex, let correct = q.correctIndex else { return nil }
             return picked == correct ? .success : .warning
         }
@@ -199,7 +200,7 @@ struct QuestionPlayerView: View {
     private func answerState(optionIndex: Int, question: Question) -> AnswerState {
         guard session.isAnswered else { return .idle }
         let picked = session.pickedIndex
-        if question.kind == .behavioral {
+        if question.kind.isSelfRated {
             return optionIndex == picked ? .correct : .fadedIncorrect
         }
         if let correct = question.correctIndex, optionIndex == correct { return .correct }

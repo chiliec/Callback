@@ -1,0 +1,397 @@
+{
+  "id": "uikit",
+  "name": "UIKit",
+  "section": "frameworks",
+  "symbolName": "rectangle.3.group.fill",
+  "colorToken": "uikit",
+  "order": 4,
+  "lessons": [
+    {
+      "id": "uikit-l1",
+      "order": 0,
+      "title": "View Controller Lifecycle",
+      "estimatedMinutes": 5,
+      "body": "Every UIViewController moves through a predictable sequence of lifecycle methods. Understanding when each fires — and what work belongs there — prevents subtle bugs.\n\n**The sequence on first presentation:**\n1. `loadView` — UIKit creates (or you manually assign) `self.view`. Rarely overridden unless you want a fully custom root view.\n2. `viewDidLoad` — called **once**, after the view is in memory. This is the right place for one-time setup: adding subviews, installing Auto Layout constraints, configuring data sources.\n3. `viewWillAppear(_:)` — called before **each** appearance. Use it for work that must refresh on re-entry: starting animations, re-subscribing to notifications, updating data that may have changed.\n4. `viewDidAppear(_:)` — view is on screen. Start timers or analytics here.\n5. `viewWillDisappear(_:)` — about to leave screen. Stop animations, save drafts.\n6. `viewDidDisappear(_:)` — off screen. Release resources tied to visibility.\n\n**Key rule:** layout code (addSubview, NSLayoutConstraint) lives in `viewDidLoad`; appearance-driven animations live in `viewWillAppear`/`viewWillDisappear`.\n\n```swift\nclass ProfileViewController: UIViewController {\n    private let avatarView = UIImageView()\n\n    override func viewDidLoad() {\n        super.viewDidLoad()\n        view.addSubview(avatarView)\n        NSLayoutConstraint.activate([\n            avatarView.centerXAnchor.constraint(equalTo: view.centerXAnchor),\n            avatarView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 24)\n        ])\n    }\n\n    override func viewWillAppear(_ animated: Bool) {\n        super.viewWillAppear(animated)\n        avatarView.image = currentUser.avatar\n    }\n}\n```",
+      "quickCheck": {
+        "id": "uikit-l1-qc",
+        "kind": "multipleChoice",
+        "prompt": "Which method is called exactly once when the view controller's view is first loaded into memory?",
+        "explanation": "viewDidLoad fires a single time after the view hierarchy is loaded. viewWillAppear and viewDidAppear fire on every appearance, and loadView is for creating the view itself — not responding to it being loaded.",
+        "correctIndex": 0,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "viewDidLoad",
+            "isMonospaced": true
+          },
+          {
+            "text": "viewWillAppear",
+            "isMonospaced": true
+          },
+          {
+            "text": "viewDidAppear",
+            "isMonospaced": true
+          },
+          {
+            "text": "loadView",
+            "isMonospaced": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "uikit-l2",
+      "order": 1,
+      "title": "Auto Layout & Constraints",
+      "estimatedMinutes": 6,
+      "body": "Auto Layout solves view positioning by satisfying a system of linear constraints at runtime, adapting to any screen size or orientation.\n\n**Core concepts:**\n- **NSLayoutConstraint** represents a linear equation: `item1.attribute = multiplier × item2.attribute + constant`.\n- **`translatesAutoresizingMaskIntoConstraints = false`** — set this on any view you constrain programmatically, or you'll get conflicts.\n- **Intrinsic content size** — views like `UILabel` and `UIButton` know their natural size from content.\n- **Content Hugging Priority (CHP)** — how strongly a view resists growing *beyond* its intrinsic size.\n- **Compression Resistance Priority (CRP)** — how strongly a view resists shrinking *below* its intrinsic size.\n- **Ambiguous layouts** appear when constraints don't fully determine position or size. **Unsatisfiable layouts** occur when constraints conflict.\n\n```swift\nlet label = UILabel()\nlabel.translatesAutoresizingMaskIntoConstraints = false\nview.addSubview(label)\n\nNSLayoutConstraint.activate([\n    label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),\n    label.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),\n    label.centerYAnchor.constraint(equalTo: view.centerYAnchor)\n])\nlabel.setContentCompressionResistancePriority(.required, for: .horizontal)\n```",
+      "quickCheck": {
+        "id": "uikit-l2-qc",
+        "kind": "multipleChoice",
+        "prompt": "What property must you set to false before adding programmatic Auto Layout constraints to a view?",
+        "explanation": "UIKit generates implicit constraints from a view's autoresizingMask unless you opt out. Setting translatesAutoresizingMaskIntoConstraints to false removes those implicit constraints so your manual ones can work without conflicts.",
+        "correctIndex": 0,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "translatesAutoresizingMaskIntoConstraints",
+            "isMonospaced": true
+          },
+          {
+            "text": "clipsToBounds",
+            "isMonospaced": true
+          },
+          {
+            "text": "isHidden",
+            "isMonospaced": true
+          },
+          {
+            "text": "autoresizingMask",
+            "isMonospaced": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "uikit-l3",
+      "order": 2,
+      "title": "Responder Chain, Target-Action & Delegation",
+      "estimatedMinutes": 5,
+      "body": "UIKit uses three complementary patterns for event handling and communication between objects.\n\n**Responder Chain**\nEvery `UIResponder` (views, view controllers, the app itself) participates in a chain. When a touch event fires, UIKit hit-tests to find the deepest view that was tapped — the *first responder*. If that view doesn't handle the event, it travels *up* through superviews, then the view controller, then the window, then UIApplication.\n\n**Target-Action**\n`UIControl` subclasses (buttons, sliders, etc.) use target-action to decouple event source from handler. You register a target object and selector; when the event fires, UIKit sends the message.\n\n**Delegation**\nDelegation lets one object hand off responsibilities to another via a protocol. The delegating object holds a `weak` reference to its delegate to **prevent retain cycles**.\n\n```swift\n// Target-action\nlet button = UIButton(type: .system)\nbutton.addTarget(self, action: #selector(handleTap), for: .touchUpInside)\n\n@objc private func handleTap() {\n    print(\"Button tapped\")\n}\n\n// Delegation\nprotocol CardViewDelegate: AnyObject {\n    func cardViewDidDismiss(_ cardView: CardView)\n}\n\nclass CardView: UIView {\n    weak var delegate: CardViewDelegate?\n\n    private func dismiss() {\n        delegate?.cardViewDidDismiss(self)\n    }\n}\n```",
+      "quickCheck": {
+        "id": "uikit-l3-qc",
+        "kind": "multipleChoice",
+        "prompt": "Why should a delegate property be declared `weak`?",
+        "explanation": "The delegating object is usually owned by its delegate (e.g. a VC owns its subview). If the subview held a strong reference back to the VC, both objects would keep each other alive indefinitely — a retain cycle. weak breaks the cycle.",
+        "correctIndex": 0,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "To prevent a retain cycle between the delegating object and its delegate",
+            "isMonospaced": false
+          },
+          {
+            "text": "Because delegates are value types",
+            "isMonospaced": false
+          },
+          {
+            "text": "Because UIKit requires it for all properties",
+            "isMonospaced": false
+          },
+          {
+            "text": "To improve performance",
+            "isMonospaced": false
+          }
+        ]
+      }
+    }
+  ],
+  "questions": [
+    {
+      "id": "uikit-q1",
+      "kind": "multipleChoice",
+      "prompt": "What is the correct order of view controller lifecycle calls on first presentation?",
+      "explanation": "viewDidLoad fires once when the view loads into memory. viewWillAppear fires before each appearance, viewDidAppear after — the sequence is always load → willAppear → didAppear on first show.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "viewDidLoad → viewWillAppear → viewDidAppear",
+          "isMonospaced": false
+        },
+        {
+          "text": "viewWillAppear → viewDidLoad → viewDidAppear",
+          "isMonospaced": false
+        },
+        {
+          "text": "viewDidLoad → viewDidAppear → viewWillAppear",
+          "isMonospaced": false
+        },
+        {
+          "text": "viewWillAppear → viewDidAppear → viewDidLoad",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q2",
+      "kind": "multipleChoice",
+      "prompt": "What is the difference between `frame` and `bounds`?",
+      "explanation": "frame locates the view in its parent's coordinate space. bounds describes the view's own coordinate space — its origin is usually (0,0) unless scrolled. Auto Layout works in bounds.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "They are the same rectangle expressed in different spaces",
+          "isMonospaced": false
+        },
+        {
+          "text": "frame is the view's rectangle in its superview's coordinate system; bounds is in the view's own coordinate system",
+          "isMonospaced": false
+        },
+        {
+          "text": "bounds includes subviews; frame does not",
+          "isMonospaced": false
+        },
+        {
+          "text": "frame is in points; bounds is in pixels",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q3",
+      "kind": "multipleChoice",
+      "prompt": "Why does UITableView use `dequeueReusableCell(withIdentifier:)`?",
+      "explanation": "Table views can have thousands of rows but only a dozen cells visible. Cell reuse pools off-screen cells and recycles them, keeping memory usage proportional to the visible area.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "To prevent duplicate cell registrations",
+          "isMonospaced": false
+        },
+        {
+          "text": "To reuse off-screen cell objects rather than creating new ones — saving memory and allocation cost",
+          "isMonospaced": false
+        },
+        {
+          "text": "To guarantee cells are returned in insertion order",
+          "isMonospaced": false
+        },
+        {
+          "text": "Because UIKit requires identifier registration",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q4",
+      "kind": "multipleChoice",
+      "prompt": "Why should `@IBOutlet` connections be `weak`?",
+      "explanation": "The view hierarchy already retains subviews strongly. A weak outlet lets the VC reference the view without inflating its retain count — when the view is removed, it deallocates normally.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Because UIKit requires weak IBOutlets by Xcode convention",
+          "isMonospaced": false
+        },
+        {
+          "text": "Because the view hierarchy holds a strong reference to subviews; a weak outlet avoids a retain cycle through the view controller",
+          "isMonospaced": false
+        },
+        {
+          "text": "To improve rendering performance",
+          "isMonospaced": false
+        },
+        {
+          "text": "Because strong IBOutlets cause memory leaks in all cases",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q5",
+      "kind": "multipleChoice",
+      "prompt": "The main thread rule in UIKit means…",
+      "explanation": "UIKit was not built for concurrent access — modifying views from background threads produces unpredictable rendering artifacts or crashes. Always marshal UI updates to the main thread.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "You should always use DispatchQueue.main.async for all UIKit calls",
+          "isMonospaced": false
+        },
+        {
+          "text": "UIKit's view and layout systems must only be accessed from the main thread",
+          "isMonospaced": false
+        },
+        {
+          "text": "Network calls must happen on the main thread",
+          "isMonospaced": false
+        },
+        {
+          "text": "UIKit is thread-safe; the rule is advisory",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q6",
+      "kind": "multipleChoice",
+      "prompt": "What does constraint priority do?",
+      "explanation": "Priorities (1–1000) let Auto Layout gracefully resolve conflicting constraints. A required constraint (1000) must hold; lower priorities can be sacrificed to satisfy higher ones.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Determines which view is rendered on top (z-order)",
+          "isMonospaced": false
+        },
+        {
+          "text": "Sets the strength of a constraint — lower priority constraints break before higher priority ones when there is a conflict",
+          "isMonospaced": false
+        },
+        {
+          "text": "Controls how quickly an animation resolves the constraint",
+          "isMonospaced": false
+        },
+        {
+          "text": "Defines which constraint is evaluated first during layout",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q7",
+      "kind": "multipleChoice",
+      "prompt": "When does `layoutSubviews` get called?",
+      "explanation": "`layoutSubviews` is called by UIKit during the layout pass triggered by `setNeedsLayout` (deferred) or `layoutIfNeeded` (immediate). Override it to do custom subview positioning after bounds are known.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Only when you explicitly call it",
+          "isMonospaced": false
+        },
+        {
+          "text": "Whenever the view's bounds change or `setNeedsLayout` is called, at the next layout pass",
+          "isMonospaced": false
+        },
+        {
+          "text": "On every frame of the run loop",
+          "isMonospaced": false
+        },
+        {
+          "text": "Only during initial view loading",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q8",
+      "kind": "multipleChoice",
+      "prompt": "How does a touch event travel through the responder chain?",
+      "explanation": "The responder chain starts at the first responder (usually the hit-tested view), then moves up through the view hierarchy, view controllers, window, and application until someone handles the event.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "From the window down to the first subview found",
+          "isMonospaced": false
+        },
+        {
+          "text": "From the hit-tested view up through superviews toward the window and then the app delegate",
+          "isMonospaced": false
+        },
+        {
+          "text": "Directly to the view controller regardless of view hierarchy",
+          "isMonospaced": false
+        },
+        {
+          "text": "Through a shared UIApplication singleton",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q9",
+      "kind": "multipleChoice",
+      "prompt": "What is the difference between UITableViewDelegate and UITableViewDataSource?",
+      "explanation": "DataSource answers 'what data to show' (numberOfRows, cellForRowAt). Delegate answers 'how to behave' (didSelectRowAt, heightForRowAt). Separating concerns lets you reuse the same data source with different interaction behaviors.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "DataSource provides data (cell content, count); Delegate handles interaction (selection, row height, actions)",
+          "isMonospaced": false
+        },
+        {
+          "text": "They are interchangeable — only one is needed",
+          "isMonospaced": false
+        },
+        {
+          "text": "Delegate provides data; DataSource handles interaction",
+          "isMonospaced": false
+        },
+        {
+          "text": "DataSource is for static tables; Delegate is for dynamic tables",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q10",
+      "kind": "multipleChoice",
+      "prompt": "What is `intrinsicContentSize` used for?",
+      "explanation": "intrinsicContentSize tells Auto Layout the natural dimensions a view prefers based on its content (e.g. a label's text size). Content hugging and compression resistance work relative to this size.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Defining the minimum size a view should never go below",
+          "isMonospaced": false
+        },
+        {
+          "text": "Communicating a view's natural size to Auto Layout based on its content",
+          "isMonospaced": false
+        },
+        {
+          "text": "Setting the frame of a view programmatically",
+          "isMonospaced": false
+        },
+        {
+          "text": "Overriding the bounds of a subview",
+          "isMonospaced": false
+        }
+      ]
+    }
+  ]
+}

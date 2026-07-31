@@ -1,0 +1,400 @@
+{
+  "id": "sysdesign",
+  "name": "Mobile System Design",
+  "section": "craft",
+  "symbolName": "point.3.connected.trianglepath.dotted",
+  "colorToken": "systemdesign",
+  "order": 6,
+  "lessons": [
+    {
+      "id": "sysdesign-l1",
+      "order": 0,
+      "title": "Designing for Offline First",
+      "estimatedMinutes": 5,
+      "body": "An offline-first app treats the local store as the source of truth. The network is how data eventually reaches other devices — not how the UI gets its data. That single inversion decides most of the architecture.\n\nThe usual mistake is to design the server contract first and then bolt on caching. You end up with a spinner over every screen, because every read is a network read and every write blocks on a response. Invert it: reads always come from disk, writes always land on disk immediately, and sync is a background process that reconciles the two.\n\n### The outbox pattern\n\n- Writes go to the local store synchronously, so the UI updates in the same frame\n- A pending-mutation queue — the outbox — records what still has to reach the server\n- On reconnect, the queue drains oldest-first so causally ordered edits stay ordered\n- A failed mutation stays in the queue with a retry count rather than vanishing\n\n```swift\n@Model final class PendingMutation {\n    var id: UUID\n    var kind: String      // \"create\" | \"update\" | \"delete\"\n    var payload: Data\n    var createdAt: Date\n    var attempts: Int\n}\n```\n\n### Optimistic writes and honest state\n\nAn optimistic write shows the result before the server has confirmed it. That is the right default, but it obliges you to model three states, not two: synced, pending, and failed. Hiding the pending state is a lie the user eventually catches — usually when they reinstall and their edits are gone.\n\n> KEY: The network is an optimisation, not a dependency. If the UI can't render from disk alone, the app is not offline-first.",
+      "quickCheck": {
+        "id": "sysdesign-l1-qc",
+        "kind": "multipleChoice",
+        "prompt": "In an offline-first app, what is the source of truth?",
+        "explanation": "The local store. The server reconciles with it rather than dictating to it, which is why reads never have to wait on the network.",
+        "correctIndex": 1,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          { "text": "The server", "isMonospaced": false },
+          { "text": "The local store", "isMonospaced": false },
+          { "text": "Whichever wrote last", "isMonospaced": false }
+        ]
+      }
+    },
+    {
+      "id": "sysdesign-l2",
+      "order": 1,
+      "title": "Sync and Conflict Resolution",
+      "estimatedMinutes": 6,
+      "body": "Once two devices can edit the same record, you own a distributed-systems problem. The question is never *whether* conflicts happen — it is which resolution you can defend to a user who lost work.\n\n### Last-write-wins, and its cost\n\nLast-write-wins keeps one version and discards the other. It needs a single comparable value per record and no merge logic, which makes it the right answer for scalar state: a mute toggle, a sort preference, a read flag. It is the wrong answer for anything the user typed, because \"wins\" means \"the other edit is deleted without telling anyone\".\n\n### Ordering without trusting the clock\n\nDevice clocks drift, users change them, and time zones lie. Two options that don't depend on wall-clock honesty:\n\n- **Server timestamps** — the server stamps on receipt, so ordering is decided by one authority\n- **Logical clocks** — a version counter per record, or a version vector per device, so you can distinguish *newer* from *concurrent*\n\nThe distinction matters: a plain counter tells you two edits differ, a version vector tells you neither one saw the other, which is exactly the case that needs a merge.\n\n```swift\nstruct Versioned<T: Codable>: Codable {\n    var value: T\n    var version: Int          // bumped by the server, never the client\n    var updatedBy: String     // device id, for concurrent-edit detection\n}\n```\n\n### Granularity\n\nConflicts resolve per *field*, not per record, whenever fields are independent. If one device renamed a document and another edited its body, a per-record merge forces a false choice; a per-field merge keeps both. The cost is versioning metadata on every field you want to merge independently — so choose the small set that actually needs it.\n\n> KEY: Pick the resolution by blast radius. Silently dropping a toggle is a shrug; silently dropping a paragraph is a bug report.",
+      "quickCheck": {
+        "id": "sysdesign-l2-qc",
+        "kind": "multipleChoice",
+        "prompt": "Why prefer a server timestamp over the device's own `Date()` when ordering edits?",
+        "explanation": "Device clocks drift and can be changed by the user, so they can't establish a trustworthy order across devices. One authority stamping on receipt can.",
+        "correctIndex": 2,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          { "text": "Server timestamps have higher precision", "isMonospaced": false },
+          { "text": "It avoids sending a timestamp over the wire", "isMonospaced": false },
+          { "text": "Device clocks are untrustworthy, so they can't order events across devices", "isMonospaced": false },
+          { "text": "`Date()` is not `Sendable`", "isMonospaced": true }
+        ]
+      }
+    },
+    {
+      "id": "sysdesign-l3",
+      "order": 2,
+      "title": "Caching and Pagination",
+      "estimatedMinutes": 5,
+      "body": "Caching and paging are where mobile system design questions usually go, because both have an obvious implementation that breaks in production.\n\n### Invalidation is the hard half\n\nWriting to a cache is trivial; knowing when the entry is wrong is not. The three strategies worth naming:\n\n- **Time-based (TTL)** — simple, predictable staleness, no server cooperation needed\n- **Validator-based** — send `ETag` or `If-Modified-Since` and let the server answer `304`, which costs a round trip but no payload\n- **Event-based** — the server pushes an invalidation, giving the freshest data and the most moving parts\n\n`stale-while-revalidate` combines the first two into the behaviour users actually want: render the cached value immediately, refresh in the background, update in place if it changed. No spinner, no lie for longer than one round trip.\n\n### Why offset pagination breaks\n\n`?page=3&limit=20` assumes the list holds still. On a feed where items are inserted at the top, it doesn't: by the time you request page 3, three new items have shifted everything down, so you re-fetch rows you already showed and never see the ones that slid past your window. The symptom is duplicated and randomly missing cells — and it is invisible in testing, where nothing is being inserted.\n\nCursor pagination encodes a *position in the data*, not a count of pages:\n\n```swift\nstruct Page<Item: Decodable>: Decodable {\n    let items: [Item]\n    let nextCursor: String?   // opaque; nil means the end\n}\n```\n\nThe cursor is opaque on purpose — the server can change what it encodes without breaking old clients.\n\n### Prefetching\n\nRequest the next page when the user is a screen away from the end, not when they hit it. One page of lead time hides the latency; ten pages of lead time is just a slow download of data nobody asked for.\n\n> KEY: Offset paging is correct only for data that doesn't change. Feeds change.",
+      "quickCheck": {
+        "id": "sysdesign-l3-qc",
+        "kind": "multipleChoice",
+        "prompt": "A feed inserts new items at the top while the user scrolls. What goes wrong with offset pagination?",
+        "explanation": "Offsets count from a list that shifted underneath the request, so the next page overlaps what was already shown and skips what moved past the window.",
+        "correctIndex": 0,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          { "text": "Items are duplicated and others are skipped", "isMonospaced": false },
+          { "text": "Requests fail with a 4xx status", "isMonospaced": false },
+          { "text": "The cache is invalidated on every page", "isMonospaced": false },
+          { "text": "Nothing — offsets are stable by definition", "isMonospaced": false }
+        ]
+      }
+    },
+    {
+      "id": "sysdesign-l4",
+      "order": 3,
+      "title": "Answering a System Design Question",
+      "estimatedMinutes": 5,
+      "body": "A mobile system design round is not a quiz with a hidden answer. The interviewer is watching how you narrow an open problem, and whether you can say why you chose one option over another. The method matters more than the design.\n\n### The five moves\n\n1. **Clarify** — ask two or three questions that actually change the design. \"Is this read-heavy or write-heavy?\", \"Does it have to work offline?\", \"How many items in the worst case?\" Vague questions burn time; a question whose answer would change your storage choice earns it back.\n2. **State assumptions out loud** — where you don't get an answer, choose one and say so. \"I'll assume a single logged-in user per device, so I don't need multi-account storage.\" An unstated assumption reads as a gap in your thinking.\n3. **Sketch the data flow** — name the layers and what crosses between them: view → store → sync → network. Draw the direction of writes. Most bad designs are visible as a cycle or a missing boundary at this stage.\n4. **Name the trade-offs explicitly** — every real decision gives something up. Say what. \"Cursor paging costs me the ability to jump to page 7; on a feed nobody does that, so I'll take it.\"\n5. **Then discuss scale** — what changes at 10× the data, on a three-year-old device, on a flaky network, on a cold launch. Scale last, because scaling an undefined design is theatre.\n\n### What separates a strong answer\n\n- It names the failure being avoided, not just the pattern being used\n- It says which part is the risky one and how it would be measured\n- It doesn't reach for a technology before the constraint that justifies it\n- It admits when the simple option is enough, instead of designing for imaginary volume\n\n> KEY: The interviewer is buying your judgment, not your diagram. Say the trade-off out loud or it didn't happen.",
+      "quickCheck": {
+        "id": "sysdesign-l4-qc",
+        "kind": "multipleChoice",
+        "prompt": "You're 30 seconds into a system design question. What's the best first move?",
+        "explanation": "Clarify the requirements that would change the design, then state the assumptions you're proceeding on. Jumping to components means designing for a problem you haven't defined.",
+        "correctIndex": 1,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          { "text": "Start naming the components you'll use", "isMonospaced": false },
+          { "text": "Ask the few questions whose answers would change the design", "isMonospaced": false },
+          { "text": "Estimate the request volume per second", "isMonospaced": false },
+          { "text": "Pick the persistence framework so the rest follows", "isMonospaced": false }
+        ]
+      }
+    }
+  ],
+  "questions": [
+    {
+      "id": "sysdesign-q1",
+      "kind": "systemDesign",
+      "prompt": "Design the data layer for a note-taking app that must work with no network at all. Walk through your storage choice, how edits are persisted, and what happens when the device comes back online.",
+      "explanation": "Strong answers make the local store authoritative and treat sync as a background reconciliation, rather than gating the UI on network calls.",
+      "correctIndex": null,
+      "rubric": "Cover: (1) a local store — SwiftData or Core Data — written to synchronously on edit so the UI never waits; (2) an outbox of pending mutations with a stable ordering; (3) reconnect behaviour that drains the outbox oldest-first and handles partial failure; (4) what the user sees while unsynced — an explicit pending state beats a silent lie. A strong answer names the failure it is avoiding: a spinner blocking a note the user already typed.",
+      "level": "junior",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q2",
+      "kind": "systemDesign",
+      "prompt": "Two devices edit the same note while both are offline. Compare last-write-wins against a per-field merge for resolving the conflict, and say which you would ship.",
+      "explanation": "The point is not that merging is better — it is that the choice follows from the data shape and the cost of a wrong resolution.",
+      "correctIndex": null,
+      "rubric": "Last-write-wins is cheap, needs one comparable value, and silently discards one edit — acceptable for a settings toggle, bad for a body of text. Per-field merge preserves independent edits but needs per-field versioning and a defined rule for the genuinely concurrent case. Strong answers pick based on blast radius: LWW for scalar metadata, merge (or a CRDT) for free text, and they note that device clocks are untrustworthy, so ordering should come from a server timestamp or a logical clock rather than `Date()`.",
+      "level": "mid",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q3",
+      "kind": "systemDesign",
+      "prompt": "Your sync engine worked in testing, but in production a small set of users report deleted items reappearing — sometimes days later. Diagnose the likely cause and describe the fix.",
+      "explanation": "A resurrection bug is the classic symptom of deleting a row locally without recording that the deletion happened.",
+      "correctIndex": null,
+      "rubric": "Diagnosis: the delete removed the local row but left no tombstone, so the next pull sees a server record with no local counterpart and treats it as new. The \"days later\" detail points at a second device that was offline and finally resynced. Fix: soft-delete with a tombstone carrying a version or `deletedAt`, propagate deletion as an explicit mutation rather than an absence, and purge tombstones only after the server acknowledges. Strong answers say how they'd confirm the theory — server-side mutation logs for one affected account — and how to repair accounts already corrupted, not just stop new cases.",
+      "level": "senior",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q4",
+      "kind": "systemDesign",
+      "prompt": "Design the caching layer for a screen that lists articles fetched from a REST API. Describe what you store, where, and how you decide an entry is stale.",
+      "explanation": "The expected shape is render-from-cache-first with a defined invalidation rule, not a bare in-memory dictionary.",
+      "correctIndex": null,
+      "rubric": "Cover: (1) two tiers — an in-memory cache for the current session and a disk cache that survives launch, since a cold launch is the case that actually needs it; (2) a key that includes everything that varies the response (endpoint, query, locale, auth scope), or you will serve one user's list to another; (3) an invalidation rule you can name — a TTL, or an `ETag`/`If-Modified-Since` validator so an unchanged response costs a `304` and no payload; (4) render cached content immediately and refresh behind it. A strong answer states the staleness the user can observe, e.g. \"up to 5 minutes old, refreshed on foreground\".",
+      "level": "junior",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q5",
+      "kind": "systemDesign",
+      "prompt": "Compare stale-while-revalidate against cache-then-network and network-only for a product detail screen that shows a price. Which do you pick, and what does the user see in each case?",
+      "explanation": "Correctness constraints on the displayed data decide this, not raw perceived speed.",
+      "correctIndex": null,
+      "rubric": "Network-only is always correct and always slow, with a spinner on every visit. Cache-then-network shows the cached value and then replaces it, which can visibly change a price under the user's finger — dangerous right next to a Buy button. Stale-while-revalidate is the same mechanism plus an explicit policy: show cached, refresh in background, and define what happens on a change. Strong answers distinguish by field, not by screen: cache the title and images aggressively, treat price and availability as must-be-fresh — render them as pending or re-validate before allowing checkout. Naming the failure (charging a price that was displayed but is no longer real) is what separates a strong answer.",
+      "level": "mid",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q6",
+      "kind": "systemDesign",
+      "prompt": "Support reports that some users see stale content for hours after an editor publishes a correction, while others see it immediately. Diagnose and fix.",
+      "explanation": "A split population points at layered caches with different lifetimes, not at one bug in the app.",
+      "correctIndex": null,
+      "rubric": "Diagnosis: there are several caches in the path — CDN, `URLCache`, the app's disk cache, and possibly an in-memory copy held by a long-lived screen — and only some are being invalidated. Users who \"see it immediately\" are the ones whose cache happened to be cold. Investigation: compare response headers between an affected and unaffected device to find which layer is serving, and check whether the app honours `Cache-Control` or overrides it. Fix: agree one authority for freshness (server-set `Cache-Control` plus `ETag`), purge the CDN on publish, and make content keys content-addressed or version-stamped so a correction produces a new key rather than needing an eviction. Strong answers also add a foreground revalidation so an app resumed after hours doesn't render an hours-old view as current.",
+      "level": "senior",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q7",
+      "kind": "systemDesign",
+      "prompt": "Design paging for an infinite-scrolling feed. Describe the request the client makes, what the server returns, and when you fetch the next page.",
+      "explanation": "This is the baseline paging question — the expected answer is cursor-based with prefetch, plus defined loading and end states.",
+      "correctIndex": null,
+      "rubric": "Cover: (1) a cursor-based request — an opaque `after` token plus a limit — rather than a page number, so insertions don't shift the window; (2) a response carrying the items and a `nextCursor`, where `nil` means the end (an empty array is ambiguous); (3) prefetch triggered a screen ahead of the last visible cell, not at the very bottom; (4) guard against overlapping requests so a fast scroll doesn't fire the same page twice; (5) the three UI states — appending, end-of-feed, and failure with retry that doesn't discard what's already loaded. Strong answers mention where the pages live (a local store, so the feed survives backgrounding) and cap retained pages so scrolling for ten minutes doesn't grow unbounded.",
+      "level": "junior",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q8",
+      "kind": "systemDesign",
+      "prompt": "Compare cursor and offset pagination for a social feed. What does each cost you, and when is offset actually the right choice?",
+      "explanation": "Both have a legitimate use; the discriminator is whether the underlying list is stable.",
+      "correctIndex": null,
+      "rubric": "Offset (`page`/`limit`) is trivial to implement, allows jumping to an arbitrary page, and is easy for a server to satisfy from a stable query — but on a list with inserts it duplicates and skips rows, and it gets slower deep in the list because the database still scans what it skips. Cursor paging encodes a position in the data, so inserts don't disturb it and deep pages stay cheap; the cost is that you cannot jump to page N, and the cursor must be opaque so the server can change its encoding. Strong answers say offset is right for genuinely stable, randomly-addressable data — search results, a paginated table, an archive — and that a feed is the canonical case where it is wrong. Best answers add that the bug is invisible in testing, where nothing is being inserted.",
+      "level": "mid",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q9",
+      "kind": "systemDesign",
+      "prompt": "Users of a fast-moving feed report seeing the same post twice and occasionally posts that vanish as they scroll. Analytics show it correlates with peak posting hours. Diagnose and fix.",
+      "explanation": "Peak-hour correlation is the tell: the failure scales with insert rate, which is what offset paging cannot tolerate.",
+      "correctIndex": null,
+      "rubric": "Diagnosis: offset pagination over a list receiving inserts at the head. Between page requests, N new items shift everything down by N, so the next offset re-reads rows already shown (duplicates) and never reaches rows pushed past the window (vanishing). Correlation with posting rate is the confirmation. Secondary contributor: reusing an unstable cell identity, which makes the duplicate visible as a flicker even when the data is right. Fix: move to a cursor keyed on a stable sort (id or created-at plus tiebreak), dedupe by item id when appending, and give the list a stable identity. Strong answers note the migration path — server supports both while old clients are in the field — and that inserts at the head are better delivered as a \"new posts\" affordance than by silently mutating the loaded window.",
+      "level": "senior",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q10",
+      "kind": "systemDesign",
+      "prompt": "Design the image loading pipeline for a scrolling grid of photos. Cover fetching, caching, and how images reach the cell.",
+      "explanation": "The expected answer covers cancellation and decoded-size handling, not just \"download and cache\".",
+      "correctIndex": null,
+      "rubric": "Cover: (1) request the size you will display — a thumbnail URL or a server-side resize — rather than downloading full-resolution images for a 120pt cell; (2) two caches, decoded images in memory (`NSCache`, which evicts under pressure) and encoded bytes on disk; (3) cancel the request when the cell is reused or scrolled off, or a fast scroll queues hundreds of downloads for cells nobody is looking at; (4) tie each in-flight request to the cell's current item so a late response can't land in a recycled cell showing something else; (5) placeholder and failure states. Strong answers name decode cost as the real memory driver — a 4000×3000 JPEG is a few hundred KB on disk and ~48MB decoded — and downsample at decode time via `CGImageSourceCreateThumbnailAtIndex` or `UIImage.preparingThumbnail`.",
+      "level": "junior",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q11",
+      "kind": "systemDesign",
+      "prompt": "Compare caching decoded images in memory against caching only the encoded bytes and decoding on demand. How would you size whichever cache you choose?",
+      "explanation": "The trade is CPU per scroll frame against resident memory, and sizing must be relative to the device, not a constant.",
+      "correctIndex": null,
+      "rubric": "Decoded caching gives instant reuse and smooth scrolling but holds width × height × 4 bytes per image, which is where jetsam kills come from. Encoded caching is far smaller but pays a decode — tens of milliseconds — on every reuse, which drops frames if it happens during scroll. The defensible answer is both tiers: a small decoded cache sized to a few screens of visible content, backed by an encoded disk cache, with decode moved off the main thread. Sizing: express the limit as a fraction of `os_proc_available_memory` or device RAM rather than a hardcoded megabyte count, use `NSCache` so the system can evict under pressure, and evict on `didReceiveMemoryWarning`. Strong answers say what they'd measure — peak footprint and dropped frames while scrolling on the oldest supported device — instead of asserting a number.",
+      "level": "mid",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q12",
+      "kind": "systemDesign",
+      "prompt": "A photo grid crashes with no stack trace on older devices after a minute of scrolling, but never on your test device. Diagnose and fix.",
+      "explanation": "No stack trace plus device-dependence plus time-to-reproduce is the signature of an out-of-memory termination, not a crash.",
+      "correctIndex": null,
+      "rubric": "Diagnosis: jetsam — the OS terminated the app for exceeding its memory limit, which is why there is no exception and why a device with more RAM survives. Confirmation: `MXSignpost`/MetricKit `MXAppExitData` or Xcode Organizer showing memory-resource terminations, and an Instruments allocations run reproducing growth while scrolling. Likely causes, in order: caching full-resolution decoded images, an unbounded cache (a plain dictionary rather than `NSCache`), retaining every page of the grid, and retain cycles keeping image data alive past cell reuse. Fix: downsample at decode to the displayed size, bound the decoded cache as a fraction of available memory, release off-screen pages, and honour memory-pressure notifications. Strong answers add a regression guard — a memory-footprint assertion or a scripted scroll on the oldest supported device in CI — since the failure is silent until it is fatal.",
+      "level": "senior",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q13",
+      "kind": "systemDesign",
+      "prompt": "Design push notification handling for a chat app. Cover what the payload carries, what happens on tap, and what happens while the app is in the foreground.",
+      "explanation": "The key insight is that a notification is a hint to fetch, not a delivery channel for message content.",
+      "correctIndex": null,
+      "rubric": "Cover: (1) a payload carrying identifiers and a short preview, not the authoritative message body — payloads are size-capped, unencrypted at rest on the device's notification store, and can be dropped; (2) on receipt, fetch the real message from the API and write it to the local store, so opening the app from cold shows the same thing as opening from the notification; (3) deep-link on tap by conversation id, and handle the case where the app was killed and must restore state before navigating; (4) in the foreground, suppress the banner for the conversation already on screen and let it through otherwise; (5) badge count computed by the server or reconciled on launch, since notifications can be missed. Strong answers mention that delivery is best-effort and the app must be able to reach a correct state from a full sync alone.",
+      "level": "junior",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q14",
+      "kind": "systemDesign",
+      "prompt": "You need a news app's content to be reasonably fresh when the user opens it. Compare `BGAppRefreshTask` with silent push as the mechanism.",
+      "explanation": "Both are best-effort and system-scheduled; the difference is who decides when, and what each costs.",
+      "correctIndex": null,
+      "rubric": "`BGAppRefreshTask` is client-driven: you request a minimum interval and the system decides, weighted by usage patterns, battery, and network. No server infrastructure, but no control over timing and no guarantee it runs at all — an app the user opens rarely gets refreshed rarely. Silent push (`content-available`) is server-driven, so it can fire on an actual content change rather than on a schedule, but it needs push infrastructure, is explicitly rate-limited and coalesced by APNs, and is dropped in Low Power Mode. Strong answers use both and treat neither as reliable: silent push for change-driven updates, background refresh as a backstop, and — decisively — a foreground fetch on launch, because that is the only fetch guaranteed to run when the user is actually looking. They also note the fixed budget: finish quickly and call the completion handler, or the system throttles future runs.",
+      "level": "mid",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q15",
+      "kind": "systemDesign",
+      "prompt": "A subset of users report chat notifications arriving minutes late or not at all, while in-app messages are fine. Diagnose and describe how you'd narrow it down.",
+      "explanation": "The in-app path being healthy localises the fault to the delivery path or the device's own throttling, not to the message pipeline.",
+      "correctIndex": null,
+      "rubric": "Split the path and check each hop: does the server enqueue the push, does APNs accept it (capture `apns-id` and the response), and does the device report receipt? Server-side push logs plus a per-message correlation id make this answerable rather than speculative. Likely causes: expired or invalid device tokens never being pruned; tokens not refreshed after reinstall or restore; priority-5 pushes being deferred by the system; Low Power Mode and Focus modes suppressing delivery; APNs coalescing when a collapse id is reused; a notification-service extension timing out, which drops the notification entirely. Fix accordingly — re-register the token on every launch and on `didRegister`, use priority 10 for user-visible messages, keep the extension fast with a fallback to the original content, and prune tokens on APNs feedback. Strong answers concede that APNs delivery is best-effort by design and reconcile unread state on foreground so a dropped push doesn't leave the app wrong, only late.",
+      "level": "senior",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q16",
+      "kind": "systemDesign",
+      "prompt": "Design authentication token handling for a logged-in app. Cover where tokens live, how requests are authorised, and how a session is refreshed.",
+      "explanation": "The expected answer separates the short-lived access token from the long-lived refresh credential and stores each appropriately.",
+      "correctIndex": null,
+      "rubric": "Cover: (1) a short-lived access token and a long-lived refresh token; (2) storage in the Keychain, not `UserDefaults` — with a stated accessibility class, e.g. `afterFirstUnlock` so background refresh can still read it — and never in a plist or a log; (3) attaching the token in one place, an interceptor or a custom `URLProtocol`/session delegate, rather than per call site; (4) refresh on expiry, ideally proactively from the known expiry rather than reactively on the first 401; (5) logout and revocation clearing both the Keychain entry and the local cache, because leaving cached content behind leaks the previous user's data. Strong answers mention that a 401 after a failed refresh must terminate the session cleanly instead of looping, and that tokens should not be written to crash reports or analytics.",
+      "level": "junior",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q17",
+      "kind": "systemDesign",
+      "prompt": "Your API must change a response shape, and old app versions will stay installed for years. Compare versioned endpoints (`/v2/feed`) with an additive, tolerant-reader schema.",
+      "explanation": "The real constraint is that you can never force an app update, so the decision is about who carries the compatibility burden.",
+      "correctIndex": null,
+      "rubric": "Versioned endpoints give a clean break and let the new shape be exactly right, at the cost of maintaining every version until its clients die — and clients don't die on schedule, so `/v1` outlives its budget. An additive tolerant-reader schema — only ever add optional fields, never remove or repurpose one, and have clients ignore unknown keys and default missing ones — avoids forking the server but constrains the schema permanently and accumulates vestigial fields. Strong answers pick additive as the default, reserving a version bump for changes that genuinely cannot be expressed additively, and note that tolerance must be built in *before* it is needed: a client that fails to decode on an unknown field cannot be fixed retroactively. Best answers add a mechanism for the endgame — a minimum-supported-version check that can tell a truly ancient client to update, and telemetry on version distribution so retirement is a measurement rather than a hope.",
+      "level": "mid",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q18",
+      "kind": "systemDesign",
+      "prompt": "After a deploy that shortened access-token lifetime, your auth service sees traffic spikes and users are randomly logged out. Diagnose and fix.",
+      "explanation": "This is a concurrency bug in the refresh path that only becomes visible when tokens expire often enough for requests to collide.",
+      "correctIndex": null,
+      "rubric": "Diagnosis: every in-flight request that gets a 401 starts its own refresh. Ten parallel requests trigger ten refreshes; with single-use rotating refresh tokens, the first succeeds and rotates, the rest present a now-invalid token, fail, and log the user out. Shorter lifetimes didn't cause the bug, they exposed it — the spike is the same amplification hitting the auth service. Fix: funnel refresh through a single shared task so concurrent callers await one in-flight refresh, queue and replay the 401'd requests once it completes, and refresh proactively before expiry so the collision window mostly disappears. Add jitter so many clients don't refresh in lockstep after a deploy, and treat only an explicit invalid-grant as a logout — a network failure must retry, not sign the user out. Strong answers say how they'd prove it: a test firing N concurrent requests against an expired token and asserting exactly one refresh call.",
+      "level": "senior",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q19",
+      "kind": "systemDesign",
+      "prompt": "Design search over content the app already stores on device — no server involved. Cover what you index, how the query runs, and what the user sees while typing.",
+      "explanation": "The expected answer indexes ahead of time and keeps the query off the main thread, rather than filtering everything on every keystroke.",
+      "correctIndex": null,
+      "rubric": "Cover: (1) an index built when content is written, not on each query — a normalised, case- and diacritic-folded token or trigram table, so lookup is not a full scan; (2) matching that survives real typing — prefix matches, folded comparison, and a defined behaviour for multi-word queries; (3) execution off the main thread on a background context, with debounce so a fast typist doesn't queue a query per character and cancellation of the superseded one; (4) ranking that is explainable — title before body, whole-word before partial, recency as a tiebreak; (5) empty, no-results, and still-searching states. Strong answers say that a linear filter is genuinely fine at small scale and name the volume at which they'd move to an index, rather than over-building for a hundred records.",
+      "level": "junior",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q20",
+      "kind": "systemDesign",
+      "prompt": "For a home screen whose layout changes often, compare server-driven UI against a client-owned layout with the server supplying only data.",
+      "explanation": "The trade is release-cycle independence against client simplicity, and it hinges on what the client must be able to render.",
+      "correctIndex": null,
+      "rubric": "Server-driven UI lets product change ordering, sections, and components without an App Store release, which matters when the layout changes weekly. The costs are real: the client becomes an interpreter that must handle component types it has never seen, the payload grows, offline caching gets harder because you cache a layout as well as data, previews and tests lose their fixed surface, and a bad server payload can break the screen for everyone at once. Client-owned layout is simpler, faster, easier to test, and works offline naturally, but every change waits on a release and on user adoption. Strong answers take the middle: the client owns a fixed catalogue of component types, the server orders and populates them, unknown types are skipped rather than fatal, and the last good layout is cached so a cold launch has something to render. Best answers name the kill switch — a way to fall back to a bundled default layout when the served one is broken.",
+      "level": "mid",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q21",
+      "kind": "systemDesign",
+      "prompt": "Search felt instant at launch, but a year later heavy users report the field freezing as they type. Diagnose and fix.",
+      "explanation": "Time-to-onset plus correlation with heavy users points at a per-keystroke cost that grows with local data volume.",
+      "correctIndex": null,
+      "rubric": "Diagnosis: the query is O(corpus) and runs on the main thread on every keystroke. At launch the corpus was small enough to hide it; a year of accumulated content makes each keystroke a full scan, and the freeze is the main thread blocked. Suspect specifically: fetching all records and filtering in memory, `contains` on unindexed attributes, a predicate that can't be pushed down to the store so SwiftData materialises everything, and no debounce so N keystrokes queue N scans. Confirmation: Time Profiler and a hang-detection trace on a seeded large store — heavy users are reproducible if you seed realistically. Fix: index the searchable attributes, express the query as a store-level predicate with a fetch limit, run on a background context and hand back only what the list needs, debounce input and cancel superseded queries. Strong answers add a performance test at realistic volume, since the bug is a slope, not an event — it will return the next time volume doubles.",
+      "level": "senior",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q22",
+      "kind": "systemDesign",
+      "prompt": "Design analytics event capture that doesn't lose events when the device is offline or the app is killed. Cover the write path, the upload path, and event ordering.",
+      "explanation": "Durability is the whole question: an in-memory buffer flushed on background loses exactly the events that matter most.",
+      "correctIndex": null,
+      "rubric": "Cover: (1) an append-only durable queue on disk written synchronously enough to survive a kill — an in-memory buffer flushed at `didEnterBackground` loses everything on a crash or a jetsam, which is precisely the session you wanted data about; (2) a self-describing event — name, timestamp captured at the moment of the event rather than of upload, session id, and a client-generated event id for deduplication; (3) batched upload on a size or time trigger, deleting from the queue only after the server acknowledges; (4) bounds — a maximum queue size with a defined drop policy, or a week offline fills the disk; (5) never blocking the UI, and never logging anything that identifies the user beyond what was disclosed. Strong answers note that the server must dedupe on the event id, because at-least-once delivery is the honest guarantee.",
+      "level": "junior",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q23",
+      "kind": "systemDesign",
+      "prompt": "Compare uploading each analytics event as it happens against batching events for periodic upload. What does each cost, and how would you decide the batch policy?",
+      "explanation": "Per-event upload is simple and immediate but pays a radio wake-up per event, which is the dominant battery cost.",
+      "correctIndex": null,
+      "rubric": "Per-event upload gets data server-side immediately and needs no queue, but each request wakes the cellular radio and holds it in a high-power state for seconds afterwards — hundreds of events becomes a measurable battery complaint — and every event is independently lossy on a flaky network. Batching amortises the radio cost and compresses well, at the price of delayed data, a durable queue to maintain, and losing a whole batch on a failure unless retried. Batch policy should be driven by triggers rather than a single timer: a size threshold, a maximum age so low-volume users still report, flush on background, and reachability plus power state as gates — Wi-Fi and charging are the cheap moments. Strong answers carve out an exception for the events that must not wait (crashes, purchases, funnel-critical steps) and use `URLSession` background upload so a flush that starts as the app suspends can still finish.",
+      "level": "mid",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q24",
+      "kind": "systemDesign",
+      "prompt": "A backend dependency degrades for ninety seconds. Instead of recovering, the outage lengthens to twenty minutes and the backend team says client traffic tripled during it. Diagnose the client's role and fix it.",
+      "explanation": "Naive retries turn a partial outage into a self-sustaining one — every failure becomes additional load.",
+      "correctIndex": null,
+      "rubric": "Diagnosis: a retry storm. Fixed-interval retries with no cap mean each failure produces more requests; because every client fails at the same moment, they retry in lockstep and stay synchronised, so the load spike recurs on every interval and prevents recovery. Contributing: retrying non-idempotent requests, retrying 4xx responses that will never succeed, and per-request retry logic so a screen with five calls multiplies the amplification. Fix: exponential backoff with full jitter to desynchronise clients, a bounded attempt count, retry only idempotent requests and only on 5xx, timeout, or connection errors, and honour `Retry-After` when the server sends it. Add a circuit breaker that stops calling a failing endpoint entirely for a cool-down and shows a degraded state instead. Strong answers note the client is a participant in backend availability and that this must be tested deliberately — a fault-injection test asserting attempt counts and spacing — because it cannot be observed in normal operation.",
+      "level": "senior",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q25",
+      "kind": "systemDesign",
+      "prompt": "Design app launch so the first screen appears quickly. Describe what happens between the tap and the first frame, and what you deliberately defer.",
+      "explanation": "The expected answer separates work required for the first frame from work that merely happens to be scheduled there.",
+      "correctIndex": null,
+      "rubric": "Cover: (1) the phases — process start and dynamic linking, then app and scene initialisation, then first frame — and that only the third is directly yours; (2) render the first screen from local data, so launch never awaits a network response; (3) defer everything not needed for that frame: analytics SDK setup, prefetching, migrations for screens not yet shown, third-party initialisation. Kick them off after the first frame or lazily on first use; (4) never block the main thread on disk or network during init — a synchronous store migration on launch is the classic offender; (5) show real structure rather than a spinner, and don't animate a splash for its own sake. Strong answers say how they'd measure — MetricKit launch time and an Instruments App Launch trace on the oldest supported device, watching p95 rather than their own device's best case — and name a budget they're designing against.",
+      "level": "junior",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q26",
+      "kind": "systemDesign",
+      "prompt": "You need remote feature flags. Compare polling a config endpoint against pushing changes to the client, and say what the app does when it has no config at all.",
+      "explanation": "The interesting part is the fallback: a flag system whose failure mode is an unusable app is worse than no flag system.",
+      "correctIndex": null,
+      "rubric": "Polling is simple, predictable, and cacheable, at the price of staleness bounded by the interval and wasted requests when nothing changed — mitigable with `ETag` so unchanged config costs a `304`. Push (silent notification or a socket) propagates a change in seconds, which matters for a kill switch, but adds infrastructure and is unreliable enough that it can't be the only path. The defensible design is bundled defaults shipped in the binary, a cached last-known-good config on disk, a fetch on launch and foreground, and optionally push as an accelerator for urgent changes. Critically: never gate first render on a config fetch — an app that shows a spinner until the flag service answers has made an optional service load-bearing. Strong answers add that flag reads must be consistent within a session so the UI doesn't change shape mid-use, and that a kill switch is the one flag worth pushing.",
+      "level": "mid",
+      "codeSnippet": null,
+      "options": []
+    },
+    {
+      "id": "sysdesign-q27",
+      "kind": "systemDesign",
+      "prompt": "Cold launch p95 rose from 900ms to 4s over three releases, with no single commit responsible. The team's own devices feel fine. Diagnose and fix.",
+      "explanation": "Gradual regression with no culprit commit means accumulated startup work whose cost scales with data — invisible on a fresh install and a fast device.",
+      "correctIndex": null,
+      "rubric": "Diagnosis: launch cost is proportional to accumulated local data and to the number of things initialised eagerly, neither of which shows on a developer device with a fresh install and a top-tier CPU. Prime suspects: a store migration or integrity pass running synchronously on the main thread at launch; re-seeding or validating bundled content on every start instead of on a version change; a fetch with no limit or predicate hydrating everything to compute a badge or a summary; SDKs initialised in `didFinishLaunching` because that is where initialisation goes; and dynamic-linking cost from added dependencies. Investigation: MetricKit launch histograms segmented by device class, an App Launch trace on the oldest supported device seeded with a heavy realistic store, and an instrumented measurement of each init step rather than guesses. Fix: move migration off the launch path behind a launch screen with progress, gate re-seeding on a stored version, replace unbounded fetches with aggregate counts or predicates, make SDK init lazy or post-first-frame. Strong answers add the guard: a launch-time budget measured in CI against a seeded store, since the regression was gradual and will otherwise recur.",
+      "level": "senior",
+      "codeSnippet": null,
+      "options": []
+    }
+  ]
+}

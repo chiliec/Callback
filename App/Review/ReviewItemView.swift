@@ -28,7 +28,7 @@ struct ReviewItemView: View {
                     CodeBlock(filename: cs.filename, language: cs.language, code: cs.code)
                 }
 
-                if question.kind == .behavioral {
+                if question.kind.isSelfRated {
                     behavioralAnswerSection
                 } else {
                     answersSection
@@ -178,7 +178,7 @@ struct ReviewItemView: View {
                 Text("Why")
                     .font(DSFont.footnote)
                     .foregroundStyle(DSColor.secondaryLabel)
-                Text(question.kind == .behavioral ? (question.rubric ?? question.explanation) : question.explanation)
+                Text(question.kind.isSelfRated ? (question.rubric ?? question.explanation) : question.explanation)
                     .font(DSFont.body)
             }
         }
