@@ -102,7 +102,7 @@ struct PlacementQuizView: View {
                     }
                 }
 
-                if question.kind == .behavioral {
+                if question.kind.isSelfRated {
                     SelfAssessCard(
                         rubric: question.rubric ?? question.explanation,
                         isRevealed: session.isGuidanceRevealed,
