@@ -138,8 +138,13 @@ struct PracticeView: View {
                     }
                     .padding(.horizontal, 16)
                     .frame(minHeight: DSSpacing.rowMinHeight)
+                    // Same as `drillRow`: the card's background is outside this
+                    // link, so the `Spacer()` and chevron need an explicit shape
+                    // to be hit-testable.
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("review-queue-row")
             }
         }
     }
