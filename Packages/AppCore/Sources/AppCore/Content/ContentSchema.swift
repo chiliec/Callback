@@ -34,6 +34,26 @@ public struct QuestionDTO: Codable, Sendable {
     public let rubric: String?
     public let codeSnippet: CodeSnippetDTO?
     public let options: [OptionDTO]
+    /// Absent decodes to `.mid`. `ContentValidationTests` enforces the key's
+    /// presence in authored JSON, so the default only ever applies to fixtures.
+    public let level: Level
+
+    enum CodingKeys: String, CodingKey {
+        case id, kind, prompt, explanation, correctIndex, rubric, codeSnippet, options, level
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        kind = try c.decode(QuestionKind.self, forKey: .kind)
+        prompt = try c.decode(String.self, forKey: .prompt)
+        explanation = try c.decode(String.self, forKey: .explanation)
+        correctIndex = try c.decodeIfPresent(Int.self, forKey: .correctIndex)
+        rubric = try c.decodeIfPresent(String.self, forKey: .rubric)
+        codeSnippet = try c.decodeIfPresent(CodeSnippetDTO.self, forKey: .codeSnippet)
+        options = try c.decodeIfPresent([OptionDTO].self, forKey: .options) ?? []
+        level = try c.decodeIfPresent(Level.self, forKey: .level) ?? .mid
+    }
 }
 
 public struct OptionDTO: Codable, Sendable {

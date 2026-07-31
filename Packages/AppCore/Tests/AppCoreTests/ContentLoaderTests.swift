@@ -228,3 +228,36 @@ private let sampleJSON = """
     #expect(topicsAfter[0].isSaved == true)
     #expect(lessonsAfter[0].isComplete == true)
 }
+
+@Test func decodesQuestionLevel() throws {
+    let json = """
+    { "id": "q1", "kind": "multipleChoice", "prompt": "P", "explanation": "E",
+      "correctIndex": 0, "rubric": null, "codeSnippet": null, "level": "senior",
+      "options": [ { "text": "a", "isMonospaced": false },
+                   { "text": "b", "isMonospaced": false } ] }
+    """
+    let dto = try JSONDecoder().decode(QuestionDTO.self, from: Data(json.utf8))
+    #expect(dto.level == .senior)
+}
+
+@Test func missingLevelDefaultsToMid() throws {
+    let json = """
+    { "id": "q1", "kind": "multipleChoice", "prompt": "P", "explanation": "E",
+      "correctIndex": 0, "rubric": null, "codeSnippet": null,
+      "options": [ { "text": "a", "isMonospaced": false },
+                   { "text": "b", "isMonospaced": false } ] }
+    """
+    let dto = try JSONDecoder().decode(QuestionDTO.self, from: Data(json.utf8))
+    #expect(dto.level == .mid)
+}
+
+@MainActor
+@Test func seedPersistsQuestionLevel() throws {
+    let container = try AppModelContainer.make(inMemory: true)
+    let context = container.mainContext
+    let bundle = try ContentLoader.decode(Data(sampleJSON.utf8))
+    ContentLoader.seed(bundle, into: context)
+    let questions = try context.fetch(FetchDescriptor<Question>())
+    #expect(!questions.isEmpty)
+    #expect(questions.allSatisfy { Level(rawValue: $0.levelRaw) != nil })
+}

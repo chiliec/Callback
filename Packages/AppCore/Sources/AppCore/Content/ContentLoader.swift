@@ -101,7 +101,7 @@ public enum ContentLoader {
         }
         return Question(
             id: q.id, kind: q.kind, prompt: q.prompt, explanation: q.explanation,
-            correctIndex: q.correctIndex, rubric: q.rubric,
+            correctIndex: q.correctIndex, rubric: q.rubric, level: q.level,
             codeSnippet: snippet, options: options
         )
     }
@@ -112,6 +112,7 @@ public enum ContentLoader {
         question.explanation = dto.explanation
         question.correctIndex = dto.correctIndex
         question.rubric = dto.rubric
+        question.levelRaw = dto.level.rawValue
         for opt in question.options { context.delete(opt) }
         question.options = dto.options.enumerated().map { idx, o in
             Option(text: o.text, isMonospaced: o.isMonospaced, order: idx)

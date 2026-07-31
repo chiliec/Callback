@@ -6,10 +6,12 @@ public final class Question {
     public var kindRaw: String
     public var prompt: String
     public var explanation: String
-    /// Correct option index for multipleChoice/code. Nil for behavioral.
+    /// Correct option index for multipleChoice/code. Nil for self-rated kinds.
     public var correctIndex: Int?
-    /// Model-answer guidance for behavioral questions. Nil otherwise.
+    /// Model-answer guidance for self-rated kinds. Nil otherwise.
     public var rubric: String?
+    /// Difficulty band, used by `QuestionSelector` to honour the Level picker.
+    public var levelRaw: String = Level.mid.rawValue
 
     @Relationship(deleteRule: .cascade) public var codeSnippet: CodeSnippet?
     @Relationship(deleteRule: .cascade) public var options: [Option]
@@ -20,6 +22,11 @@ public final class Question {
         set { kindRaw = newValue.rawValue }
     }
 
+    public var level: Level {
+        get { Level(rawValue: levelRaw) ?? .mid }
+        set { levelRaw = newValue.rawValue }
+    }
+
     public init(
         id: String,
         kind: QuestionKind,
@@ -27,6 +34,7 @@ public final class Question {
         explanation: String,
         correctIndex: Int?,
         rubric: String? = nil,
+        level: Level = .mid,
         codeSnippet: CodeSnippet? = nil,
         options: [Option] = []
     ) {
@@ -36,6 +44,7 @@ public final class Question {
         self.explanation = explanation
         self.correctIndex = correctIndex
         self.rubric = rubric
+        self.levelRaw = level.rawValue
         self.codeSnippet = codeSnippet
         self.options = options
     }
