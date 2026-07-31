@@ -59,28 +59,9 @@ import AppCore
 
     // MARK: Adaptive question selection
 
-    /// Round-robin one question per topic, ordered by Topic.order, until min(12, total).
+    /// Delegates to `QuestionSelector` so there is one round-robin
+    /// implementation, not two. See `QuestionSelector.placementQuestions`.
     static func makeQuestions(from topics: [Topic]) -> [Question] {
-        let sortedTopics = topics.sorted { $0.order < $1.order }
-        let buckets: [[Question]] = sortedTopics.map { topic in
-            topic.questions.enumerated().sorted { $0.offset < $1.offset }.map { $0.element }
-        }
-        let totalAvailable = buckets.reduce(0) { $0 + $1.count }
-        let target = min(12, totalAvailable)
-        var result: [Question] = []
-        var round = 0
-        while result.count < target {
-            var addedThisRound = false
-            for i in 0..<buckets.count {
-                guard result.count < target else { break }
-                if round < buckets[i].count {
-                    result.append(buckets[i][round])
-                    addedThisRound = true
-                }
-            }
-            if !addedThisRound { break }
-            round += 1
-        }
-        return result
+        QuestionSelector.placementQuestions(from: topics, count: 12)
     }
 }
