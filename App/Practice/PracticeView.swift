@@ -166,10 +166,15 @@ struct PracticeView: View {
             }
             .padding(.horizontal, 16)
             .frame(minHeight: DSSpacing.rowMinHeight)
+            // Without this the `Spacer()` and the chevron are not hit-testable,
+            // so only the icon and the title strip respond — most of the row,
+            // including the chevron that advertises it as tappable, is dead.
+            .contentShape(Rectangle())
             .opacity(availableCount(for: spec.kind) == 0 ? 0.4 : 1)
         }
         .buttonStyle(.plain)
         .disabled(availableCount(for: spec.kind) == 0)
+        .accessibilityIdentifier("drill-row-\(spec.kind.rawValue)")
     }
 
     // MARK: Recent sessions
