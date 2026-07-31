@@ -53,6 +53,24 @@ private let engine = ScoringEngine()   // coverageTarget = 5
     #expect(engine.readiness(topics: input) == 0)
 }
 
+@Test func masteryCreditAllWeakIs0() {
+    #expect(engine.mastery(fromChronologicalCredit: [0, 0, 0]) == 0)
+}
+
+@Test func masteryCreditAllStrongIs100() {
+    #expect(engine.mastery(fromChronologicalCredit: [1, 1, 1]) == 100)
+}
+
+@Test func masteryCreditAllOkIs50() {
+    #expect(engine.mastery(fromChronologicalCredit: [0.5, 0.5, 0.5]) == 50)
+}
+
+@Test func masteryCreditAgreesWithBoolVersionOnPureZeroOne() {
+    let bools = [false, true, true, false, true]
+    let credits = bools.map { $0 ? 1.0 : 0.0 }
+    #expect(engine.mastery(fromChronological: bools) == engine.mastery(fromChronologicalCredit: credits))
+}
+
 @Test func accuracyGuardsZero() {
     #expect(engine.accuracy(correct: 0, answered: 0) == 0)
     #expect(engine.accuracy(correct: 3, answered: 4) == 0.75)

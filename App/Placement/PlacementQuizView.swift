@@ -102,6 +102,16 @@ struct PlacementQuizView: View {
                     }
                 }
 
+                if question.kind == .behavioral {
+                    SelfAssessCard(
+                        rubric: question.rubric ?? question.explanation,
+                        isRevealed: session.isGuidanceRevealed,
+                        selection: session.rating,
+                        onReveal: { session.revealGuidance() },
+                        onRate: { handleRate($0) }
+                    )
+                }
+
                 Button("Not sure yet — skip") {
                     autoAdvanceTask?.cancel()
                     session.skip()
@@ -133,6 +143,11 @@ struct PlacementQuizView: View {
         guard session.picks.indices.contains(idx),
               session.picks[idx] == nil else { return }
         session.pick(index)
+        scheduleAutoAdvance()
+    }
+
+    private func handleRate(_ rating: SelfRating) {
+        session.rate(rating)
         scheduleAutoAdvance()
     }
 

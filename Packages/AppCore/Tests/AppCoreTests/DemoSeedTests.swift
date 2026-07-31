@@ -57,6 +57,22 @@ struct DemoSeedTests {
         #expect(Set(topics.map(\.mastery)).count > 3)
     }
 
+    @Test("behavioral topic gets a plausible mastery, not 0%")
+    func demoSeedGivesBehavioralPlausibleMastery() throws {
+        let context = try makeSeededContext()
+
+        try DemoSeed.apply(to: context)
+
+        let topics = try context.fetch(FetchDescriptor<Topic>())
+        let behavioral = try #require(topics.first { $0.id == "behavioral" })
+        #expect(behavioral.mastery > 0 && behavioral.mastery < 100)
+
+        let records = try context.fetch(
+            FetchDescriptor<AnswerRecord>(predicate: #Predicate { $0.topicID == "behavioral" })
+        )
+        #expect(records.allSatisfy { $0.selfRating != nil })
+    }
+
     @Test("is idempotent — re-applying does not double-count answers")
     func demoSeedIsIdempotent() throws {
         let context = try makeSeededContext()

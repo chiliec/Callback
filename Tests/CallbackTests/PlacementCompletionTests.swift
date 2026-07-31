@@ -102,6 +102,46 @@ struct PlacementCompletionTests {
         #expect(records.first?.questionID == "q2")
     }
 
+    @Test func ratedBehavioralQuestionRecordsAnAnswer() throws {
+        let (container, context) = try makeContainer()
+        _ = container
+        let topic = makeTopic(context: context)
+        let q1 = Question(id: "q1", kind: .behavioral, prompt: "Tell me about a time...",
+                           explanation: "E.", correctIndex: nil, rubric: "STAR structure.")
+        q1.topic = topic
+        let profile = makeProfile(context: context)
+
+        let session = PlacementSession(questions: [q1])
+        session.rate(.ok)
+        _ = session.advance()
+
+        _ = try PlacementCompletion.save(placement: session, profile: profile, context: context)
+
+        let records = try context.fetch(FetchDescriptor<AnswerRecord>())
+        #expect(records.count == 1)
+        #expect(records.first?.selfRating == .ok)
+        #expect(records.first?.isCorrect == true)
+    }
+
+    @Test func skippedBehavioralQuestionRecordsNothing() throws {
+        let (container, context) = try makeContainer()
+        _ = container
+        let topic = makeTopic(context: context)
+        let q1 = Question(id: "q1", kind: .behavioral, prompt: "Tell me about a time...",
+                           explanation: "E.", correctIndex: nil, rubric: "STAR structure.")
+        q1.topic = topic
+        let profile = makeProfile(context: context)
+
+        let session = PlacementSession(questions: [q1])
+        session.rate(.strong)
+        session.skip()  // skip clears the rating — genuinely no record
+
+        _ = try PlacementCompletion.save(placement: session, profile: profile, context: context)
+
+        let records = try context.fetch(FetchDescriptor<AnswerRecord>())
+        #expect(records.isEmpty)
+    }
+
     @Test func solidFocusSplitAtSixtyFive() throws {
         let (container, context) = try makeContainer()
         _ = container

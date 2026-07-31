@@ -43,3 +43,11 @@ private func rec(_ q: String, wrong: Bool, flagged: Bool, at t: TimeInterval) ->
     let items = ReviewQueue.build(from: answers, filter: .all)
     #expect(items.map(\.questionID) == ["q2", "q1"])
 }
+
+@Test func queueCarriesSelfRatingThrough() {
+    let record = AnswerRecord(questionID: "q1", topicID: "swift", pickedIndex: nil,
+                               isCorrect: false, isFlagged: false,
+                               answeredAt: Date(timeIntervalSince1970: 100), selfRating: .weak)
+    let items = ReviewQueue.build(from: [record], filter: .all)
+    #expect(items.first?.selfRating == .weak)
+}

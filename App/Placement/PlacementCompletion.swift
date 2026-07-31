@@ -27,15 +27,10 @@ enum PlacementCompletion {
 
         // 1. Insert AnswerRecords for answered questions (skip = no record).
         for (i, question) in placement.questions.enumerated() {
-            guard let picked = placement.picks.indices.contains(i) ? placement.picks[i] : nil else {
-                continue  // skipped — no record
-            }
-            let isCorrect: Bool
-            if let correct = question.correctIndex {
-                isCorrect = picked == correct
-            } else {
-                isCorrect = false  // behavioral
-            }
+            let picked = placement.picks.indices.contains(i) ? placement.picks[i] : nil
+            let rating = placement.ratings.indices.contains(i) ? placement.ratings[i] : nil
+            guard picked != nil || rating != nil else { continue }  // skipped — no record
+            let isCorrect = Grading.isCorrect(question: question, pickedIndex: picked, selfRating: rating)
             let record = AnswerRecord(
                 questionID: question.id,
                 topicID: question.topic?.id ?? "",
@@ -46,7 +41,8 @@ enum PlacementCompletion {
                 // `sorted { $0.answeredAt < $1.answeredAt }` below. With one shared
                 // `now` the sort is arbitrary and recency-weighted mastery comes out
                 // differently run to run. Sub-second, so streak days are unaffected.
-                answeredAt: now.addingTimeInterval(Double(i) / 1000)
+                answeredAt: now.addingTimeInterval(Double(i) / 1000),
+                selfRating: rating
             )
             context.insert(record)
         }
@@ -54,8 +50,9 @@ enum PlacementCompletion {
         // 2. Recompute mastery for each answered topic.
         let answeredTopicIDs = Set(
             placement.questions.indices.compactMap { i -> String? in
-                guard placement.picks.indices.contains(i),
-                      placement.picks[i] != nil else { return nil }
+                let picked = placement.picks.indices.contains(i) ? placement.picks[i] : nil
+                let rating = placement.ratings.indices.contains(i) ? placement.ratings[i] : nil
+                guard picked != nil || rating != nil else { return nil }
                 return placement.questions[i].topic?.id
             }
         )
@@ -63,13 +60,13 @@ enum PlacementCompletion {
             let topicRecords = (try? context.fetch(
                 FetchDescriptor<AnswerRecord>(predicate: #Predicate { $0.topicID == topicID })
             )) ?? []
-            let correctness = topicRecords
+            let credits = topicRecords
                 .sorted { $0.answeredAt < $1.answeredAt }
-                .map { $0.isCorrect }
+                .map { $0.credit }
             let matchingTopics = (try? context.fetch(
                 FetchDescriptor<Topic>(predicate: #Predicate { $0.id == topicID })
             )) ?? []
-            matchingTopics.first.map { $0.mastery = engine.mastery(fromChronological: correctness) }
+            matchingTopics.first.map { $0.mastery = engine.mastery(fromChronologicalCredit: credits) }
         }
 
         // 3. Recompute overall readiness.

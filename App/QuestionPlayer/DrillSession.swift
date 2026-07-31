@@ -6,6 +6,8 @@ import AppCore
     let questions: [Question]
     private(set) var currentIndex: Int = 0
     private(set) var picks: [Int?]
+    private(set) var ratings: [SelfRating?]
+    private(set) var revealedGuidance: Set<Int> = []
     private(set) var isAnswered: Bool = false
     private(set) var isComplete: Bool = false
 
@@ -13,6 +15,7 @@ import AppCore
         precondition(!questions.isEmpty, "DrillSession requires at least one question")
         self.questions = questions
         self.picks = Array(repeating: nil, count: questions.count)
+        self.ratings = Array(repeating: nil, count: questions.count)
     }
 
     var current: Question? {
@@ -20,6 +23,10 @@ import AppCore
     }
 
     var pickedIndex: Int? { picks.indices.contains(currentIndex) ? picks[currentIndex] : nil }
+
+    var rating: SelfRating? { ratings.indices.contains(currentIndex) ? ratings[currentIndex] : nil }
+
+    var isGuidanceRevealed: Bool { revealedGuidance.contains(currentIndex) }
 
     var progress: Double {
         questions.isEmpty ? 0 : Double(currentIndex + 1) / Double(questions.count)
@@ -31,10 +38,21 @@ import AppCore
         isAnswered = true
     }
 
+    func revealGuidance() {
+        revealedGuidance.insert(currentIndex)
+    }
+
+    /// Re-rating before advancing is fine, unlike re-picking.
+    func rate(_ rating: SelfRating) {
+        guard questions.indices.contains(currentIndex) else { return }
+        ratings[currentIndex] = rating
+        isAnswered = true
+    }
+
     func advance() {
         if currentIndex < questions.count - 1 {
             currentIndex += 1
-            isAnswered = picks[currentIndex] != nil
+            isAnswered = picks[currentIndex] != nil || ratings[currentIndex] != nil
         } else {
             isComplete = true
         }

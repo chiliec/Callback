@@ -34,8 +34,8 @@ check so you find out immediately whether it stuck.
 a phone call doesn't cost you the session.
 • A review queue that automatically resurfaces every question you got wrong or
 flagged — the fastest way to turn weak spots into strong ones.
-• Behavioral questions graded against a rubric rather than a single "correct"
-answer, because that's how they're actually assessed.
+• Behavioral questions come with a model-answer rubric you score yourself
+against, because that's how they're actually assessed.
 • A readiness score that weights recent answers more heavily than old ones and
 accounts for how much of each topic you've actually covered.
 • Full VoiceOver support, Dynamic Type throughout, and Reduce Motion respected.

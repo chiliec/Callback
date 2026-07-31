@@ -15,6 +15,8 @@ import AppCore
     private(set) var isComplete: Bool = false
     private(set) var currentIndex: Int = 0
     private(set) var picks: [Int?]
+    private(set) var ratings: [SelfRating?]
+    private(set) var revealedGuidance: Set<Int> = []
     private(set) var flags: [Bool]
     private(set) var isAnswered: Bool = false
 
@@ -29,12 +31,15 @@ import AppCore
         self.totalSeconds = totalSeconds
         self.startedAt = Date()
         self.picks = Array(repeating: nil, count: questions.count)
+        self.ratings = Array(repeating: nil, count: questions.count)
         self.flags = Array(repeating: false, count: questions.count)
     }
 
     var timeRemaining: Int { max(0, totalSeconds - elapsedSeconds) }
     var current: Question? { questions.indices.contains(currentIndex) ? questions[currentIndex] : nil }
     var pickedIndex: Int? { picks.indices.contains(currentIndex) ? picks[currentIndex] : nil }
+    var rating: SelfRating? { ratings.indices.contains(currentIndex) ? ratings[currentIndex] : nil }
+    var isGuidanceRevealed: Bool { revealedGuidance.contains(currentIndex) }
     var isFlagged: Bool { flags.indices.contains(currentIndex) ? flags[currentIndex] : false }
     var progress: Double { questions.isEmpty ? 0 : Double(currentIndex + 1) / Double(questions.count) }
 
@@ -93,10 +98,21 @@ import AppCore
         isAnswered = true
     }
 
+    func revealGuidance() {
+        revealedGuidance.insert(currentIndex)
+    }
+
+    /// Re-rating before advancing is fine, unlike re-picking.
+    func rate(_ rating: SelfRating) {
+        guard questions.indices.contains(currentIndex) else { return }
+        ratings[currentIndex] = rating
+        isAnswered = true
+    }
+
     func advance() {
         if currentIndex < questions.count - 1 {
             currentIndex += 1
-            isAnswered = picks[currentIndex] != nil
+            isAnswered = picks[currentIndex] != nil || ratings[currentIndex] != nil
         } else {
             complete()
         }

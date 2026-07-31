@@ -15,9 +15,9 @@ public enum DemoSeed {
         "uikit":       [false, true,  false, false, true]
     ]
 
-    /// Behavioral questions have no correct answer, so the app records them
-    /// ungraded (`isCorrect == false`). Seed fewer of them, as a real user would.
-    private static let ungradedCorrectness = [Bool](repeating: false, count: 3)
+    /// Behavioral questions have no correct answer — the user self-rates instead.
+    /// Deliberately mixed so mastery lands mid-range rather than 0% or 100%.
+    private static let behavioralRatings: [SelfRating] = [.weak, .ok, .strong, .ok, .strong]
 
     /// Topics whose newest answer is flagged, so the review queue shows a
     /// flagged-but-not-wrong item alongside the wrong ones.
@@ -41,7 +41,35 @@ public enum DemoSeed {
         var recordsByTopic: [String: [AnswerRecord]] = [:]
 
         for topic in topics {
-            let correctness = correctnessByTopic[topic.id] ?? ungradedCorrectness
+            if topic.id == "behavioral" {
+                let ratings = behavioralRatings
+                let questions = topic.questions.sorted { $0.id < $1.id }.prefix(ratings.count)
+
+                for (i, question) in questions.enumerated() {
+                    let rating = ratings[i]
+                    // Oldest answer first; the last one lands today so the streak is live.
+                    let daysAgo = ratings.count - 1 - i
+                    let isNewest = daysAgo == 0
+                    let record = AnswerRecord(
+                        questionID: question.id,
+                        topicID: topic.id,
+                        pickedIndex: nil,
+                        isCorrect: Grading.isCorrect(question: question, pickedIndex: nil, selfRating: rating),
+                        isFlagged: isNewest && flaggedTopics.contains(topic.id),
+                        answeredAt: now.addingTimeInterval(-Double(daysAgo) * 86_400),
+                        selfRating: rating
+                    )
+                    context.insert(record)
+                    recordsByTopic[topic.id, default: []].append(record)
+                }
+
+                topic.mastery = engine.mastery(
+                    fromChronologicalCredit: ratings.prefix(questions.count).map { $0.credit }
+                )
+                continue
+            }
+
+            let correctness = correctnessByTopic[topic.id] ?? []
             let questions = topic.questions.sorted { $0.id < $1.id }.prefix(correctness.count)
 
             for (i, question) in questions.enumerated() {

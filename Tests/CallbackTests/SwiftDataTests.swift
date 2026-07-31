@@ -91,6 +91,96 @@ struct SwiftDataTests {
         #expect(profile.accuracy == 0.0)
     }
 
+    // MARK: - Behavioral self-rating (DrillCompletion)
+
+    private func behavioralQuestion(id: String) -> Question {
+        Question(id: id, kind: .behavioral, prompt: "Tell me about a time...",
+                  explanation: "E.", correctIndex: nil, rubric: "Look for STAR structure.")
+    }
+
+    @Test("DrillCompletion::behavioralRatedStrongYieldsMastery100AndNoReviewEntry")
+    func drillCompletionBehavioralRatedStrongYieldsMastery100AndNoReviewEntry() throws {
+        let container = try AppModelContainer.make(inMemory: true)
+        let context = container.mainContext
+        let questions = (0..<3).map { behavioralQuestion(id: "q\($0)") }
+        let topic = Topic(id: "behavioral", name: "Behavioral", section: .craft,
+                           symbolName: "message", colorToken: "behavioral", order: 0)
+        topic.questions = questions
+        questions.forEach { $0.topic = topic }
+        let profile = UserProfile()
+        context.insert(topic)
+        context.insert(profile)
+        try context.save()
+
+        let session = DrillSession(questions: questions)
+        for _ in questions {
+            session.rate(.strong)
+            session.advance()
+        }
+
+        try DrillCompletion.save(session: session, topic: topic, profile: profile, context: context)
+
+        #expect(topic.mastery == 100)
+        let records = try context.fetch(FetchDescriptor<AnswerRecord>())
+        let queue = ReviewQueue.build(from: records, filter: .wrong)
+        #expect(queue.isEmpty)
+    }
+
+    @Test("DrillCompletion::behavioralRatedWeakYieldsMastery0AndReviewEntryEach")
+    func drillCompletionBehavioralRatedWeakYieldsMastery0AndReviewEntryEach() throws {
+        let container = try AppModelContainer.make(inMemory: true)
+        let context = container.mainContext
+        let questions = (0..<3).map { behavioralQuestion(id: "q\($0)") }
+        let topic = Topic(id: "behavioral", name: "Behavioral", section: .craft,
+                           symbolName: "message", colorToken: "behavioral", order: 0)
+        topic.questions = questions
+        questions.forEach { $0.topic = topic }
+        let profile = UserProfile()
+        context.insert(topic)
+        context.insert(profile)
+        try context.save()
+
+        let session = DrillSession(questions: questions)
+        for _ in questions {
+            session.rate(.weak)
+            session.advance()
+        }
+
+        try DrillCompletion.save(session: session, topic: topic, profile: profile, context: context)
+
+        #expect(topic.mastery == 0)
+        let records = try context.fetch(FetchDescriptor<AnswerRecord>())
+        let queue = ReviewQueue.build(from: records, filter: .wrong)
+        #expect(queue.count == 3)
+    }
+
+    @Test("DrillCompletion::behavioralMixedRatingsMatchesScoringEngineCreditMastery")
+    func drillCompletionBehavioralMixedRatingsMatchesScoringEngineCreditMastery() throws {
+        let container = try AppModelContainer.make(inMemory: true)
+        let context = container.mainContext
+        let questions = (0..<3).map { behavioralQuestion(id: "q\($0)") }
+        let topic = Topic(id: "behavioral", name: "Behavioral", section: .craft,
+                           symbolName: "message", colorToken: "behavioral", order: 0)
+        topic.questions = questions
+        questions.forEach { $0.topic = topic }
+        let profile = UserProfile()
+        context.insert(topic)
+        context.insert(profile)
+        try context.save()
+
+        let ratings: [SelfRating] = [.strong, .ok, .weak]
+        let session = DrillSession(questions: questions)
+        for rating in ratings {
+            session.rate(rating)
+            session.advance()
+        }
+
+        try DrillCompletion.save(session: session, topic: topic, profile: profile, context: context)
+
+        let expected = ScoringEngine().mastery(fromChronologicalCredit: ratings.map { $0.credit })
+        #expect(topic.mastery == expected)
+    }
+
     // MARK: - MockCompletion Tests
 
     private func seedTopicsAndProfile(context: ModelContext) throws -> (Topic, Topic, UserProfile) {
@@ -198,6 +288,30 @@ struct SwiftDataTests {
         let result = try MockCompletion.save(mockSession: ms, profile: profile, context: context)
         #expect(profile.readiness > 0)
         _ = result
+    }
+
+    @Test("MockCompletion::behavioralStrongRatingDoesNotInflateToReviewCount")
+    func mockCompletionBehavioralStrongRatingDoesNotInflateToReviewCount() throws {
+        let container = try AppModelContainer.make(inMemory: true)
+        let context = container.mainContext
+        let (swift, _, profile) = try seedTopicsAndProfile(context: context)
+        let behavioral = Topic(id: "behavioral2", name: "Behavioral", section: .craft,
+                               symbolName: "message", colorToken: "behavioral", order: 2)
+        let bq = Question(id: "bq1", kind: .behavioral, prompt: "Tell me about a time...",
+                           explanation: "E.", correctIndex: nil, rubric: "STAR structure.")
+        bq.topic = behavioral
+        behavioral.questions = [bq]
+        context.insert(behavioral)
+        try context.save()
+
+        let qs = [swift.questions[0], bq]
+        let ms = MockSession(sessionKind: .mock, level: .mid, questions: qs, totalSeconds: 2700)
+        ms.pick(0) // correct for q1
+        ms.advance()
+        ms.rate(.strong) // behavioral, rated highly
+
+        let result = try MockCompletion.save(mockSession: ms, profile: profile, context: context)
+        #expect(result.toReviewCount == 0)
     }
 
     @Test("MockCompletion::saveReturnsReadinessDelta")
