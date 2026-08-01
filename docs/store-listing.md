@@ -88,22 +88,21 @@ device.
 **Public link limit:** 100
 
 **What to test:**
-This build adds a seventh topic — Mobile System Design — and tags every
-question with a difficulty level. If you tested an earlier build, your progress
-should carry over untouched.
+This build fixes the "No way to continue." report from build 17: at the end of a
+lesson, the "Up next" card named the following lesson but did nothing when
+tapped. Your progress carries over untouched.
 
-• Open Topics → Mobile System Design. It has 4 lessons and 27 questions, all
-open-ended: you read a model answer, then rate yourself Shaky, Decent or Solid.
-Confirm the drill completes and mastery moves afterwards.
-• Practice → System Design (20 min) and Behavioral (15 min). Both used to say
-"Coming soon"; confirm they now run and finish.
-• Profile → Level (Junior / Mid / Senior). Change it, then run a drill and see
-whether the questions feel pitched at that level.
-• Lessons: several bodies now render as headings, bullet lists and numbered
-steps — Concurrency → async/await Basics and UIKit → View Controller Lifecycle
-are the clearest examples. Report anything that reads as run-together text.
-• Tap the full-width rows (Practice drills, Home's weak areas) anywhere along
-their width, including over the chevron — a hit-testing bug in build 16 made
-those spots dead.
-• Anything else worth a look: backgrounding the app mid-mock (the timer should
-survive), VoiceOver, and large Dynamic Type sizes.
+• Open any topic → its first lesson, scroll to the bottom, and tap "Up next".
+It should open the next lesson, and you should be able to keep tapping through
+to the end of the topic. On the last lesson the card is gone — there is nothing
+after it yet.
+• Practice → Review queue → Review N questions → "Covers this gap" at the
+bottom of a review card. That should open the lesson, and "Up next" should work
+from there too.
+• The lesson header should read "Lesson 2 of 3" and so on, matching where you
+actually are.
+• Still worth a look if you haven't yet: Topics → Mobile System Design (4
+lessons, 27 open-ended questions you rate yourself on), Practice → System Design
+and Behavioral, and Profile → Level (Junior / Mid / Senior).
+• Anything else: backgrounding the app mid-mock (the timer should survive),
+VoiceOver, and large Dynamic Type sizes.
