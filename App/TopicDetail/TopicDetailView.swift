@@ -36,19 +36,8 @@ struct TopicDetailView: View {
             }
         }
         .navigationDestination(for: Lesson.self) { lesson in
-            let idx = (sortedLessons.firstIndex(where: { $0.id == lesson.id }) ?? 0) + 1
-            LessonReaderView(
-                lesson: lesson,
-                lessonIndex: idx,
-                totalLessons: sortedLessons.count,
-                nextLesson: nextLesson(after: lesson)
-            )
+            LessonReaderView(lesson: lesson)
         }
-    }
-
-    private func nextLesson(after lesson: Lesson) -> Lesson? {
-        guard let idx = sortedLessons.firstIndex(where: { $0.id == lesson.id }) else { return nil }
-        return sortedLessons.indices.contains(idx + 1) ? sortedLessons[idx + 1] : nil
     }
 
     // MARK: Mastery card
@@ -102,7 +91,7 @@ struct TopicDetailView: View {
     @ViewBuilder private var lessonsSection: some View {
         if !sortedLessons.isEmpty {
             Section(header: SectionHeader("Lessons")) {
-                ForEach(sortedLessons) { lesson in
+                ForEach(Array(sortedLessons.enumerated()), id: \.element.id) { index, lesson in
                     NavigationLink(value: lesson) {
                         HStack(spacing: 12) {
                             Image(systemName: lesson.isComplete ? "checkmark.circle.fill" : "circle")
@@ -116,6 +105,7 @@ struct TopicDetailView: View {
                         }
                         .frame(minHeight: DSSpacing.rowMinHeight)
                     }
+                    .accessibilityIdentifier("lesson-row-\(index)")
                 }
             }
         }

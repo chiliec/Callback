@@ -8,7 +8,6 @@ struct ReviewItemView: View {
     let onDone: () -> Void
 
     @State private var currentIndex: Int = 0
-    @State private var selectedLesson: Lesson? = nil
     @State private var retrySession: DrillSession? = nil
     @Query private var profiles: [UserProfile]
     private var profile: UserProfile? { profiles.first }
@@ -91,17 +90,6 @@ struct ReviewItemView: View {
                     QuestionPlayerView(session: session, topic: entry.topic, profile: profile)
                 }
             }
-        }
-        .navigationDestination(item: $selectedLesson) { lesson in
-            let sorted = topic.lessons.sorted { $0.order < $1.order }
-            let idx = sorted.firstIndex(where: { $0.id == lesson.id }) ?? 0
-            let next = sorted.indices.contains(idx + 1) ? sorted[idx + 1] : nil
-            LessonReaderView(
-                lesson: lesson,
-                lessonIndex: idx + 1,
-                totalLessons: sorted.count,
-                nextLesson: next
-            )
         }
     }
 
@@ -190,26 +178,34 @@ struct ReviewItemView: View {
         topic.lessons.sorted { $0.order < $1.order }.first(where: { !$0.isComplete })
     }
 
+    /// View-based, not `NavigationLink(value:)`: this screen is presented with
+    /// `navigationDestination(isPresented:)`, and a value link inside that segment
+    /// finds no destination and does nothing at all when tapped.
     private func coversGapRow(_ lesson: Lesson) -> some View {
-        GroupedCard(padding: 0) {
-            HStack(spacing: 12) {
-                Image(systemName: "text.book.closed")
-                    .foregroundStyle(DSColor.action)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Covers this gap")
-                        .font(DSFont.footnote)
+        NavigationLink {
+            LessonReaderView(lesson: lesson)
+        } label: {
+            GroupedCard(padding: 0) {
+                HStack(spacing: 12) {
+                    Image(systemName: "text.book.closed")
+                        .foregroundStyle(DSColor.action)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Covers this gap")
+                            .font(DSFont.footnote)
+                            .foregroundStyle(DSColor.secondaryLabel)
+                        Text(lesson.title)
+                            .font(DSFont.body)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
                         .foregroundStyle(DSColor.secondaryLabel)
-                    Text(lesson.title)
-                        .font(DSFont.body)
                 }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(DSColor.secondaryLabel)
+                .padding(.horizontal, 16)
+                .frame(minHeight: DSSpacing.rowMinHeight)
             }
-            .padding(.horizontal, 16)
-            .frame(minHeight: DSSpacing.rowMinHeight)
         }
-        .onTapGesture { selectedLesson = lesson }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("review-covers-gap-row")
     }
 }

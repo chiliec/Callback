@@ -66,6 +66,7 @@ struct ReviewQueueView: View {
                 .clipShape(RoundedRectangle(cornerRadius: DSRadius.button, style: .continuous))
                 .padding(DSSpacing.sessionInset)
                 .background(.bar)
+                .accessibilityIdentifier("start-review-button")
             }
         }
         .navigationDestination(isPresented: $reviewActive) {

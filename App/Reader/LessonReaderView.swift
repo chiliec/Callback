@@ -16,11 +16,15 @@ struct LessonReaderView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(lesson: Lesson, lessonIndex: Int, totalLessons: Int, nextLesson: Lesson?) {
+    /// The reader works out where it is from the lesson itself, so every
+    /// `navigationDestination` that opens one — topic detail, the review queue —
+    /// gets the same "Lesson n of m" and the same "Up next".
+    init(lesson: Lesson) {
+        let position = lesson.positionInTopic
         self.lesson = lesson
-        self.lessonIndex = lessonIndex
-        self.totalLessons = totalLessons
-        self.nextLesson = nextLesson
+        self.lessonIndex = position.index
+        self.totalLessons = position.total
+        self.nextLesson = position.next
         self._isComplete = State(initialValue: lesson.isComplete)
     }
 
@@ -195,23 +199,40 @@ struct LessonReaderView: View {
         .clipShape(RoundedRectangle(cornerRadius: DSRadius.control, style: .continuous))
     }
 
+    /// It reads as a row, so it has to act like one — as a plain card it was the
+    /// app's only dead end, which is what build 17's "No way to continue."
+    /// feedback was about.
+    ///
+    /// A view-based link rather than `NavigationLink(value:)`: the reader is also
+    /// reached from the review queue, which is presented with
+    /// `navigationDestination(isPresented:)`, and value links inside that segment
+    /// resolve against no destination and silently do nothing.
     private func upNextRow(_ next: Lesson) -> some View {
-        GroupedCard(padding: 0) {
-            HStack(spacing: 12) {
-                Image(systemName: "arrow.right.circle")
-                    .foregroundStyle(DSColor.action)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Up next")
-                        .font(DSFont.footnote)
+        NavigationLink {
+            LessonReaderView(lesson: next)
+        } label: {
+            GroupedCard(padding: 0) {
+                HStack(spacing: 12) {
+                    Image(systemName: "arrow.right.circle")
+                        .foregroundStyle(DSColor.action)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Up next")
+                            .font(DSFont.footnote)
+                            .foregroundStyle(DSColor.secondaryLabel)
+                        Text(next.title)
+                            .font(DSFont.body)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
                         .foregroundStyle(DSColor.secondaryLabel)
-                    Text(next.title)
-                        .font(DSFont.body)
                 }
-                Spacer()
+                .padding(.horizontal, 16)
+                .frame(minHeight: DSSpacing.rowMinHeight)
             }
-            .padding(.horizontal, 16)
-            .frame(minHeight: DSSpacing.rowMinHeight)
         }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("lesson-up-next")
     }
 
     // MARK: - Mark complete logic
