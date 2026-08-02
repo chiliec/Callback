@@ -17,13 +17,13 @@
         "kind": "multipleChoice",
         "prompt": "In MVVM, what's the main testability advantage of the view model over logic left inside a UIViewController?",
         "explanation": "A view model holds no reference to a view or view controller, so it can be constructed and asserted against directly. Logic embedded in a view controller normally requires standing up the full view hierarchy just to exercise it.",
-        "correctIndex": 1,
+        "correctIndex": 0,
         "rubric": null,
         "level": "junior",
         "codeSnippet": null,
         "options": [
-          { "text": "It runs on a background thread automatically", "isMonospaced": false },
           { "text": "It can be instantiated and tested without any UI, since it holds no reference to a view or view controller", "isMonospaced": false },
+          { "text": "It runs on a background thread automatically", "isMonospaced": false },
           { "text": "It replaces the need for a model type", "isMonospaced": false },
           { "text": "It automatically conforms to Codable", "isMonospaced": false }
         ]
@@ -40,15 +40,15 @@
         "kind": "multipleChoice",
         "prompt": "Which form of dependency injection makes a dependency's requirement explicit and enforced by the compiler, rather than something that can be silently missing?",
         "explanation": "Constructor injection passes the dependency through init, so the type simply cannot be constructed without it — the compiler rejects a missing argument. Property and environment injection both allow a window where the dependency isn't set yet.",
-        "correctIndex": 0,
+        "correctIndex": 3,
         "rubric": null,
         "level": "junior",
         "codeSnippet": null,
         "options": [
-          { "text": "Constructor injection — the type can't be constructed without it", "isMonospaced": false },
-          { "text": "Property injection", "isMonospaced": false },
           { "text": "Environment injection", "isMonospaced": false },
-          { "text": "Reaching for a shared singleton instance", "isMonospaced": false }
+          { "text": "Reaching for a shared singleton instance", "isMonospaced": false },
+          { "text": "Property injection", "isMonospaced": false },
+          { "text": "Constructor injection — the type can't be constructed without it", "isMonospaced": false }
         ]
       }
     },
@@ -63,15 +63,15 @@
         "kind": "multipleChoice",
         "prompt": "Under the coordinator pattern, what does a view do instead of directly navigating to a concrete destination view?",
         "explanation": "The view expresses intent — through an event or closure — and lets the coordinator decide where that leads. If the view still built the destination itself, the coordinator would only be watching, not deciding, which defeats the point.",
-        "correctIndex": 0,
+        "correctIndex": 1,
         "rubric": null,
         "level": "junior",
         "codeSnippet": null,
         "options": [
+          { "text": "It calls the destination view's initializer directly, same as without a coordinator", "isMonospaced": false },
           { "text": "It expresses intent, e.g. through an event or closure, and lets the coordinator decide where that leads", "isMonospaced": false },
           { "text": "It still creates the destination view itself, just with a coordinator watching", "isMonospaced": false },
-          { "text": "It stores the destination in UserDefaults", "isMonospaced": false },
-          { "text": "It calls the destination view's initializer directly, same as without a coordinator", "isMonospaced": false }
+          { "text": "It stores the destination in UserDefaults", "isMonospaced": false }
         ]
       }
     },
@@ -86,14 +86,14 @@
         "kind": "multipleChoice",
         "prompt": "What does marking a type internal (the default) rather than public inside a Swift Package Manager module actually enforce?",
         "explanation": "Access control at a package boundary is compiler-enforced: an internal type simply cannot be referenced outside its module, unlike a comment or naming convention that a caller could ignore.",
-        "correctIndex": 0,
+        "correctIndex": 2,
         "rubric": null,
         "level": "junior",
         "codeSnippet": null,
         "options": [
-          { "text": "That no code outside the module can reference it, checked by the compiler rather than by convention", "isMonospaced": false },
-          { "text": "That the type cannot be used in unit tests", "isMonospaced": false },
           { "text": "That the type is automatically thread-safe", "isMonospaced": false },
+          { "text": "That the type cannot be used in unit tests", "isMonospaced": false },
+          { "text": "That no code outside the module can reference it, checked by the compiler rather than by convention", "isMonospaced": false },
           { "text": "That the module builds faster", "isMonospaced": false }
         ]
       }
@@ -110,7 +110,7 @@
       "level": "junior",
       "codeSnippet": null,
       "options": [
-        { "text": "The view can directly modify the model", "isMonospaced": false },
+        { "text": "The view can directly modify the model, which is often defended as a shortcut for simple screens before the same controller quietly accumulates unrelated logic", "isMonospaced": false },
         { "text": "The controller becomes a dumping ground for logic that has nowhere else to go, growing into a massive view controller", "isMonospaced": false },
         { "text": "MVC does not support more than one view on screen", "isMonospaced": false },
         { "text": "MVC only works in SwiftUI, not UIKit", "isMonospaced": false }
@@ -127,29 +127,29 @@
       "codeSnippet": null,
       "options": [
         { "text": "Presentation state and logic with no reference to a view or view controller, so it can be instantiated and tested without any UI", "isMonospaced": false },
-        { "text": "The persisted database schema for the screen", "isMonospaced": false },
         { "text": "Only formatting helpers, never state", "isMonospaced": false },
+        { "text": "The persisted database schema for the screen", "isMonospaced": false },
         { "text": "A reference to the concrete view it's bound to, so it can update it directly", "isMonospaced": false }
       ]
     },
     {
       "id": "architecture-q3",
       "kind": "code",
-      "prompt": "ProfileViewController creates its own APIClient instance directly inside the class. What's the practical problem this causes?",
-      "explanation": "Because the client is created inline as a concrete type, there is no seam to substitute a test double — testing loadProfile means going through a real network call, since nothing about the design allows swapping in a stub.",
-      "correctIndex": 0,
+      "prompt": "OrderProcessor.process validates the order's line items, formats a display summary string, and writes a receipt to disk, all inside one method. Which SOLID principle does this violate, and what's the practical cost?",
+      "explanation": "This violates the Single Responsibility Principle: a type should have one reason to change. Bundling validation, formatting, and file I/O together means a change to the receipt format, the validation rule, or the storage mechanism all require touching and re-testing the same method, and testing any one of them means dealing with all three.",
+      "correctIndex": 1,
       "rubric": null,
       "level": "junior",
       "codeSnippet": {
-        "filename": "ProfileViewController.swift",
+        "filename": "OrderProcessor.swift",
         "language": "swift",
-        "code": "final class ProfileViewController: UIViewController {\n    private let client = APIClient()\n\n    func loadProfile(id: String) {\n        client.fetchProfile(id: id) { [weak self] profile in\n            self?.render(profile)\n        }\n    }\n}"
+        "code": "struct OrderProcessor {\n    func process(_ order: Order) -> String {\n        guard !order.items.isEmpty else { return \"Order is empty\" }\n        let total = order.items.reduce(0) { $0 + $1.price }\n        let summary = \"Order total: \\(total.formatted(.currency(code: \"USD\")))\"\n        try? summary.write(toFile: \"/tmp/receipt.txt\", atomically: true, encoding: .utf8)\n        return summary\n    }\n}"
       },
       "options": [
-        { "text": "There's no seam to substitute a test double, so testing loadProfile means hitting a real network call", "isMonospaced": false },
-        { "text": "APIClient must be declared as a struct for this to compile", "isMonospaced": false },
-        { "text": "The completion handler will never be invoked", "isMonospaced": false },
-        { "text": "UIViewController subclasses cannot own stored properties", "isMonospaced": false }
+        { "text": "Interface Segregation — the protocol has too many requirements, forcing every conformer to implement methods it never actually calls, which makes each conformance harder to write and review", "isMonospaced": false },
+        { "text": "Single Responsibility — validation, formatting, and file I/O are three separate reasons to change, bundled into one method that must be re-tested for any of them", "isMonospaced": false },
+        { "text": "Open/Closed — the method cannot be extended without modifying it", "isMonospaced": false },
+        { "text": "Liskov Substitution — a subclass would not behave correctly in place of OrderProcessor", "isMonospaced": false }
       ]
     },
     {
@@ -163,25 +163,25 @@
       "codeSnippet": null,
       "options": [
         { "text": "It forces every dependency through init, so a test can supply a stub or fake without touching production code", "isMonospaced": false },
-        { "text": "It makes the class run faster at runtime", "isMonospaced": false },
         { "text": "It removes the need for protocols entirely", "isMonospaced": false },
+        { "text": "It makes the class run faster at runtime", "isMonospaced": false },
         { "text": "It is required by the compiler for every class", "isMonospaced": false }
       ]
     },
     {
       "id": "architecture-q5",
       "kind": "multipleChoice",
-      "prompt": "A type depends on a protocol rather than a concrete class for its data source. What does that buy a test?",
-      "explanation": "Depending on the protocol means the test can hand in any conformer, including a stub or fake with no real implementation involved, instead of being locked to the concrete production type.",
-      "correctIndex": 0,
+      "prompt": "A DiscountCalculator has a switch statement over DiscountType, and every new discount type requires editing that switch and recompiling the type itself. Which SOLID principle addresses this, and what's the fix?",
+      "explanation": "This violates the Open/Closed Principle: a type should be open to extension but closed to modification. Replacing the switch with a Discount protocol that each discount type conforms to lets a new discount type be added by writing a new conformer, without touching DiscountCalculator's existing code at all.",
+      "correctIndex": 2,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
-        { "text": "The test can hand in a stub or fake conforming to the same protocol, with no real implementation involved", "isMonospaced": false },
-        { "text": "The protocol makes the type run on a background thread automatically", "isMonospaced": false },
-        { "text": "It guarantees the type is safe to share across threads", "isMonospaced": false },
-        { "text": "It removes the need to write any tests at all", "isMonospaced": false }
+        { "text": "Dependency Inversion — DiscountCalculator should be injected instead of constructed directly", "isMonospaced": false },
+        { "text": "Single Responsibility — DiscountCalculator should be split into two classes", "isMonospaced": false },
+        { "text": "Open/Closed — replace the switch with a Discount protocol each type conforms to, so a new discount type is added without modifying DiscountCalculator itself", "isMonospaced": false },
+        { "text": "This is expected behavior and does not violate any design principle", "isMonospaced": false }
       ]
     },
     {
@@ -189,15 +189,15 @@
       "kind": "multipleChoice",
       "prompt": "What's a common pitfall of reaching for a singleton, a globally shared instance, as a dependency?",
       "explanation": "A singleton is a hidden global dependency: callers reach it directly by name instead of receiving it, so there's no seam left for a test to substitute something else in its place.",
-      "correctIndex": 0,
+      "correctIndex": 1,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
+        { "text": "Singletons make a type automatically encodable", "isMonospaced": false },
         { "text": "It hides a global dependency that's hard to substitute in a test, since callers reach it directly instead of receiving it", "isMonospaced": false },
-        { "text": "Singletons cannot be written in Swift", "isMonospaced": false },
         { "text": "Singletons are always safe to access from any thread by default", "isMonospaced": false },
-        { "text": "Singletons make a type automatically encodable", "isMonospaced": false }
+        { "text": "Singletons cannot be written in Swift", "isMonospaced": false }
       ]
     },
     {
@@ -205,15 +205,15 @@
       "kind": "multipleChoice",
       "prompt": "What problem does the coordinator pattern solve?",
       "explanation": "A coordinator moves navigation decisions out of the view and into a separate object, so a view only has to express that something happened, not what screen comes after it.",
-      "correctIndex": 0,
+      "correctIndex": 3,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
-        { "text": "It moves navigation decisions out of the view, so a view doesn't need to know what screen comes after it", "isMonospaced": false },
-        { "text": "It replaces the need for a model layer", "isMonospaced": false },
         { "text": "It makes SwiftUI views render faster", "isMonospaced": false },
-        { "text": "It is a way to avoid ever using protocols", "isMonospaced": false }
+        { "text": "It is a way to avoid ever using protocols", "isMonospaced": false },
+        { "text": "It replaces the need for a model layer", "isMonospaced": false },
+        { "text": "It moves navigation decisions out of the view, so a view doesn't need to know what screen comes after it", "isMonospaced": false }
       ]
     },
     {
@@ -241,15 +241,15 @@
       "kind": "multipleChoice",
       "prompt": "What is a concrete benefit of splitting an app into local Swift Package Manager modules, versus one flat app target?",
       "explanation": "Access control at a package boundary is enforced by the compiler rather than by convention, and Swift Package Manager caches and reuses build output per module, so unrelated changes rebuild less of the app.",
-      "correctIndex": 0,
+      "correctIndex": 2,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
-        { "text": "Access control at the package boundary is compiler-enforced, and build output can be cached and reused per module, so unrelated changes rebuild less", "isMonospaced": false },
+        { "text": "It is required before an app can ship on the App Store", "isMonospaced": false },
         { "text": "It removes the need to write unit tests", "isMonospaced": false },
-        { "text": "It automatically makes every type safe to share across threads", "isMonospaced": false },
-        { "text": "It is required before an app can ship on the App Store", "isMonospaced": false }
+        { "text": "Access control at the package boundary is compiler-enforced, and build output can be cached and reused per module, so unrelated changes rebuild less", "isMonospaced": false },
+        { "text": "It automatically makes every type safe to share across threads, regardless of whether that type's stored properties are ever mutated concurrently from multiple tasks", "isMonospaced": false }
       ]
     },
     {
@@ -257,15 +257,15 @@
       "kind": "multipleChoice",
       "prompt": "A SwiftUI screen just displays fields from an observable model with no extra formatting or logic. What does introducing a dedicated view model buy here?",
       "explanation": "A view model that only forwards the model's properties one-for-one adds little; the MV approach of binding the view directly to the model fits a screen this thin, and the ceremony only earns its cost once there is real presentation logic to isolate.",
-      "correctIndex": 0,
+      "correctIndex": 1,
       "rubric": null,
       "level": "mid",
       "codeSnippet": null,
       "options": [
-        { "text": "Little — a view model that only forwards the model's properties one-for-one is mostly ceremony for a screen this thin", "isMonospaced": false },
-        { "text": "A guaranteed performance improvement, since observable models always require a view model", "isMonospaced": false },
         { "text": "It is required, since SwiftUI views cannot read an observable model's properties directly", "isMonospaced": false },
-        { "text": "It removes the need for a model type entirely", "isMonospaced": false }
+        { "text": "Little — a view model that only forwards the model's properties one-for-one is mostly ceremony for a screen this thin", "isMonospaced": false },
+        { "text": "It removes the need for a model type entirely", "isMonospaced": false },
+        { "text": "A guaranteed performance improvement, since observable models always require a view model", "isMonospaced": false }
       ]
     },
     {
@@ -279,29 +279,29 @@
       "codeSnippet": null,
       "options": [
         { "text": "It gives the rest of the app one interface for fetching and saving data, hiding whether it comes from network, disk, or cache behind that boundary", "isMonospaced": false },
-        { "text": "It replaces the need for a model layer", "isMonospaced": false },
+        { "text": "It is a SwiftUI-only concept with no UIKit equivalent, since UIKit's data layer has no comparable notion of hiding a data source behind an interface", "isMonospaced": false },
         { "text": "It guarantees the data returned is always fresh", "isMonospaced": false },
-        { "text": "It is a SwiftUI-only concept with no UIKit equivalent", "isMonospaced": false }
+        { "text": "It replaces the need for a model layer", "isMonospaced": false }
       ]
     },
     {
       "id": "architecture-q12",
       "kind": "code",
-      "prompt": "OrderSummaryViewModel reads UserDefaults.standard directly. What's the smallest change that makes currencyCode() testable without touching the real UserDefaults?",
-      "explanation": "Introducing a narrow protocol for reading the stored preference and injecting a conformer through the initializer creates a seam; a test can then hand in a stub that returns a fixed value instead of going through the real UserDefaults.",
-      "correctIndex": 0,
+      "prompt": "PlanBadgeView and UpgradeButton each keep their own isPremiumUnlocked in local @State. After tapping Upgrade, the badge still reads Free. What's the underlying problem, and what's the fix?",
+      "explanation": "Each view owns its own copy of the same fact, so there is no single source of truth — mutating one copy leaves the other stale. The fix is to lift isPremiumUnlocked into one shared place, such as an @Observable model passed to both views, so both read the same value instead of two independent copies of it.",
+      "correctIndex": 3,
       "rubric": null,
       "level": "mid",
       "codeSnippet": {
-        "filename": "OrderSummaryViewModel.swift",
+        "filename": "PlanViews.swift",
         "language": "swift",
-        "code": "final class OrderSummaryViewModel {\n    func currencyCode() -> String {\n        UserDefaults.standard.string(forKey: \"currencyCode\") ?? \"USD\"\n    }\n}"
+        "code": "struct PlanBadgeView: View {\n    @State private var isPremiumUnlocked = false\n    var body: some View {\n        Text(isPremiumUnlocked ? \"Premium\" : \"Free\")\n    }\n}\n\nstruct UpgradeButton: View {\n    @State private var isPremiumUnlocked = false\n    var body: some View {\n        Button(\"Upgrade\") { isPremiumUnlocked = true }\n    }\n}"
       },
       "options": [
-        { "text": "Introduce a narrow protocol for reading the stored preference, inject a conformer through the initializer, and hand tests a stub that returns a fixed value", "isMonospaced": false },
-        { "text": "Mark currencyCode() as a static method", "isMonospaced": false },
-        { "text": "Rename the UserDefaults call to a computed property with the same body", "isMonospaced": false },
-        { "text": "Wrap the call in a do/catch block", "isMonospaced": false }
+        { "text": "UpgradeButton needs to be marked @MainActor for the mutation to take effect", "isMonospaced": false },
+        { "text": "The two views must be declared in the same file and in the same SwiftUI module for @State to synchronize automatically between separate property wrappers, the same way two globals might coincidentally agree", "isMonospaced": false },
+        { "text": "SwiftUI views cannot use @State for Bool properties", "isMonospaced": false },
+        { "text": "There's no single source of truth — each view holds an independent copy of the same fact; lift isPremiumUnlocked into one shared @Observable model both views read from", "isMonospaced": false }
       ]
     },
     {
@@ -309,14 +309,14 @@
       "kind": "multipleChoice",
       "prompt": "Compare SwiftUI's environment injection to passing a dependency through a view's initializer, from a testability and clarity standpoint.",
       "explanation": "Environment injection is convenient for ambient values many views need, but it hides the requirement from the initializer's signature, so a preview or test can be silently missing a value the view actually needs; initializer injection makes the requirement explicit and checked by the compiler.",
-      "correctIndex": 0,
+      "correctIndex": 2,
       "rubric": null,
       "level": "mid",
       "codeSnippet": null,
       "options": [
-        { "text": "Environment injection hides the dependency from the initializer's signature, risking a silently missing value; initializer injection makes the requirement explicit and compiler-checked", "isMonospaced": false },
-        { "text": "They are functionally identical in every respect", "isMonospaced": false },
+        { "text": "They are functionally identical in every respect, since both ultimately resolve to a value stored somewhere in the surrounding view hierarchy and read through the same property-wrapper machinery under the hood", "isMonospaced": false },
         { "text": "Environment values can never be overridden in tests or previews", "isMonospaced": false },
+        { "text": "Environment injection hides the dependency from the initializer's signature, risking a silently missing value; initializer injection makes the requirement explicit and compiler-checked", "isMonospaced": false },
         { "text": "Initializer injection only works for value types, not classes", "isMonospaced": false }
       ]
     },
@@ -325,35 +325,35 @@
       "kind": "multipleChoice",
       "prompt": "A coordinator represents navigation as an array of route values bound to a navigation stack's path. Why does this make deep links easier to support?",
       "explanation": "Handling a deep link becomes parsing the URL into one or more route values and setting the path to match — reusing the exact mechanism already used for a normal push, rather than needing a separate deep-link-only code path.",
-      "correctIndex": 0,
+      "correctIndex": 3,
       "rubric": null,
       "level": "mid",
       "codeSnippet": null,
       "options": [
-        { "text": "Handling a deep link becomes parsing the URL into route values and setting the path to match, reusing the same mechanism as a normal push", "isMonospaced": false },
-        { "text": "The navigation stack only accepts deep links, never manual navigation", "isMonospaced": false },
+        { "text": "Route values must be sent over the network for this to work", "isMonospaced": false },
+        { "text": "The navigation stack only accepts deep links, never manual navigation, so every push still has to go through a URL even when triggered by a button tap", "isMonospaced": false },
         { "text": "It removes the need to parse the URL at all", "isMonospaced": false },
-        { "text": "Route values must be sent over the network for this to work", "isMonospaced": false }
+        { "text": "Handling a deep link becomes parsing the URL into route values and setting the path to match, reusing the same mechanism as a normal push", "isMonospaced": false }
       ]
     },
     {
       "id": "architecture-q15",
       "kind": "code",
-      "prompt": "CheckoutViewModel reads PurchaseManager.shared directly inside refreshEntitlement. What does this cost the type in terms of testability?",
-      "explanation": "Because the shared instance is reached directly rather than injected, there's no seam to substitute a fake subscription state — a test can't set up a premium or non-premium scenario without going through the real shared PurchaseManager.",
-      "correctIndex": 0,
+      "prompt": "Each new requirement — search, then sorting — adds another subclass in this view-model hierarchy, each overriding load(). What's the problem with this design, and what's the composition-based alternative?",
+      "explanation": "Every new capability forces a new subclass layer, and each override must remember to call through to (or duplicate) the behavior above it — a chain that gets fragile as it grows, and forces every capability to be combined through inheritance rather than picked independently. Composing a plain view model with small, independent pieces — a filtering strategy and a sorting strategy passed in rather than inherited — lets search and sorting be added, tested, and combined independently, without a subclass for every combination.",
+      "correctIndex": 2,
       "rubric": null,
       "level": "mid",
       "codeSnippet": {
-        "filename": "CheckoutViewModel.swift",
+        "filename": "ListViewModels.swift",
         "language": "swift",
-        "code": "@Observable final class CheckoutViewModel {\n    var isPremium = false\n\n    func refreshEntitlement() {\n        isPremium = PurchaseManager.shared.hasActiveSubscription\n    }\n}"
+        "code": "class BaseListViewModel {\n    var items: [String] = []\n    func load() { /* fetch items */ }\n}\n\nclass SearchableListViewModel: BaseListViewModel {\n    var query = \"\"\n    override func load() { /* fetch filtered items */ }\n}\n\nclass SearchableSortableListViewModel: SearchableListViewModel {\n    var sortOrder: SortOrder = .ascending\n    override func load() { /* fetch filtered, sorted items */ }\n}"
       },
       "options": [
-        { "text": "There's no seam to substitute a fake subscription state, since the shared instance is reached directly instead of being injected", "isMonospaced": false },
-        { "text": "isPremium can never be read from a SwiftUI view", "isMonospaced": false },
-        { "text": "refreshEntitlement() must be declared async for this code to compile", "isMonospaced": false },
-        { "text": "Reaching the shared instance makes the class unable to be declared final", "isMonospaced": false }
+        { "text": "This is the correct use of inheritance and does not need to change, since overriding load() in each subclass is exactly what inheritance is meant to support when a screen needs slightly different loading behaviour than its parent", "isMonospaced": false },
+        { "text": "SortOrder must be a class instead of an enum for override to work correctly", "isMonospaced": false },
+        { "text": "Each subclass adds a fragile override chain, and every combination of capabilities needs its own subclass; composing a base view model with independent filtering and sorting strategies passed in avoids a subclass per combination", "isMonospaced": false },
+        { "text": "The classes need to be marked final to fix the problem", "isMonospaced": false }
       ]
     },
     {
@@ -361,15 +361,15 @@
       "kind": "multipleChoice",
       "prompt": "What's the benefit of a unidirectional data flow, state down, events up, over letting a child view mutate a parent's state directly?",
       "explanation": "With state changing in exactly one place, tracing why a value changed means looking at that one path instead of checking every view that might have mutated it directly.",
-      "correctIndex": 0,
+      "correctIndex": 1,
       "rubric": null,
       "level": "mid",
       "codeSnippet": null,
       "options": [
-        { "text": "There's exactly one place state changes, so tracing why a value changed means looking at one path instead of every view that might have mutated it", "isMonospaced": false },
         { "text": "It makes the app run correctly without any model layer", "isMonospaced": false },
+        { "text": "There's exactly one place state changes, so tracing why a value changed means looking at one path instead of every view that might have mutated it", "isMonospaced": false },
         { "text": "It is required for an observable model to compile", "isMonospaced": false },
-        { "text": "It removes the need for any state at all", "isMonospaced": false }
+        { "text": "It removes the need for any state at all, since a unidirectional flow is only meaningful once there is no mutable state left anywhere in the view hierarchy", "isMonospaced": false }
       ]
     },
     {
@@ -377,14 +377,14 @@
       "kind": "multipleChoice",
       "prompt": "Compare sharing behaviour across unrelated types via a protocol extension against sharing it via a common base class.",
       "explanation": "A protocol can be adopted by classes, structs, and enums, and a single type can conform to several protocols at once; a base class forces a single-inheritance hierarchy and only works for classes.",
-      "correctIndex": 0,
+      "correctIndex": 2,
       "rubric": null,
       "level": "mid",
       "codeSnippet": null,
       "options": [
-        { "text": "A protocol lets classes, structs, and enums all adopt the behaviour, and a type can conform to several at once; a base class forces single inheritance and only works for classes", "isMonospaced": false },
-        { "text": "Base classes are always faster to call at runtime", "isMonospaced": false },
         { "text": "Protocol extensions can never provide a default implementation", "isMonospaced": false },
+        { "text": "Base classes are always faster to call at runtime, since virtual dispatch through a protocol witness table is inherently slower than a direct method call on a concrete base class type", "isMonospaced": false },
+        { "text": "A protocol lets classes, structs, and enums all adopt the behaviour, and a type can conform to several at once; a base class forces single inheritance and only works for classes", "isMonospaced": false },
         { "text": "The two approaches are interchangeable with no real trade-off", "isMonospaced": false }
       ]
     },
@@ -403,25 +403,25 @@
       },
       "options": [
         { "text": "The coordinator pattern, since the view expresses intent through events and a separate object decides where those events lead", "isMonospaced": false },
-        { "text": "The singleton pattern", "isMonospaced": false },
         { "text": "The repository pattern", "isMonospaced": false },
+        { "text": "The singleton pattern", "isMonospaced": false },
         { "text": "Dependency injection specifically, rather than a navigation pattern", "isMonospaced": false }
       ]
     },
     {
       "id": "architecture-q19",
       "kind": "multipleChoice",
-      "prompt": "A settings screen has one toggle and no async work. A teammate proposes a full MVVM view model with a protocol-backed store for it. What's the strongest critique?",
-      "explanation": "The layered abstraction exists to make something replaceable or testable, but a single toggle bound straight to state has nothing worth isolating yet — the cost of the abstraction isn't paying for anything here.",
-      "correctIndex": 0,
+      "prompt": "A Feature package's domain logic imports the Networking package's concrete URLSessionAPIClient type directly and calls it inline, with no injection anywhere in sight. Does this violate the Dependency Inversion Principle, and why?",
+      "explanation": "Dependency Inversion is about which direction the source-code dependency points, not about whether a value is passed through an initializer — DI-the-technique is one way to satisfy it, but not the only one. Here, the high-level domain logic depends directly on a low-level concrete networking type, so it violates DIP regardless of whether anything is 'injected'; the fix is for the domain logic to depend on a protocol it owns, with the concrete networking type conforming to it.",
+      "correctIndex": 2,
       "rubric": null,
       "level": "senior",
       "codeSnippet": null,
       "options": [
-        { "text": "The added layer buys testability for logic that doesn't exist yet — a single toggle bound straight to state doesn't need a seam", "isMonospaced": false },
-        { "text": "MVVM cannot be used for a settings screen under any circumstances", "isMonospaced": false },
-        { "text": "A view model always requires a persistence framework", "isMonospaced": false },
-        { "text": "Protocols cannot be defined for a type with a single stored value", "isMonospaced": false }
+        { "text": "No — DIP is satisfied automatically as long as the two types live in separate Swift packages, regardless of which one imports the other or which direction the dependency actually points", "isMonospaced": false },
+        { "text": "No — DIP only applies when a class fails to use constructor injection", "isMonospaced": false },
+        { "text": "Yes — high-level domain logic depends directly on a low-level concrete type; DIP is about dependency direction, not whether the value happens to be passed through an initializer", "isMonospaced": false },
+        { "text": "Yes, but only because URLSessionAPIClient is a class rather than a struct", "isMonospaced": false }
       ]
     },
     {
@@ -439,9 +439,9 @@
       },
       "options": [
         { "text": "The view controller owns fetching, caching, cell configuration, and image loading all at once, with no boundary a test could exercise in isolation", "isMonospaced": false },
-        { "text": "A cell subclass cannot hold an image view as a property", "isMonospaced": false },
         { "text": "An image cache cannot be used from inside a view controller", "isMonospaced": false },
-        { "text": "The class needs to be declared final for this code to compile", "isMonospaced": false }
+        { "text": "A cell subclass cannot hold an image view as a property", "isMonospaced": false },
+        { "text": "The class needs to be declared final for this code to compile, since UIViewController subclasses cannot otherwise override tableView(_:cellForRowAt:)", "isMonospaced": false }
       ]
     },
     {
@@ -455,9 +455,9 @@
       "codeSnippet": null,
       "options": [
         { "text": "The manual wiring function has become a maintenance burden of its own, and a container can express the same graph with less coupling between construction steps", "isMonospaced": false },
-        { "text": "Containers make runtime performance measurably faster", "isMonospaced": false },
+        { "text": "A container removes the need for protocols in the object graph", "isMonospaced": false },
         { "text": "Manual dependency injection stops compiling past a certain number of services", "isMonospaced": false },
-        { "text": "A container removes the need for protocols in the object graph", "isMonospaced": false }
+        { "text": "Containers make runtime performance measurably faster, since resolving a dependency through a registry is inherently quicker than constructing it directly at the call site", "isMonospaced": false }
       ]
     },
     {
@@ -465,35 +465,35 @@
       "kind": "multipleChoice",
       "prompt": "A two-screen app is split into six local packages, one per screen and one per shared concern. What's the most likely cost of this, beyond initial setup time?",
       "explanation": "A two-screen app has no independently changing parts to isolate, so more effort ends up managing package boundaries and public API surface than the split ever saves, since a typical change still touches most of the packages together.",
-      "correctIndex": 0,
+      "correctIndex": 1,
       "rubric": null,
       "level": "senior",
       "codeSnippet": null,
       "options": [
+        { "text": "SwiftUI cannot render views defined outside the app target", "isMonospaced": false },
         { "text": "More effort goes into managing package boundaries than the split saves, since a two-screen app has no independently changing parts to isolate", "isMonospaced": false },
         { "text": "The app will fail to compile past four packages", "isMonospaced": false },
-        { "text": "SwiftUI cannot render views defined outside the app target", "isMonospaced": false },
         { "text": "It guarantees faster incremental builds regardless of how the packages are split", "isMonospaced": false }
       ]
     },
     {
       "id": "architecture-q23",
       "kind": "code",
-      "prompt": "AppCoordinator's initializer reaches directly for AnalyticsClient.shared instead of accepting it as a parameter. What does this specifically cost a test of start(path:)?",
-      "explanation": "Because the dependency is fixed inside init rather than passed in, a test constructing AppCoordinator has no way to substitute a fake analytics client — verifying that start(path:) logs an event means going through the real shared client.",
-      "correctIndex": 0,
+      "prompt": "RemoteProfileRepository catches every error from the networking layer, logs it, and returns nil. What does this cost the caller crossing this module boundary?",
+      "explanation": "Collapsing every failure — a 404, a decoding error, no connection — into the same nil erases the information a caller needs to react correctly, such as showing a retry option for a network failure but a not-found message for a missing profile. A module boundary should translate the underlying error into a typed domain error the caller can inspect, not swallow it into an untyped optional.",
+      "correctIndex": 2,
       "rubric": null,
       "level": "senior",
       "codeSnippet": {
-        "filename": "AppCoordinator.swift",
+        "filename": "RemoteProfileRepository.swift",
         "language": "swift",
-        "code": "final class AppCoordinator {\n    let analytics: AnalyticsClient\n\n    init() {\n        self.analytics = AnalyticsClient.shared\n    }\n\n    func start(path: [Route]) {\n        analytics.log(.appLaunched)\n    }\n}"
+        "code": "final class RemoteProfileRepository {\n    private let client: APIClient\n    init(client: APIClient) { self.client = client }\n\n    func profile(id: String) async -> Profile? {\n        do {\n            return try await client.get(\"/profiles/\\(id)\")\n        } catch {\n            print(\"fetch failed: \\(error)\")\n            return nil\n        }\n    }\n}"
       },
       "options": [
-        { "text": "A test constructing AppCoordinator has no way to substitute a fake analytics client, since the dependency is fixed inside init rather than passed in", "isMonospaced": false },
-        { "text": "start(path:) can no longer be called from a test target", "isMonospaced": false },
-        { "text": "Route must be declared as a class rather than an enum for this to compile", "isMonospaced": false },
-        { "text": "Reaching the shared instance makes AppCoordinator a value type", "isMonospaced": false }
+        { "text": "print statements are not permitted inside a repository type", "isMonospaced": false },
+        { "text": "The code no longer compiles, since async functions cannot use do/catch", "isMonospaced": false },
+        { "text": "The caller loses the ability to distinguish why the fetch failed — a network outage, a missing profile, a decoding bug all collapse into the same nil, instead of a typed domain error it could react to differently", "isMonospaced": false },
+        { "text": "APIClient.get must be declared as throws rather than async throws for this to work, since a do/catch block around an awaited call is otherwise not permitted by the Swift compiler in any circumstance, no matter how the function is structured internally", "isMonospaced": false }
       ]
     },
     {
@@ -501,15 +501,15 @@
       "kind": "multipleChoice",
       "prompt": "A deep link should open a specific comment inside a specific post, several navigation levels deep. Where should the logic that decides those intermediate levels live?",
       "explanation": "The coordinator, or router, that already owns the path array can express the destination as a sequence of route values, the same mechanism used for a normal multi-step push, rather than teaching the view layer to jump levels on its own.",
-      "correctIndex": 0,
+      "correctIndex": 3,
       "rubric": null,
       "level": "senior",
       "codeSnippet": null,
       "options": [
-        { "text": "In the coordinator that already owns the navigation path, since it can express the destination as a sequence of route values, the same mechanism used for a normal push", "isMonospaced": false },
         { "text": "In the view that renders the comment, since it's closest to the destination", "isMonospaced": false },
+        { "text": "It must be handled entirely outside SwiftUI, since SwiftUI cannot process deep links at all without a UIKit scene delegate intercepting the URL first before any view ever loads", "isMonospaced": false },
         { "text": "In the URL-parsing code alone, with no involvement from navigation state", "isMonospaced": false },
-        { "text": "It must be handled entirely outside SwiftUI, since SwiftUI cannot process deep links", "isMonospaced": false }
+        { "text": "In the coordinator that already owns the navigation path, since it can express the destination as a sequence of route values, the same mechanism used for a normal push", "isMonospaced": false }
       ]
     },
     {
@@ -517,15 +517,15 @@
       "kind": "multipleChoice",
       "prompt": "A SwiftUI view's body directly parses a JSON response and computes a discount total inline, before passing values to child views. What does this violate, and what's the fix?",
       "explanation": "This puts business logic and parsing inside the view layer, which can't be exercised without rendering the view; moving that logic into a model or view model the view merely reads from restores the separation and makes the logic testable on its own.",
-      "correctIndex": 0,
+      "correctIndex": 1,
       "rubric": null,
       "level": "senior",
       "codeSnippet": null,
       "options": [
+        { "text": "Nothing — a SwiftUI view is expected to own all computation for the screen it renders, including parsing raw network responses before handing formatted data down to child views to render on screen", "isMonospaced": false },
         { "text": "It puts business logic and parsing inside the view layer, untestable without rendering the view; moving that logic into a model or view model the view reads from restores the separation", "isMonospaced": false },
-        { "text": "Nothing — a SwiftUI view is expected to own all computation for the screen it renders", "isMonospaced": false },
-        { "text": "It violates the language's access control rules", "isMonospaced": false },
-        { "text": "It means the screen must be rewritten in UIKit", "isMonospaced": false }
+        { "text": "It means the screen must be rewritten in UIKit", "isMonospaced": false },
+        { "text": "It violates the language's access control rules", "isMonospaced": false }
       ]
     },
     {
@@ -533,7 +533,7 @@
       "kind": "code",
       "prompt": "CachingProfileRepository wraps another ProfileRepository and adds caching in front of it, both conforming to the same protocol. What pattern is this?",
       "explanation": "This combines the repository pattern with decoration: callers depend only on the ProfileRepository abstraction, so a caching implementation can wrap the remote one transparently, with neither side aware of the other's concrete type.",
-      "correctIndex": 0,
+      "correctIndex": 3,
       "rubric": null,
       "level": "senior",
       "codeSnippet": {
@@ -542,26 +542,26 @@
         "code": "protocol ProfileRepository {\n    func profile(id: String) async throws -> Profile\n}\n\nfinal class RemoteProfileRepository: ProfileRepository {\n    private let client: APIClient\n    init(client: APIClient) { self.client = client }\n    func profile(id: String) async throws -> Profile {\n        try await client.get(\"/profiles/\\(id)\")\n    }\n}\n\nfinal class CachingProfileRepository: ProfileRepository {\n    private let remote: ProfileRepository\n    private var cache: [String: Profile] = [:]\n    init(remote: ProfileRepository) { self.remote = remote }\n    func profile(id: String) async throws -> Profile {\n        if let cached = cache[id] { return cached }\n        let fetched = try await remote.profile(id: id)\n        cache[id] = fetched\n        return fetched\n    }\n}"
       },
       "options": [
-        { "text": "The repository pattern combined with decoration, since callers depend only on the shared abstraction and a caching layer can wrap the remote implementation transparently", "isMonospaced": false },
+        { "text": "An anti-pattern, since a protocol should only ever have one conformer", "isMonospaced": false },
         { "text": "The singleton pattern, since CachingProfileRepository holds a private cache", "isMonospaced": false },
-        { "text": "This shows the absence of constructor injection, since remote is a stored property", "isMonospaced": false },
-        { "text": "An anti-pattern, since a protocol should only ever have one conformer", "isMonospaced": false }
+        { "text": "This shows the absence of constructor injection, since remote is a stored property rather than something resolved lazily the first time profile(id:) actually runs somewhere later in its lifetime", "isMonospaced": false },
+        { "text": "The repository pattern combined with decoration, since callers depend only on the shared abstraction and a caching layer can wrap the remote implementation transparently", "isMonospaced": false }
       ]
     },
     {
       "id": "architecture-q27",
       "kind": "multipleChoice",
-      "prompt": "You're reviewing a PR that adds a five-layer abstraction, protocol, DI container registration, coordinator, repository, and a use-case object, for a screen that reads one static list from the app bundle and never changes. What's the strongest reviewer feedback?",
-      "explanation": "Every one of those layers exists to make something replaceable or testable, but a static, unchanging bundled list has nothing to substitute and no behaviour worth isolating, so the abstraction cost isn't paying for anything here.",
-      "correctIndex": 0,
+      "prompt": "A coordinator's handle(deepLink:) parses a URL into a Route, but the URL is malformed. Should the coordinator throw the parsing error up to the view layer to display, or handle it at the coordinator itself?",
+      "explanation": "The coordinator already owns the navigation boundary — it's the layer that translates an external representation (a URL) into an internal one (a Route) — so it's the right place to decide the fallback, such as routing to a 'this link is no longer valid' screen via a normal Route, rather than leaking a parsing error type into the view layer, which has no notion of URLs or routes at all.",
+      "correctIndex": 3,
       "rubric": null,
       "level": "senior",
       "codeSnippet": null,
       "options": [
-        { "text": "Every layer exists to make something replaceable or testable, but a static, unchanging bundled list has nothing worth isolating, so the cost isn't paying for anything here", "isMonospaced": false },
-        { "text": "The PR is correct, since adding more layers always improves testability", "isMonospaced": false },
-        { "text": "Static data must always go through a repository regardless of complexity", "isMonospaced": false },
-        { "text": "A DI container is required for any screen that renders a list", "isMonospaced": false }
+        { "text": "Crash the app, since a malformed deep link indicates a programmer error", "isMonospaced": false },
+        { "text": "Throw it to the view layer, since only a View can display an error to the user", "isMonospaced": false },
+        { "text": "Ignore it silently, since malformed deep links are rare enough not to matter once the app has already been reviewed and accepted onto the App Store by Apple's review team, and no analytics pipeline anywhere downstream depends on knowing about it", "isMonospaced": false },
+        { "text": "Handle it at the coordinator — it already owns translating an external URL into an internal Route, so it can route to a fallback screen itself instead of leaking a parsing error into a view layer that has no notion of URLs", "isMonospaced": false }
       ]
     }
   ]

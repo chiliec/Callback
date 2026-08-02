@@ -23,7 +23,7 @@
         "codeSnippet": null,
         "options": [
           {
-            "text": "#expect stops the test on failure; #require records and continues",
+            "text": "They are interchangeable aliases",
             "isMonospaced": false
           },
           {
@@ -31,11 +31,11 @@
             "isMonospaced": false
           },
           {
-            "text": "They are interchangeable aliases",
+            "text": "#require is only usable inside UI tests",
             "isMonospaced": false
           },
           {
-            "text": "#require is only usable inside UI tests",
+            "text": "#expect stops the test on failure; #require records and continues",
             "isMonospaced": false
           }
         ]
@@ -52,13 +52,13 @@
         "kind": "multipleChoice",
         "prompt": "A test needs to verify that saving a profile calls the analytics logger exactly once. Which test double fits?",
         "explanation": "A spy records how many times it was called and with what arguments, so the test can assert on that interaction afterward — exactly what's needed here.",
-        "correctIndex": 2,
+        "correctIndex": 0,
         "rubric": null,
         "level": "junior",
         "codeSnippet": null,
         "options": [
           {
-            "text": "Dummy",
+            "text": "Spy",
             "isMonospaced": false
           },
           {
@@ -66,7 +66,7 @@
             "isMonospaced": false
           },
           {
-            "text": "Spy",
+            "text": "Dummy",
             "isMonospaced": false
           },
           {
@@ -87,13 +87,13 @@
         "kind": "multipleChoice",
         "prompt": "Why is a test suite dominated by UI tests riskier than one shaped like a pyramid?",
         "explanation": "UI tests are slower and more environment-sensitive than unit tests, so a suite top-heavy with them becomes slow and flaky enough that people stop trusting — and eventually stop watching — its results.",
-        "correctIndex": 0,
+        "correctIndex": 2,
         "rubric": null,
         "level": "junior",
         "codeSnippet": null,
         "options": [
           {
-            "text": "UI tests are slower and more environment-sensitive, so a top-heavy suite becomes slow and flaky enough to lose trust",
+            "text": "Unit tests can't run in a CI environment",
             "isMonospaced": false
           },
           {
@@ -101,11 +101,11 @@
             "isMonospaced": false
           },
           {
-            "text": "UI tests require a paid CI plan to run",
+            "text": "UI tests are slower and more environment-sensitive, so a top-heavy suite becomes slow and flaky enough to lose trust",
             "isMonospaced": false
           },
           {
-            "text": "Unit tests can't run in a CI environment",
+            "text": "UI tests require a paid CI plan to run",
             "isMonospaced": false
           }
         ]
@@ -122,25 +122,25 @@
         "kind": "multipleChoice",
         "prompt": "Why is `Task.sleep` inside a test considered a smell?",
         "explanation": "It waits on wall-clock time rather than an actual signal that the work finished, which makes the test slow and still leaves a race — one that usually, but not always, wins.",
-        "correctIndex": 1,
+        "correctIndex": 3,
         "rubric": null,
         "level": "junior",
         "codeSnippet": null,
         "options": [
           {
-            "text": "It's deprecated API",
-            "isMonospaced": false
-          },
-          {
-            "text": "It makes the test slow and still leaves a race, since it waits on wall-clock time rather than a real completion signal",
-            "isMonospaced": false
-          },
-          {
             "text": "It can't be called from an async test function",
             "isMonospaced": false
           },
           {
+            "text": "It's deprecated API",
+            "isMonospaced": false
+          },
+          {
             "text": "It requires the test to run on the main actor",
+            "isMonospaced": false
+          },
+          {
+            "text": "It makes the test slow and still leaves a race, since it waits on wall-clock time rather than a real completion signal",
             "isMonospaced": false
           }
         ]
@@ -153,13 +153,17 @@
       "kind": "multipleChoice",
       "prompt": "You write `@Test(arguments: [1, 2, 3]) func rejectsInvalid(_ value: Int)`. What happens when this test runs?",
       "explanation": "`@Test(arguments:)` runs the test body once per element in the collection and reports each run as an independent result, rather than folding every value into a single pass/fail.",
-      "correctIndex": 1,
+      "correctIndex": 2,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
         {
-          "text": "It runs once, receiving the whole array as value",
+          "text": "It runs once and fails only if every element fails",
+          "isMonospaced": false
+        },
+        {
+          "text": "It only compiles if value is declared as [Int]",
           "isMonospaced": false
         },
         {
@@ -167,11 +171,7 @@
           "isMonospaced": false
         },
         {
-          "text": "It runs once and fails only if every element fails",
-          "isMonospaced": false
-        },
-        {
-          "text": "It only compiles if value is declared as [Int]",
+          "text": "It runs once, receiving the whole array as value",
           "isMonospaced": false
         }
       ]
@@ -181,7 +181,7 @@
       "kind": "multipleChoice",
       "prompt": "How does shared setup in a Swift Testing `@Suite` compare to `setUp`/`tearDown` in an `XCTestCase`?",
       "explanation": "Swift Testing instantiates the suite type fresh for every `@Test` it contains, so `init` and `deinit` naturally run before and after each test — the same per-test isolation `setUp`/`tearDown` gives an `XCTestCase`, without needing to override anything.",
-      "correctIndex": 1,
+      "correctIndex": 2,
       "rubric": null,
       "level": "mid",
       "codeSnippet": null,
@@ -191,15 +191,15 @@
           "isMonospaced": false
         },
         {
+          "text": "@Suite requires an explicit tearDown override to reset state, the same way an XCTestCase subclass must override tearDown to avoid leaking state between test runs across the whole suite",
+          "isMonospaced": false
+        },
+        {
           "text": "A @Suite type's init/deinit run once per test, since a fresh instance is created for each @Test, matching the effect of setUp/tearDown running before and after every method",
           "isMonospaced": false
         },
         {
           "text": "@Suite setup can only run synchronously, unlike setUp",
-          "isMonospaced": false
-        },
-        {
-          "text": "@Suite requires an explicit tearDown override to reset state",
           "isMonospaced": false
         }
       ]
@@ -209,7 +209,7 @@
       "kind": "code",
       "prompt": "Both tests in this suite pass every time, but a teammate expected `incrementTwice` to start from wherever `incrementOnce` left `counter` — as if the two tests shared one instance. Why doesn't that happen?",
       "explanation": "Swift Testing constructs a new instance of the suite type for each `@Test` method, so stored properties like `counter` never carry state between tests — each test gets its own independent copy no matter what order they run in.",
-      "correctIndex": 0,
+      "correctIndex": 1,
       "rubric": null,
       "level": "senior",
       "codeSnippet": {
@@ -218,6 +218,10 @@
         "code": "@Suite struct CounterTests {\n    var counter = Counter()\n\n    @Test func incrementOnce() {\n        counter.increment()\n        #expect(counter.value == 1)\n    }\n\n    @Test func incrementTwice() {\n        counter.increment()\n        counter.increment()\n        #expect(counter.value == 2)\n    }\n}"
       },
       "options": [
+        {
+          "text": "The tests only pass because they happen to run in declaration order",
+          "isMonospaced": false
+        },
         {
           "text": "Swift Testing creates a fresh instance of CounterTests for every @Test, so counter starts over each time regardless of run order",
           "isMonospaced": false
@@ -229,10 +233,6 @@
         {
           "text": "counter is a var, so it's shared automatically across all tests declared in the struct",
           "isMonospaced": false
-        },
-        {
-          "text": "The tests only pass because they happen to run in declaration order",
-          "isMonospaced": false
         }
       ]
     },
@@ -241,7 +241,7 @@
       "kind": "multipleChoice",
       "prompt": "In an `XCTestCase` subclass, when do `setUp()` and `tearDown()` run relative to a test method?",
       "explanation": "XCTest calls `setUp()` immediately before each test method and `tearDown()` immediately after it, giving every test method fresh setup and cleanup rather than sharing state across the class.",
-      "correctIndex": 1,
+      "correctIndex": 3,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
@@ -251,7 +251,7 @@
           "isMonospaced": false
         },
         {
-          "text": "setUp() runs before every test method and tearDown() after every test method",
+          "text": "setUp() runs before the first test only",
           "isMonospaced": false
         },
         {
@@ -259,7 +259,7 @@
           "isMonospaced": false
         },
         {
-          "text": "setUp() runs before the first test only",
+          "text": "setUp() runs before every test method and tearDown() after every test method",
           "isMonospaced": false
         }
       ]
@@ -269,25 +269,25 @@
       "kind": "multipleChoice",
       "prompt": "How does XCTest's default execution model compare to Swift Testing's when running tests within the same suite?",
       "explanation": "XCTest executes a class's test methods one at a time unless parallel testing is explicitly enabled; Swift Testing parallelizes by default, so a suite that quietly relied on serial execution to avoid a data race can start failing intermittently once ported.",
-      "correctIndex": 1,
+      "correctIndex": 0,
       "rubric": null,
       "level": "mid",
       "codeSnippet": null,
       "options": [
         {
-          "text": "Both run serially by default",
-          "isMonospaced": false
-        },
-        {
           "text": "XCTest runs test methods within a class serially by default; Swift Testing runs tests concurrently by default, so tests touching shared mutable state can interfere where they wouldn't have under XCTest",
           "isMonospaced": false
         },
         {
-          "text": "Swift Testing runs tests serially; XCTest always runs in parallel",
+          "text": "Both run serially by default",
           "isMonospaced": false
         },
         {
           "text": "Execution order makes no difference to either framework's results",
+          "isMonospaced": false
+        },
+        {
+          "text": "Swift Testing runs tests serially; XCTest always runs in parallel, since XCTest was rebuilt around structured concurrency well before Swift Testing existed as a separate framework distributed with the toolchain",
           "isMonospaced": false
         }
       ]
@@ -297,7 +297,7 @@
       "kind": "multipleChoice",
       "prompt": "A test passes every time you run it alone, but fails intermittently when the whole `XCTestCase` class runs. What's the most likely cause?",
       "explanation": "A test that only fails in the company of others is a symptom of leaked state — a static, a singleton, or a `tearDown()` override that skips `super.tearDown()` — rather than a problem with the failing test itself.",
-      "correctIndex": 1,
+      "correctIndex": 3,
       "rubric": null,
       "level": "senior",
       "codeSnippet": null,
@@ -307,15 +307,15 @@
           "isMonospaced": false
         },
         {
-          "text": "State left behind by an earlier test isn't being reset — often because an override of tearDown() forgot to call super.tearDown(), or a static/shared value isn't cleared",
-          "isMonospaced": false
-        },
-        {
-          "text": "XCTest doesn't support more than one test method per class",
+          "text": "XCTest doesn't support more than one test method per class, which is why teams often split a single scenario across several small XCTestCase subclasses instead of combining them",
           "isMonospaced": false
         },
         {
           "text": "The test file wasn't added to the test target",
+          "isMonospaced": false
+        },
+        {
+          "text": "State left behind by an earlier test isn't being reset — often because an override of tearDown() forgot to call super.tearDown(), or a static/shared value isn't cleared",
           "isMonospaced": false
         }
       ]
@@ -331,7 +331,7 @@
       "codeSnippet": null,
       "options": [
         {
-          "text": "Mock",
+          "text": "Dummy",
           "isMonospaced": false
         },
         {
@@ -343,7 +343,7 @@
           "isMonospaced": false
         },
         {
-          "text": "Dummy",
+          "text": "Mock",
           "isMonospaced": false
         }
       ]
@@ -363,15 +363,15 @@
           "isMonospaced": false
         },
         {
-          "text": "A spy and a mock are the same thing under different names",
+          "text": "A spy replaces the real dependency; a mock only wraps it",
+          "isMonospaced": false
+        },
+        {
+          "text": "A spy and a mock are the same thing under different names, since both ultimately exist to record every call made against the test double for later inspection by whatever assertion the test happens to make",
           "isMonospaced": false
         },
         {
           "text": "A mock can only return Void; a spy can return any type",
-          "isMonospaced": false
-        },
-        {
-          "text": "A spy replaces the real dependency; a mock only wraps it",
           "isMonospaced": false
         }
       ]
@@ -399,11 +399,11 @@
           "isMonospaced": false
         },
         {
-          "text": "MockProfileStore should be a Dummy instead",
+          "text": "The test needs an async version of save",
           "isMonospaced": false
         },
         {
-          "text": "The test needs an async version of save",
+          "text": "MockProfileStore should be a Dummy instead",
           "isMonospaced": false
         }
       ]
@@ -413,11 +413,15 @@
       "kind": "multipleChoice",
       "prompt": "A type calls `URLSession.shared` directly inside its methods. Compare that to a type that takes a `URLSession`-conforming protocol through its initializer, from a testability standpoint.",
       "explanation": "Testability comes from having a seam — a point where the real implementation can be swapped for a test double. A hard-coded singleton reference has no such seam; injecting the dependency through `init`, typed as a protocol, gives tests exactly that point of substitution.",
-      "correctIndex": 1,
+      "correctIndex": 2,
       "rubric": null,
       "level": "mid",
       "codeSnippet": null,
       "options": [
+        {
+          "text": "URLSession.shared is already a protocol, so no seam is needed",
+          "isMonospaced": false
+        },
         {
           "text": "Both are equally testable, since URLSession can be mocked either way",
           "isMonospaced": false
@@ -427,11 +431,7 @@
           "isMonospaced": false
         },
         {
-          "text": "Injecting the dependency makes the type slower at runtime",
-          "isMonospaced": false
-        },
-        {
-          "text": "URLSession.shared is already a protocol, so no seam is needed",
+          "text": "Injecting the dependency makes the type slower at runtime, since resolving a protocol witness table costs measurably more than calling a concrete singleton directly every single time the method happens to run in production",
           "isMonospaced": false
         }
       ]
@@ -441,7 +441,7 @@
       "kind": "code",
       "prompt": "You need a unit test for `currentTemperature` that doesn't touch the network. What's the smallest change that makes this testable?",
       "explanation": "The fix is to create a seam: define a narrow protocol for the networking call the type needs, inject a conformer through the initializer instead of reaching for the shared singleton, and let tests substitute a stub or fake that returns canned data with no network involved.",
-      "correctIndex": 1,
+      "correctIndex": 3,
       "rubric": null,
       "level": "senior",
       "codeSnippet": {
@@ -451,11 +451,11 @@
       },
       "options": [
         {
-          "text": "Add a #if TESTING branch that returns a hardcoded value",
+          "text": "Make currentTemperature synchronous",
           "isMonospaced": false
         },
         {
-          "text": "Introduce a protocol that covers the fetching method it needs, inject an instance of it through the initializer instead of reaching for URLSession.shared, and hand the test a fake or stub conforming to that protocol",
+          "text": "Add a #if TESTING branch that returns a hardcoded value, so the compiler strips the real networking call out of the binary before it ever ships to the App Store, leaving nothing left to accidentally call in production",
           "isMonospaced": false
         },
         {
@@ -463,7 +463,7 @@
           "isMonospaced": false
         },
         {
-          "text": "Make currentTemperature synchronous",
+          "text": "Introduce a protocol that covers the fetching method it needs, inject an instance of it through the initializer instead of reaching for URLSession.shared, and hand the test a fake or stub conforming to that protocol",
           "isMonospaced": false
         }
       ]
@@ -473,7 +473,7 @@
       "kind": "multipleChoice",
       "prompt": "Can a Swift Testing `@Test` function be `async`, and can `#expect` check the result of an `await`ed call directly?",
       "explanation": "Swift Testing test functions can be declared `async throws` like any other async function, and `#expect` accepts an `await`ed expression directly, so there's no need for a separate expectation mechanism to test a value returned by async code.",
-      "correctIndex": 1,
+      "correctIndex": 2,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
@@ -483,15 +483,15 @@
           "isMonospaced": false
         },
         {
+          "text": "Only if the function under test returns Void",
+          "isMonospaced": false
+        },
+        {
           "text": "Yes — @Test functions can be marked async throws, and #expect can wrap an awaited expression inline",
           "isMonospaced": false
         },
         {
           "text": "Yes, but only inside a @Suite, never as a top-level function",
-          "isMonospaced": false
-        },
-        {
-          "text": "Only if the function under test returns Void",
           "isMonospaced": false
         }
       ]
@@ -511,7 +511,7 @@
       },
       "options": [
         {
-          "text": "That publish() returns within a fixed time limit",
+          "text": "That Notifier supports at most two subscribers",
           "isMonospaced": false
         },
         {
@@ -519,11 +519,11 @@
           "isMonospaced": false
         },
         {
-          "text": "That Notifier supports at most two subscribers",
+          "text": "That publish() returns within a fixed time limit",
           "isMonospaced": false
         },
         {
-          "text": "That subscribe and publish are called in a specific order",
+          "text": "That subscribe and publish are called in a specific order, since confirmation only passes when every closure runs before the outer function itself returns control back to the caller",
           "isMonospaced": false
         }
       ]
@@ -543,7 +543,7 @@
       },
       "options": [
         {
-          "text": "CI machines run an older Swift version; pin the toolchain",
+          "text": "Downloader needs to be marked @MainActor",
           "isMonospaced": false
         },
         {
@@ -555,7 +555,7 @@
           "isMonospaced": false
         },
         {
-          "text": "Downloader needs to be marked @MainActor",
+          "text": "CI machines run an older Swift version; pin the toolchain to the exact same version used on every developer's machine to keep the timing behaviour completely identical across every single environment involved",
           "isMonospaced": false
         }
       ]
@@ -571,7 +571,7 @@
       "codeSnippet": null,
       "options": [
         {
-          "text": "The test asserts on a return value",
+          "text": "The test is marked @Test instead of naming the function test...",
           "isMonospaced": false
         },
         {
@@ -579,11 +579,11 @@
           "isMonospaced": false
         },
         {
-          "text": "The test has a descriptive name",
+          "text": "The test asserts on a return value",
           "isMonospaced": false
         },
         {
-          "text": "The test is marked @Test instead of naming the function test...",
+          "text": "The test has a descriptive name",
           "isMonospaced": false
         }
       ]
@@ -593,21 +593,21 @@
       "kind": "multipleChoice",
       "prompt": "Some test suites deliberately randomize test execution order between runs. Why?",
       "explanation": "A fixed run order can mask a hidden dependency between tests indefinitely, because the same lucky order runs every time. Randomizing the order turns that latent bug into a visible, if intermittent, failure — which is the point.",
-      "correctIndex": 1,
+      "correctIndex": 0,
       "rubric": null,
       "level": "mid",
       "codeSnippet": null,
       "options": [
-        {
-          "text": "It makes the suite run faster",
-          "isMonospaced": false
-        },
         {
           "text": "It surfaces order-dependent tests — ones that only pass because an earlier test happened to leave behind state they silently rely on — which a fixed order would hide indefinitely",
           "isMonospaced": false
         },
         {
           "text": "Randomized order is a requirement of Swift Testing",
+          "isMonospaced": false
+        },
+        {
+          "text": "It makes the suite run faster, since a randomized order lets independent tests execute without ever waiting on any fixed sequence between them at all, unlike a strictly serial run",
           "isMonospaced": false
         },
         {
@@ -621,7 +621,7 @@
       "kind": "code",
       "prompt": "`testLogoutClearsToken` fails when run alone but passes when the full class runs. What's wrong?",
       "explanation": "The static property makes the two tests silently dependent on each other's run order — `testLogoutClearsToken` only has a token to clear because a previous test happened to populate a shared static. Each test should arrange its own state instead of relying on another test as a side-effecting setup step.",
-      "correctIndex": 1,
+      "correctIndex": 3,
       "rubric": null,
       "level": "senior",
       "codeSnippet": {
@@ -631,11 +631,7 @@
       },
       "options": [
         {
-          "text": "XCTAssertNil doesn't work correctly on optionals",
-          "isMonospaced": false
-        },
-        {
-          "text": "The test depends on static var cachedToken, mutable state shared across test methods, being populated by testLoginStoresToken running first — an inter-test dependency through shared state",
+          "text": "XCTest always runs methods in declaration order, so this is actually safe, and the static var only ever gets read after it has already been written earlier in the run, so it happens to work out",
           "isMonospaced": false
         },
         {
@@ -643,7 +639,11 @@
           "isMonospaced": false
         },
         {
-          "text": "XCTest always runs methods in declaration order, so this is actually safe",
+          "text": "XCTAssertNil doesn't work correctly on optionals",
+          "isMonospaced": false
+        },
+        {
+          "text": "The test depends on static var cachedToken, mutable state shared across test methods, being populated by testLoginStoresToken running first — an inter-test dependency through shared state",
           "isMonospaced": false
         }
       ]
@@ -659,7 +659,7 @@
       "codeSnippet": null,
       "options": [
         {
-          "text": "End-to-end / UI tests, since they cover the most ground",
+          "text": "Manual tests",
           "isMonospaced": false
         },
         {
@@ -671,7 +671,7 @@
           "isMonospaced": false
         },
         {
-          "text": "Manual tests",
+          "text": "End-to-end / UI tests, since they cover the most ground",
           "isMonospaced": false
         }
       ]
@@ -681,13 +681,13 @@
       "kind": "multipleChoice",
       "prompt": "What makes an assertion 'resilient' rather than 'brittle'?",
       "explanation": "A resilient assertion is anchored to observable behaviour, so an internal refactor that doesn't change that behaviour leaves the test green. Checking a private detail — like an exact call order — is what makes an assertion brittle.",
-      "correctIndex": 0,
+      "correctIndex": 3,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
         {
-          "text": "It checks an outcome the caller actually cares about — a return value, persisted state, a sent message — so it survives a refactor that preserves behaviour",
+          "text": "It never fails, no matter what changes",
           "isMonospaced": false
         },
         {
@@ -695,11 +695,11 @@
           "isMonospaced": false
         },
         {
-          "text": "It never fails, no matter what changes",
+          "text": "It checks that a private method was called in a specific order",
           "isMonospaced": false
         },
         {
-          "text": "It checks that a private method was called in a specific order",
+          "text": "It checks an outcome the caller actually cares about — a return value, persisted state, a sent message — so it survives a refactor that preserves behaviour",
           "isMonospaced": false
         }
       ]
@@ -715,7 +715,7 @@
       "codeSnippet": null,
       "options": [
         {
-          "text": "applyDiscountWasCalled — it's more specific about what happened internally",
+          "text": "They're equally resilient",
           "isMonospaced": false
         },
         {
@@ -723,7 +723,7 @@
           "isMonospaced": false
         },
         {
-          "text": "They're equally resilient",
+          "text": "applyDiscountWasCalled — it's more specific about what happened internally",
           "isMonospaced": false
         },
         {
@@ -751,15 +751,15 @@
           "isMonospaced": false
         },
         {
+          "text": "The order genuinely matters for correctness, so the test is right to fail",
+          "isMonospaced": false
+        },
+        {
           "text": "MockPriceCalculator needs more test cases",
           "isMonospaced": false
         },
         {
-          "text": "Arrays aren't Equatable in Swift Testing",
-          "isMonospaced": false
-        },
-        {
-          "text": "The order genuinely matters for correctness, so the test is right to fail",
+          "text": "Arrays aren't Equatable in Swift Testing, so calculator.calls would need to be compared element by element instead of with a single == check like the one written here, which would not compile as shown",
           "isMonospaced": false
         }
       ]
@@ -769,17 +769,17 @@
       "kind": "multipleChoice",
       "prompt": "Compare a unit test of a view model's logic against a UI test that drives the same screen through `XCUIApplication`.",
       "explanation": "Unit tests and UI tests catch different classes of bugs at very different costs: unit tests are fast and precise about logic but blind to wiring problems, while UI tests catch those wiring problems at the price of speed, stability, and a vaguer failure.",
-      "correctIndex": 1,
+      "correctIndex": 0,
       "rubric": null,
       "level": "mid",
       "codeSnippet": null,
       "options": [
         {
-          "text": "The UI test is strictly better since it exercises real user-facing behaviour",
+          "text": "The unit test runs in milliseconds and isolates the logic, but can't catch a wiring mistake between the view and the model; the UI test catches that wiring but is slower and more environment-sensitive",
           "isMonospaced": false
         },
         {
-          "text": "The unit test runs in milliseconds and isolates the logic, but can't catch a wiring mistake between the view and the model; the UI test catches that wiring but is slower and more environment-sensitive",
+          "text": "UI tests can't assert on visible text on screen",
           "isMonospaced": false
         },
         {
@@ -787,7 +787,7 @@
           "isMonospaced": false
         },
         {
-          "text": "UI tests can't assert on visible text on screen",
+          "text": "The UI test is strictly better since it exercises real user-facing behaviour, covering the view, the model, and the underlying network stack all in one single run without needing separate unit coverage",
           "isMonospaced": false
         }
       ]
@@ -797,7 +797,7 @@
       "kind": "multipleChoice",
       "prompt": "A suite has 200 UI tests and 20 unit tests. It takes 40 minutes to run and fails about 1 run in 10 for reasons unrelated to real bugs. What's the most effective fix?",
       "explanation": "An inverted pyramid — mostly UI tests — is both slow and flaky by nature, since UI tests are inherently more environment-sensitive. The fix is structural: move business-logic coverage down to fast unit tests, and keep the UI layer for the few flows that need true end-to-end confidence.",
-      "correctIndex": 1,
+      "correctIndex": 3,
       "rubric": null,
       "level": "senior",
       "codeSnippet": null,
@@ -807,15 +807,15 @@
           "isMonospaced": false
         },
         {
-          "text": "Push logic currently only exercised through the UI layer down into unit tests, and trim the UI suite to the handful of critical end-to-end flows it should actually own",
-          "isMonospaced": false
-        },
-        {
           "text": "Run the UI tests on faster build hardware",
           "isMonospaced": false
         },
         {
-          "text": "Delete the 20 unit tests since they add little coverage",
+          "text": "Delete the 20 unit tests since they add little coverage compared to the UI suite, which already exercises those same code paths end to end anyway without needing anything smaller",
+          "isMonospaced": false
+        },
+        {
+          "text": "Push logic currently only exercised through the UI layer down into unit tests, and trim the UI suite to the handful of critical end-to-end flows it should actually own",
           "isMonospaced": false
         }
       ]
@@ -831,7 +831,7 @@
       "codeSnippet": null,
       "options": [
         {
-          "text": "They can't detect any visual regressions at all",
+          "text": "They require a physical device to run",
           "isMonospaced": false
         },
         {
@@ -839,7 +839,7 @@
           "isMonospaced": false
         },
         {
-          "text": "They require a physical device to run",
+          "text": "They can't detect any visual regressions at all, since a snapshot only records raw pixel data and has no independent way to compare one rendered image against another one without a human looking at both side by side",
           "isMonospaced": false
         },
         {
@@ -863,15 +863,15 @@
           "isMonospaced": false
         },
         {
+          "text": "The button must have been added after the snapshot was recorded, and the missing baseline meant the corner radius bug had nothing at all to be compared against until a human actually looked closely at the final rendered result",
+          "isMonospaced": false
+        },
+        {
           "text": "The test framework doesn't support asserting on corner radius",
           "isMonospaced": false
         },
         {
           "text": "Snapshot tests only run on CI, never locally",
-          "isMonospaced": false
-        },
-        {
-          "text": "The button must have been added after the snapshot was recorded",
           "isMonospaced": false
         }
       ]
@@ -881,17 +881,17 @@
       "kind": "multipleChoice",
       "prompt": "What does 100% code coverage on a module actually tell you?",
       "explanation": "Coverage measures execution, not verification — a line can run with no assertion checking its result and still count as covered. It's most useful as a flashlight pointing at code with zero test signal, not as a score to maximize.",
-      "correctIndex": 1,
+      "correctIndex": 0,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
         {
-          "text": "That the module is bug-free",
+          "text": "That every line executed at least once during the test run — it says nothing about whether the assertions checking that code were meaningful",
           "isMonospaced": false
         },
         {
-          "text": "That every line executed at least once during the test run — it says nothing about whether the assertions checking that code were meaningful",
+          "text": "That the module has no race conditions",
           "isMonospaced": false
         },
         {
@@ -899,7 +899,7 @@
           "isMonospaced": false
         },
         {
-          "text": "That the module has no race conditions",
+          "text": "That the module is bug-free",
           "isMonospaced": false
         }
       ]
@@ -909,7 +909,7 @@
       "kind": "code",
       "prompt": "This test interleaves several act-then-assert steps instead of one arrange, one act, one assert. What's the practical downside of writing it this way?",
       "explanation": "This test conflates three separate scenarios under one test name and one pass/fail. Splitting it into three tests, each with one arrange, one act, one assert, gives a failure report that pinpoints exactly which scenario broke.",
-      "correctIndex": 1,
+      "correctIndex": 2,
       "rubric": null,
       "level": "junior",
       "codeSnippet": {
@@ -919,15 +919,15 @@
       },
       "options": [
         {
-          "text": "It won't compile, since #expect can only appear once per test",
+          "text": "Inventory must be a class, not a struct, for this to work",
+          "isMonospaced": false
+        },
+        {
+          "text": "It won't compile, since #expect can only appear once per test — Swift Testing enforces a single assertion per @Test function, rejecting a second #expect call inside the same test body at compile time before the test is ever even allowed to run",
           "isMonospaced": false
         },
         {
           "text": "When one of the middle #expect calls fails, it's unclear whether the earlier state was ever correct — the test is really checking three scenarios crammed into one name, and a failure report doesn't say which one broke without reading the body",
-          "isMonospaced": false
-        },
-        {
-          "text": "Inventory must be a class, not a struct, for this to work",
           "isMonospaced": false
         },
         {
