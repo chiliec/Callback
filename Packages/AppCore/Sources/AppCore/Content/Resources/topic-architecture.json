@@ -23,8 +23,8 @@
         "codeSnippet": null,
         "options": [
           { "text": "It can be instantiated and tested without any UI, since it holds no reference to a view or view controller", "isMonospaced": false },
-          { "text": "It runs on a background thread automatically", "isMonospaced": false },
-          { "text": "It replaces the need for a model type", "isMonospaced": false },
+          { "text": "It runs on a background thread automatically, purely as a side effect of not inheriting from UIViewController or holding a view reference", "isMonospaced": false },
+          { "text": "It replaces the need for a model type, since the view model is expected to store all of a screen's persisted data on its own", "isMonospaced": false },
           { "text": "It automatically conforms to Codable", "isMonospaced": false }
         ]
       }
@@ -45,9 +45,9 @@
         "level": "junior",
         "codeSnippet": null,
         "options": [
-          { "text": "Environment injection", "isMonospaced": false },
+          { "text": "Environment injection, since @Environment values are resolved implicitly by the surrounding view hierarchy rather than passed to init", "isMonospaced": false },
           { "text": "Reaching for a shared singleton instance", "isMonospaced": false },
-          { "text": "Property injection", "isMonospaced": false },
+          { "text": "Property injection, since a var can be reassigned freely at any point after the type has already been constructed and put into use", "isMonospaced": false },
           { "text": "Constructor injection — the type can't be constructed without it", "isMonospaced": false }
         ]
       }
@@ -68,9 +68,9 @@
         "level": "junior",
         "codeSnippet": null,
         "options": [
-          { "text": "It calls the destination view's initializer directly, same as without a coordinator", "isMonospaced": false },
+          { "text": "It calls the destination view's initializer directly, the same as it would without a coordinator present anywhere in the view hierarchy at all", "isMonospaced": false },
           { "text": "It expresses intent, e.g. through an event or closure, and lets the coordinator decide where that leads", "isMonospaced": false },
-          { "text": "It still creates the destination view itself, just with a coordinator watching", "isMonospaced": false },
+          { "text": "It still creates the destination view itself, just with a coordinator object sitting nearby and passively watching what already happened", "isMonospaced": false },
           { "text": "It stores the destination in UserDefaults", "isMonospaced": false }
         ]
       }
@@ -91,10 +91,10 @@
         "level": "junior",
         "codeSnippet": null,
         "options": [
-          { "text": "That the type is automatically thread-safe", "isMonospaced": false },
+          { "text": "That the type is automatically thread-safe, since internal access control is also assumed to guarantee safe concurrent access from multiple tasks at once", "isMonospaced": false },
           { "text": "That the type cannot be used in unit tests", "isMonospaced": false },
           { "text": "That no code outside the module can reference it, checked by the compiler rather than by convention", "isMonospaced": false },
-          { "text": "That the module builds faster", "isMonospaced": false }
+          { "text": "That the module builds faster, since marking something internal is assumed to skip it entirely during Swift's normal compilation and type-checking passes", "isMonospaced": false }
         ]
       }
     }
@@ -110,7 +110,7 @@
       "level": "junior",
       "codeSnippet": null,
       "options": [
-        { "text": "The view can directly modify the model, which is often defended as a shortcut for simple screens before the same controller quietly accumulates unrelated logic", "isMonospaced": false },
+        { "text": "The view can directly modify the model, which breaks MVC's intended one-directional flow and makes it harder to trace where a given change to the underlying data actually originated", "isMonospaced": false },
         { "text": "The controller becomes a dumping ground for logic that has nowhere else to go, growing into a massive view controller", "isMonospaced": false },
         { "text": "MVC does not support more than one view on screen", "isMonospaced": false },
         { "text": "MVC only works in SwiftUI, not UIKit", "isMonospaced": false }
@@ -127,8 +127,8 @@
       "codeSnippet": null,
       "options": [
         { "text": "Presentation state and logic with no reference to a view or view controller, so it can be instantiated and tested without any UI", "isMonospaced": false },
-        { "text": "Only formatting helpers, never state", "isMonospaced": false },
-        { "text": "The persisted database schema for the screen", "isMonospaced": false },
+        { "text": "Only formatting helpers, never state, since state is expected to remain exclusively inside the view itself rather than the view model layer", "isMonospaced": false },
+        { "text": "The persisted database schema for the screen, including every column definition needed to store and later reload that screen's data", "isMonospaced": false },
         { "text": "A reference to the concrete view it's bound to, so it can update it directly", "isMonospaced": false }
       ]
     },
@@ -163,8 +163,8 @@
       "codeSnippet": null,
       "options": [
         { "text": "It forces every dependency through init, so a test can supply a stub or fake without touching production code", "isMonospaced": false },
-        { "text": "It removes the need for protocols entirely", "isMonospaced": false },
-        { "text": "It makes the class run faster at runtime", "isMonospaced": false },
+        { "text": "It removes the need for protocols entirely, since every dependency can now be passed around using only its concrete type", "isMonospaced": false },
+        { "text": "It makes the class run faster at runtime, since constructor parameters are resolved once at compile time rather than looked up dynamically", "isMonospaced": false },
         { "text": "It is required by the compiler for every class", "isMonospaced": false }
       ]
     },
@@ -178,8 +178,8 @@
       "level": "junior",
       "codeSnippet": null,
       "options": [
-        { "text": "Dependency Inversion — DiscountCalculator should be injected instead of constructed directly", "isMonospaced": false },
-        { "text": "Single Responsibility — DiscountCalculator should be split into two classes", "isMonospaced": false },
+        { "text": "Dependency Inversion — DiscountCalculator should be injected instead of constructed directly, even though the switch statement over DiscountType itself would remain completely unchanged either way", "isMonospaced": false },
+        { "text": "Single Responsibility — DiscountCalculator should be split into two classes, one for computing amounts and one purely for reading configuration values from disk", "isMonospaced": false },
         { "text": "Open/Closed — replace the switch with a Discount protocol each type conforms to, so a new discount type is added without modifying DiscountCalculator itself", "isMonospaced": false },
         { "text": "This is expected behavior and does not violate any design principle", "isMonospaced": false }
       ]
@@ -194,10 +194,10 @@
       "level": "junior",
       "codeSnippet": null,
       "options": [
-        { "text": "Singletons make a type automatically encodable", "isMonospaced": false },
+        { "text": "Singletons make a type automatically encodable, since a globally shared instance is assumed to already conform to Codable without declaring it", "isMonospaced": false },
         { "text": "It hides a global dependency that's hard to substitute in a test, since callers reach it directly instead of receiving it", "isMonospaced": false },
         { "text": "Singletons are always safe to access from any thread by default", "isMonospaced": false },
-        { "text": "Singletons cannot be written in Swift", "isMonospaced": false }
+        { "text": "Singletons cannot be written in Swift, since the language has no syntax at all for declaring a single globally shared instance of a type", "isMonospaced": false }
       ]
     },
     {
@@ -210,9 +210,9 @@
       "level": "junior",
       "codeSnippet": null,
       "options": [
-        { "text": "It makes SwiftUI views render faster", "isMonospaced": false },
+        { "text": "It makes SwiftUI views render faster, since removing navigation logic from the view body is assumed to reduce the work SwiftUI does diffing each frame", "isMonospaced": false },
         { "text": "It is a way to avoid ever using protocols", "isMonospaced": false },
-        { "text": "It replaces the need for a model layer", "isMonospaced": false },
+        { "text": "It replaces the need for a model layer, since navigation state is expected to fully substitute for whatever a model would otherwise represent", "isMonospaced": false },
         { "text": "It moves navigation decisions out of the view, so a view doesn't need to know what screen comes after it", "isMonospaced": false }
       ]
     },
@@ -231,8 +231,8 @@
       },
       "options": [
         { "text": "Define a protocol covering the send method, inject a conformer through PhotoUploader's initializer, and let a test pass in a stub or fake", "isMonospaced": false },
-        { "text": "Mark APIClient as final so it can't be subclassed", "isMonospaced": false },
-        { "text": "Make upload synchronous instead of async", "isMonospaced": false },
+        { "text": "Mark APIClient as final so it can't be subclassed, since sealing the concrete type is what a test would need in order to substitute something else in its place", "isMonospaced": false },
+        { "text": "Make upload synchronous instead of async, since removing the asynchronous call is what actually creates the seam a unit test needs to intercept it", "isMonospaced": false },
         { "text": "Add a conditional compilation branch that skips the network call in debug builds", "isMonospaced": false }
       ]
     },
@@ -246,7 +246,7 @@
       "level": "junior",
       "codeSnippet": null,
       "options": [
-        { "text": "It is required before an app can ship on the App Store", "isMonospaced": false },
+        { "text": "It is required before an app can ship on the App Store, since Apple's App Store Review Guidelines are assumed to mandate that every app be split into multiple local Swift packages before submission", "isMonospaced": false },
         { "text": "It removes the need to write unit tests", "isMonospaced": false },
         { "text": "Access control at the package boundary is compiler-enforced, and build output can be cached and reused per module, so unrelated changes rebuild less", "isMonospaced": false },
         { "text": "It automatically makes every type safe to share across threads, regardless of whether that type's stored properties are ever mutated concurrently from multiple tasks", "isMonospaced": false }
@@ -264,8 +264,8 @@
       "options": [
         { "text": "It is required, since SwiftUI views cannot read an observable model's properties directly", "isMonospaced": false },
         { "text": "Little — a view model that only forwards the model's properties one-for-one is mostly ceremony for a screen this thin", "isMonospaced": false },
-        { "text": "It removes the need for a model type entirely", "isMonospaced": false },
-        { "text": "A guaranteed performance improvement, since observable models always require a view model", "isMonospaced": false }
+        { "text": "It removes the need for a model type entirely, since the view is now expected to own every piece of state a model would otherwise have held", "isMonospaced": false },
+        { "text": "A guaranteed performance improvement, since observable models always require a view model layer in between to avoid unnecessary view redraws", "isMonospaced": false }
       ]
     },
     {
@@ -280,7 +280,7 @@
       "options": [
         { "text": "It gives the rest of the app one interface for fetching and saving data, hiding whether it comes from network, disk, or cache behind that boundary", "isMonospaced": false },
         { "text": "It is a SwiftUI-only concept with no UIKit equivalent, since UIKit's data layer has no comparable notion of hiding a data source behind an interface", "isMonospaced": false },
-        { "text": "It guarantees the data returned is always fresh", "isMonospaced": false },
+        { "text": "It guarantees the data returned is always fresh, since a repository is defined as something that always bypasses any cache and hits the network on every single call it receives", "isMonospaced": false },
         { "text": "It replaces the need for a model layer", "isMonospaced": false }
       ]
     },
@@ -347,11 +347,11 @@
       "codeSnippet": {
         "filename": "ListViewModels.swift",
         "language": "swift",
-        "code": "class BaseListViewModel {\n    var items: [String] = []\n    func load() { /* fetch items */ }\n}\n\nclass SearchableListViewModel: BaseListViewModel {\n    var query = \"\"\n    override func load() { /* fetch filtered items */ }\n}\n\nclass SearchableSortableListViewModel: SearchableListViewModel {\n    var sortOrder: SortOrder = .ascending\n    override func load() { /* fetch filtered, sorted items */ }\n}"
+        "code": "class BaseListViewModel {\n    var items: [String] = []\n    func load() { /* fetch items */ }\n}\n\nclass SearchableListViewModel: BaseListViewModel {\n    var query = \"\"\n    override func load() { /* fetch filtered items */ }\n}\n\nclass SearchableSortableListViewModel: SearchableListViewModel {\n    var sortOrder: ListSortOrder = .ascending\n    override func load() { /* fetch filtered, sorted items */ }\n}"
       },
       "options": [
         { "text": "This is the correct use of inheritance and does not need to change, since overriding load() in each subclass is exactly what inheritance is meant to support when a screen needs slightly different loading behaviour than its parent", "isMonospaced": false },
-        { "text": "SortOrder must be a class instead of an enum for override to work correctly", "isMonospaced": false },
+        { "text": "ListSortOrder must be a class instead of an enum for override to work correctly", "isMonospaced": false },
         { "text": "Each subclass adds a fragile override chain, and every combination of capabilities needs its own subclass; composing a base view model with independent filtering and sorting strategies passed in avoids a subclass per combination", "isMonospaced": false },
         { "text": "The classes need to be marked final to fix the problem", "isMonospaced": false }
       ]
@@ -383,7 +383,7 @@
       "codeSnippet": null,
       "options": [
         { "text": "Protocol extensions can never provide a default implementation", "isMonospaced": false },
-        { "text": "Base classes are always faster to call at runtime, since virtual dispatch through a protocol witness table is inherently slower than a direct method call on a concrete base class type", "isMonospaced": false },
+        { "text": "Base classes are always faster to call at runtime, since a base class only needs to be compiled once for the whole app, whereas a protocol has to be recompiled separately for every type that conforms to it", "isMonospaced": false },
         { "text": "A protocol lets classes, structs, and enums all adopt the behaviour, and a type can conform to several at once; a base class forces single inheritance and only works for classes", "isMonospaced": false },
         { "text": "The two approaches are interchangeable with no real trade-off", "isMonospaced": false }
       ]
@@ -403,8 +403,8 @@
       },
       "options": [
         { "text": "The coordinator pattern, since the view expresses intent through events and a separate object decides where those events lead", "isMonospaced": false },
-        { "text": "The repository pattern", "isMonospaced": false },
-        { "text": "The singleton pattern", "isMonospaced": false },
+        { "text": "The repository pattern, since the coordinator's path array is functioning here as a cache of previously fetched navigation destinations", "isMonospaced": false },
+        { "text": "The singleton pattern, since AppCoordinator is the one shared instance every view in the app is expected to reach directly by name", "isMonospaced": false },
         { "text": "Dependency injection specifically, rather than a navigation pattern", "isMonospaced": false }
       ]
     },
@@ -470,9 +470,9 @@
       "level": "senior",
       "codeSnippet": null,
       "options": [
-        { "text": "SwiftUI cannot render views defined outside the app target", "isMonospaced": false },
+        { "text": "SwiftUI cannot render views defined outside the app target, since every View type is assumed to live inside the same module as the app's entry point", "isMonospaced": false },
         { "text": "More effort goes into managing package boundaries than the split saves, since a two-screen app has no independently changing parts to isolate", "isMonospaced": false },
-        { "text": "The app will fail to compile past four packages", "isMonospaced": false },
+        { "text": "The app will fail to compile past four packages, since Swift Package Manager is assumed to enforce a fixed upper limit on local package dependencies", "isMonospaced": false },
         { "text": "It guarantees faster incremental builds regardless of how the packages are split", "isMonospaced": false }
       ]
     },
@@ -543,7 +543,7 @@
       },
       "options": [
         { "text": "An anti-pattern, since a protocol should only ever have one conformer", "isMonospaced": false },
-        { "text": "The singleton pattern, since CachingProfileRepository holds a private cache", "isMonospaced": false },
+        { "text": "The singleton pattern, since CachingProfileRepository holds a private cache, and any type that stores mutable state internally like this is assumed to be acting as a singleton for the rest of the app", "isMonospaced": false },
         { "text": "This shows the absence of constructor injection, since remote is a stored property rather than something resolved lazily the first time profile(id:) actually runs somewhere later in its lifetime", "isMonospaced": false },
         { "text": "The repository pattern combined with decoration, since callers depend only on the shared abstraction and a caching layer can wrap the remote implementation transparently", "isMonospaced": false }
       ]

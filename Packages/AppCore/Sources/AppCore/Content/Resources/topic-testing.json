@@ -23,7 +23,7 @@
         "codeSnippet": null,
         "options": [
           {
-            "text": "They are interchangeable aliases",
+            "text": "They are interchangeable aliases, since both macros were introduced purely as different spellings of the exact same underlying assertion mechanism",
             "isMonospaced": false
           },
           {
@@ -31,7 +31,7 @@
             "isMonospaced": false
           },
           {
-            "text": "#require is only usable inside UI tests",
+            "text": "#require is only usable inside UI tests, and cannot be called from a plain unit test target that has no XCUIApplication involved anywhere",
             "isMonospaced": false
           },
           {
@@ -93,11 +93,11 @@
         "codeSnippet": null,
         "options": [
           {
-            "text": "Unit tests can't run in a CI environment",
+            "text": "Unit tests can't run in a CI environment, since CI runners are assumed to lack the frameworks needed to execute anything below the UI layer",
             "isMonospaced": false
           },
           {
-            "text": "UI tests can't catch integration bugs",
+            "text": "UI tests can't catch integration bugs, since exercising the full app through its interface is defined as testing only isolated units in disguise",
             "isMonospaced": false
           },
           {
@@ -132,11 +132,11 @@
             "isMonospaced": false
           },
           {
-            "text": "It's deprecated API",
+            "text": "It's deprecated API, and the toolchain refuses to compile any test target that still calls it anywhere in its source",
             "isMonospaced": false
           },
           {
-            "text": "It requires the test to run on the main actor",
+            "text": "It requires the test to run on the main actor, and using it anywhere off that actor is rejected outright by the compiler before the test can run",
             "isMonospaced": false
           },
           {
@@ -159,11 +159,11 @@
       "codeSnippet": null,
       "options": [
         {
-          "text": "It runs once and fails only if every element fails",
+          "text": "It runs once and fails only if every element in the collection happens to fail the check inside the test body",
           "isMonospaced": false
         },
         {
-          "text": "It only compiles if value is declared as [Int]",
+          "text": "It only compiles if value is declared as [Int], matching the element type of the arguments array exactly",
           "isMonospaced": false
         },
         {
@@ -187,7 +187,7 @@
       "codeSnippet": null,
       "options": [
         {
-          "text": "They're identical — both run once before all tests in the class",
+          "text": "They're identical — both run once before all tests in the class, since Swift Testing's init and deinit are assumed to share a single instance across every @Test method in the suite rather than creating a fresh one per test",
           "isMonospaced": false
         },
         {
@@ -219,7 +219,7 @@
       },
       "options": [
         {
-          "text": "The tests only pass because they happen to run in declaration order",
+          "text": "The tests only pass because they happen to run in declaration order, and Swift Testing is assumed to always execute test methods in exactly the order they were written",
           "isMonospaced": false
         },
         {
@@ -231,7 +231,7 @@
           "isMonospaced": false
         },
         {
-          "text": "counter is a var, so it's shared automatically across all tests declared in the struct",
+          "text": "counter is a var, so it's shared automatically across all tests declared in the struct, the same way a static property would be shared across every instance ever created",
           "isMonospaced": false
         }
       ]
@@ -247,11 +247,11 @@
       "codeSnippet": null,
       "options": [
         {
-          "text": "Once before and after the whole class",
+          "text": "Once before and after the whole class, the same way a Swift Testing suite's init and deinit are assumed to run only a single time for the entire type",
           "isMonospaced": false
         },
         {
-          "text": "setUp() runs before the first test only",
+          "text": "setUp() runs before the first test only, and tearDown() likewise runs just once, after the very last test method in the class finishes",
           "isMonospaced": false
         },
         {
@@ -303,7 +303,7 @@
       "codeSnippet": null,
       "options": [
         {
-          "text": "The test is marked async incorrectly",
+          "text": "The test is marked async incorrectly, since only a test function marked async is assumed capable of ever exhibiting order-dependent or intermittent failures tied to leftover state from another test",
           "isMonospaced": false
         },
         {
@@ -391,7 +391,7 @@
       },
       "options": [
         {
-          "text": "Nothing — verifying the call happened is exactly what a test double is for",
+          "text": "Nothing — verifying the call happened is exactly what a test double is for, and asserting on call count is the standard way any test double is meant to be used, regardless of what the call actually did",
           "isMonospaced": false
         },
         {
@@ -403,7 +403,7 @@
           "isMonospaced": false
         },
         {
-          "text": "MockProfileStore should be a Dummy instead",
+          "text": "MockProfileStore should be a Dummy instead, since a Dummy is the correct double whenever a test only cares about tracking how many times a method was invoked during a run",
           "isMonospaced": false
         }
       ]
@@ -479,11 +479,11 @@
       "codeSnippet": null,
       "options": [
         {
-          "text": "No — async code must be tested with XCTestExpectation instead",
+          "text": "No — async code must be tested with XCTestExpectation instead, since Swift Testing has no mechanism at all for awaiting anything inside a test function",
           "isMonospaced": false
         },
         {
-          "text": "Only if the function under test returns Void",
+          "text": "Only if the function under test returns Void, since #expect cannot wrap an expression that produces any other kind of value",
           "isMonospaced": false
         },
         {
@@ -579,11 +579,11 @@
           "isMonospaced": false
         },
         {
-          "text": "The test asserts on a return value",
+          "text": "The test asserts on a return value, since checking what a function returns is inherently less reliable than checking a side effect it produced",
           "isMonospaced": false
         },
         {
-          "text": "The test has a descriptive name",
+          "text": "The test has a descriptive name, since a name that clearly states the expected behaviour is what actually makes a test flaky under load",
           "isMonospaced": false
         }
       ]
@@ -659,11 +659,11 @@
       "codeSnippet": null,
       "options": [
         {
-          "text": "Manual tests",
+          "text": "Manual tests, since a human clicking through the app by hand is assumed to be the fastest and cheapest layer to run on every single commit",
           "isMonospaced": false
         },
         {
-          "text": "Integration tests",
+          "text": "Integration tests, since they sit in the middle of the pyramid and are assumed to be cheap enough to make up the bulk of any healthy test suite",
           "isMonospaced": false
         },
         {
@@ -687,11 +687,11 @@
       "codeSnippet": null,
       "options": [
         {
-          "text": "It never fails, no matter what changes",
+          "text": "It never fails, no matter what changes, since resilience is defined as an assertion that cannot possibly fail regardless of what the code under test actually does",
           "isMonospaced": false
         },
         {
-          "text": "It uses XCTAssertEqual instead of XCTAssertTrue",
+          "text": "It uses XCTAssertEqual instead of XCTAssertTrue, since the specific assertion macro chosen is what determines whether a check survives a refactor",
           "isMonospaced": false
         },
         {
@@ -715,7 +715,7 @@
       "codeSnippet": null,
       "options": [
         {
-          "text": "They're equally resilient",
+          "text": "They're equally resilient, since both assertions are assumed to be checking the exact same underlying fact about Cart, regardless of what each one literally reads",
           "isMonospaced": false
         },
         {
@@ -727,7 +727,7 @@
           "isMonospaced": false
         },
         {
-          "text": "Neither is resilient without a mock backing it",
+          "text": "Neither is resilient without a mock backing it, since an assertion cannot be considered trustworthy unless a mock object is verifying it behind the scenes",
           "isMonospaced": false
         }
       ]
@@ -891,7 +891,7 @@
           "isMonospaced": false
         },
         {
-          "text": "That the module has no race conditions",
+          "text": "That the module has no race conditions, since coverage tooling is defined as instrumenting every concurrent access path a module could ever take at runtime",
           "isMonospaced": false
         },
         {
@@ -899,7 +899,7 @@
           "isMonospaced": false
         },
         {
-          "text": "That the module is bug-free",
+          "text": "That the module is bug-free, since a covered line is assumed to have already been checked against every input it could ever realistically receive",
           "isMonospaced": false
         }
       ]
