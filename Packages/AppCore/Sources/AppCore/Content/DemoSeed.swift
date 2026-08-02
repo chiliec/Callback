@@ -8,11 +8,13 @@ public enum DemoSeed {
     /// Chronological (oldest → newest) correctness per graded topic.
     /// Deliberately uneven so Weak Areas and the by-topic breakdowns have content.
     private static let correctnessByTopic: [String: [Bool]] = [
-        "swift":       [false, true,  true,  true,  true],
-        "memory":      [false, true,  false, true,  true],
-        "concurrency": [false, false, true,  false, true],
-        "swiftui":     [true,  false, true,  false, true],
-        "uikit":       [false, true,  false, false, true]
+        "swift":        [false, true,  true,  true,  true],
+        "memory":       [false, true,  false, true,  true],
+        "concurrency":  [false, false, true,  false, true],
+        "swiftui":      [true,  false, true,  false, true],
+        "uikit":        [false, true,  false, false, true],
+        "testing":      [false, true,  true,  false, true],
+        "architecture": [true,  false, true,  true,  false]
     ]
 
     /// Behavioral questions have no correct answer — the user self-rates instead.

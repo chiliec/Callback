@@ -83,20 +83,22 @@ private let sampleJSON = """
     // Version 2+
     #expect(bundle.version >= 2)
 
-    // Exactly 7 topics with expected ids, orders 0–6 contiguous
+    // Exactly 9 topics with expected ids, orders 0–8 contiguous
     let expectedTopicIds: Set<String> = [
-        "swift", "memory", "concurrency", "swiftui", "uikit", "behavioral", "sysdesign"
+        "swift", "memory", "concurrency", "swiftui", "uikit", "behavioral",
+        "testing", "architecture", "sysdesign"
     ]
     let topicIds = Set(bundle.topics.map(\.id))
     #expect(topicIds == expectedTopicIds)
-    #expect(bundle.topics.count == 7)
+    #expect(bundle.topics.count == 9)
     let orders = Set(bundle.topics.map(\.order))
-    #expect(orders == Set(0..<7))
+    #expect(orders == Set(0..<9))
 
     let validSections: Set<String> = ["fundamentals", "frameworks", "craft"]
     let validColorTokens: Set<String> = [
         "swift", "memory", "concurrency", "swiftui", "uikit",
-        "networking", "coredata", "systemdesign", "behavioral"
+        "networking", "coredata", "systemdesign", "behavioral",
+        "testing", "architecture"
     ]
 
     // Global id uniqueness
@@ -264,8 +266,8 @@ private let sampleJSON = """
 
 @Test func bundledContentLoadsEveryTopicInTheManifest() throws {
     let bundle = try ContentLoader.bundledContent()
-    #expect(bundle.version == 3)
-    #expect(bundle.topics.count == 7)
+    #expect(bundle.version == 4)
+    #expect(bundle.topics.count == 9)
     #expect(Set(bundle.topics.map(\.id)).count == bundle.topics.count)
 }
 

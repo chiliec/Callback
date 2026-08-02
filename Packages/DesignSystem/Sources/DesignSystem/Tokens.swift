@@ -47,6 +47,8 @@ public enum DSColor {
         case "networking":   return Color(.sRGB, red: 0x34/255, green: 0xC7/255, blue: 0x59/255)
         case "coredata":     return Color(.sRGB, red: 0x30/255, green: 0xB0/255, blue: 0xC7/255)
         case "systemdesign": return Color(.sRGB, red: 0x32/255, green: 0xAD/255, blue: 0xE6/255)
+        case "testing":      return Color(.sRGB, red: 0x00/255, green: 0xC7/255, blue: 0xBE/255)
+        case "architecture": return Color(.sRGB, red: 0xA2/255, green: 0x84/255, blue: 0x5E/255)
         case "behavioral":   return Color(.sRGB, red: 0xFF/255, green: 0x2D/255, blue: 0x55/255)
         default:             return action
         }

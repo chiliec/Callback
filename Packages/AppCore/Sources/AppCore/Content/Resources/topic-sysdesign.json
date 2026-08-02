@@ -4,7 +4,7 @@
   "section": "craft",
   "symbolName": "point.3.connected.trianglepath.dotted",
   "colorToken": "systemdesign",
-  "order": 6,
+  "order": 8,
   "lessons": [
     {
       "id": "sysdesign-l1",
