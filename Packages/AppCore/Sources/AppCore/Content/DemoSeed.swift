@@ -12,7 +12,9 @@ public enum DemoSeed {
         "memory":      [false, true,  false, true,  true],
         "concurrency": [false, false, true,  false, true],
         "swiftui":     [true,  false, true,  false, true],
-        "uikit":       [false, true,  false, false, true]
+        "uikit":       [false, true,  false, false, true],
+        "testing":      [false, true,  true,  false, true],
+        "architecture": [true,  false, true,  true,  false]
     ]
 
     /// Behavioral questions have no correct answer — the user self-rates instead.
