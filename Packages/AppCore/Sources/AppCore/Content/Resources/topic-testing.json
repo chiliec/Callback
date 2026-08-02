@@ -1,0 +1,940 @@
+{
+  "id": "testing",
+  "name": "Testing",
+  "section": "craft",
+  "symbolName": "checkmark.diamond.fill",
+  "colorToken": "testing",
+  "order": 6,
+  "lessons": [
+    {
+      "id": "testing-l1",
+      "order": 0,
+      "title": "Swift Testing vs XCTest",
+      "estimatedMinutes": 5,
+      "body": "Swift Testing is the newer of the two frameworks, worth learning even on a codebase that ships mostly XCTest, because the two coexist in the same target. Where XCTest asks you to subclass `XCTestCase` and name every method `test...`, Swift Testing marks any function with `@Test` — a struct method, a global function, whatever reads naturally.\n\n## The core API\n\n- `#expect(condition)` records a failure and keeps running, so one test can report several problems in a single run\n- `#require(condition)` throws and stops the test immediately — use it when a failed check makes the rest meaningless\n- `@Suite` groups related tests and gives them shared setup through `init`/`deinit`, no `setUp`/`tearDown` boilerplate\n- `@Test(arguments:)` runs the body once per value in a collection, each reported as its own result rather than one pass/fail for the whole loop\n\n```swift\n@Suite struct PricingTests {\n    @Test(\"rejects negative quantities\", arguments: [-1, -5, Int.min])\n    func rejectsNegativeQuantity(_ qty: Int) throws {\n        #expect(throws: PricingError.invalidQuantity) {\n            try Cart().add(quantity: qty)\n        }\n    }\n}\n```\n\n## Where XCTest still earns its place\n\n- `XCTAssertEqual`/`XCTAssertTrue` map roughly to `#expect`, but `XCTestCase` runs a class's methods serially by default, while Swift Testing parallelizes across types\n- UI tests (`XCUIApplication`) and performance tests (`measure { }`) are still XCTest-only\n- A `setUp`/`tearDown` pair translates to `@Suite`'s `init`/`deinit`, called fresh per test\n\n> KEY: Reach for `#require` when a failure would make the rest of the test meaningless; reach for `#expect` everywhere else, since it won't hide a second bug behind the first.",
+      "quickCheck": {
+        "id": "testing-l1-qc",
+        "kind": "multipleChoice",
+        "prompt": "What's the key difference between `#expect` and `#require` in Swift Testing?",
+        "explanation": "`#require` throws when its condition fails, stopping the test immediately; `#expect` records the failure but lets the test keep running, so it can surface multiple issues in one run.",
+        "correctIndex": 1,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "`#expect` stops the test on failure; `#require` records and continues",
+            "isMonospaced": false
+          },
+          {
+            "text": "`#require` throws and stops the test on failure; `#expect` records the failure and continues",
+            "isMonospaced": false
+          },
+          {
+            "text": "They are interchangeable aliases",
+            "isMonospaced": false
+          },
+          {
+            "text": "`#require` is only usable inside UI tests",
+            "isMonospaced": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "testing-l2",
+      "order": 1,
+      "title": "Test Doubles",
+      "estimatedMinutes": 6,
+      "body": "Real dependencies — a network client, a database, the system clock — make tests slow, flaky, or impossible to run in CI. A test double stands in for the real thing at a seam the code already exposes, usually a protocol.\n\n## Five kinds, five different jobs\n\n- **Dummy** — a value passed only to satisfy a parameter list; never inspected, never called\n- **Stub** — returns a canned answer when asked; no expectations, doesn't care how many times it's called\n- **Spy** — a stub that also records what happened to it — call count, arguments — for later assertions\n- **Mock** — pre-programmed with the calls it expects, and fails the test itself if they don't happen as scripted\n- **Fake** — a real, working implementation simpler than production, like an in-memory dictionary standing in for a database\n\n```swift\nprotocol UserStore {\n    func fetch(id: String) async throws -> User\n}\n\nfinal class StubUserStore: UserStore {\n    var result: Result<User, Error> = .success(.preview)\n    func fetch(id: String) async throws -> User { try result.get() }\n}\n```\n\n## Picking the right one\n\nAsk what the test needs to know, not what's easiest to write. A test that only needs a return value wants a stub. A test verifying the code under test *called* something — logged an event, persisted a record — wants a spy. Reaching for a mock everywhere is a common overreach: asserting on **how** a method got its answer, instead of **what** the answer was, breaks on every internal refactor even when behaviour hasn't changed. That's the over-mocking smell.\n\n> KEY: Prefer a fake or a stub until a test genuinely needs to verify an interaction — then, and only then, reach for a spy.",
+      "quickCheck": {
+        "id": "testing-l2-qc",
+        "kind": "multipleChoice",
+        "prompt": "A test needs to verify that saving a profile calls the analytics logger exactly once. Which test double fits?",
+        "explanation": "A spy records how many times it was called and with what arguments, so the test can assert on that interaction afterward — exactly what's needed here.",
+        "correctIndex": 2,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "Dummy",
+            "isMonospaced": false
+          },
+          {
+            "text": "Stub",
+            "isMonospaced": false
+          },
+          {
+            "text": "Spy",
+            "isMonospaced": false
+          },
+          {
+            "text": "Fake",
+            "isMonospaced": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "testing-l3",
+      "order": 2,
+      "title": "What's Worth Testing",
+      "estimatedMinutes": 5,
+      "body": "Not every line deserves a test, and a test that runs green isn't automatically telling you something useful. The judgment call is what to spend test-writing effort on.\n\n## The test pyramid\n\n- **Unit tests** — most of the suite; fast, isolated, one behaviour at a time\n- **Integration tests** — fewer; check that real collaborators agree on a contract\n- **End-to-end / UI tests** — fewest; slow, but the only layer catching wiring mistakes the others can't see\n\nInvert the pyramid — most tests at the top — and the suite gets flaky enough that people stop trusting it, which is worse than having no suite at all.\n\n## Behaviour, not implementation\n\nA resilient assertion checks the outcome a caller cares about: a returned value, persisted state, a message sent. A brittle one checks a private detail, like whether a method ran or in what order — and fails on refactors that changed nothing observable.\n\n## Flakiness has causes, not just symptoms\n\n- Shared mutable state that leaks between tests — a singleton, a static, a leftover file\n- Real wall-clock time or `sleep`, where a slower CI machine loses a race a local machine wins\n- Order dependence — a test that only passes because an earlier test set something up\n\n## Coverage is a flashlight, not a scoreboard\n\nA covered line only means it executed, not that anything about it was checked. Coverage shows where you have *no* signal, not that tested branches are correct. Test at the seams — the boundaries where your code meets a dependency you don't own — since that's where wrong assumptions surface.\n\n> KEY: A test earns its keep by failing when behaviour breaks and staying green when it doesn't — both halves matter.",
+      "quickCheck": {
+        "id": "testing-l3-qc",
+        "kind": "multipleChoice",
+        "prompt": "Why is a test suite dominated by UI tests riskier than one shaped like a pyramid?",
+        "explanation": "UI tests are slower and more environment-sensitive than unit tests, so a suite top-heavy with them becomes slow and flaky enough that people stop trusting — and eventually stop watching — its results.",
+        "correctIndex": 0,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "UI tests are slower and more environment-sensitive, so a top-heavy suite becomes slow and flaky enough to lose trust",
+            "isMonospaced": false
+          },
+          {
+            "text": "UI tests can't catch integration bugs",
+            "isMonospaced": false
+          },
+          {
+            "text": "UI tests require a paid CI plan to run",
+            "isMonospaced": false
+          },
+          {
+            "text": "Unit tests can't run in a CI environment",
+            "isMonospaced": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "testing-l4",
+      "order": 3,
+      "title": "Testing Async and Concurrent Code",
+      "estimatedMinutes": 6,
+      "body": "Async code fails tests in a specific way: not by producing a wrong answer, but by finishing at an unpredictable time. The fix is never a longer wait.\n\n## Awaiting inside an expectation\n\nSwift Testing functions can be `async` directly, and `#expect` accepts an `await`ed expression inline:\n\n```swift\n@Test func fetchesTheCurrentUser() async throws {\n    let store = LiveUserStore(client: .stub)\n    let user = try await store.fetch(id: \"42\")\n    #expect(user.id == \"42\")\n}\n```\n\nFor code that reports through a callback instead of returning a value — a delegate method, a completion handler — `confirmation` replaces `XCTestExpectation`:\n\n```swift\n@Test func notifiesObserversOnce() async {\n    await confirmation(expectedCount: 1) { confirmed in\n        let sut = Notifier()\n        sut.onChange = { confirmed() }\n        sut.publish()\n    }\n}\n```\n\n## Actor isolation and the sleep smell\n\nIf the code under test is actor-isolated, calling into it already forces the test function to `await`, which is enough ordering to observe the result. Reaching for `Task.sleep` to \"give the actor time\" is a smell: it makes the test slow, and it's still a race, just one that usually wins.\n\n## Inject the clock\n\nCode that reads `Date()` or calls `Task.sleep` directly can't be tested deterministically. Inject a clock or a `DateProvider` protocol instead, and hand the test a fake that jumps forward instantly and exactly on command.\n\n> KEY: If a test needs a delay to pass, it has an ordering bug — fix the dependency, don't lengthen the sleep.",
+      "quickCheck": {
+        "id": "testing-l4-qc",
+        "kind": "multipleChoice",
+        "prompt": "Why is `Task.sleep` inside a test considered a smell?",
+        "explanation": "It waits on wall-clock time rather than an actual signal that the work finished, which makes the test slow and still leaves a race — one that usually, but not always, wins.",
+        "correctIndex": 1,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "It's deprecated API",
+            "isMonospaced": false
+          },
+          {
+            "text": "It makes the test slow and still leaves a race, since it waits on wall-clock time rather than a real completion signal",
+            "isMonospaced": false
+          },
+          {
+            "text": "It can't be called from an `async` test function",
+            "isMonospaced": false
+          },
+          {
+            "text": "It requires the test to run on the main actor",
+            "isMonospaced": false
+          }
+        ]
+      }
+    }
+  ],
+  "questions": [
+    {
+      "id": "testing-q1",
+      "kind": "multipleChoice",
+      "prompt": "You write `@Test(arguments: [1, 2, 3]) func rejectsInvalid(_ value: Int)`. What happens when this test runs?",
+      "explanation": "`@Test(arguments:)` runs the test body once per element in the collection and reports each run as an independent result, rather than folding every value into a single pass/fail.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "It runs once, receiving the whole array as `value`",
+          "isMonospaced": false
+        },
+        {
+          "text": "It runs three times, once per element, each reported as its own pass/fail",
+          "isMonospaced": false
+        },
+        {
+          "text": "It runs once and fails only if every element fails",
+          "isMonospaced": false
+        },
+        {
+          "text": "It only compiles if `value` is declared as `[Int]`",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q2",
+      "kind": "multipleChoice",
+      "prompt": "How does shared setup in a Swift Testing `@Suite` compare to `setUp`/`tearDown` in an `XCTestCase`?",
+      "explanation": "Swift Testing instantiates the suite type fresh for every `@Test` it contains, so `init` and `deinit` naturally run before and after each test — the same per-test isolation `setUp`/`tearDown` gives an `XCTestCase`, without needing to override anything.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "They're identical — both run once before all tests in the class",
+          "isMonospaced": false
+        },
+        {
+          "text": "A `@Suite` type's `init`/`deinit` run once per test, since a fresh instance is created for each `@Test`, matching the effect of `setUp`/`tearDown` running before and after every method",
+          "isMonospaced": false
+        },
+        {
+          "text": "`@Suite` setup can only run synchronously, unlike `setUp`",
+          "isMonospaced": false
+        },
+        {
+          "text": "`@Suite` requires an explicit `tearDown` override to reset state",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q3",
+      "kind": "code",
+      "prompt": "Both tests in this suite pass every time, but a teammate expected `incrementTwice` to start from wherever `incrementOnce` left `counter` — as if the two tests shared one instance. Why doesn't that happen?",
+      "explanation": "Swift Testing constructs a new instance of the suite type for each `@Test` method, so stored properties like `counter` never carry state between tests — each test gets its own independent copy no matter what order they run in.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "CounterTests.swift",
+        "language": "swift",
+        "code": "@Suite struct CounterTests {\n    var counter = Counter()\n\n    @Test func incrementOnce() {\n        counter.increment()\n        #expect(counter.value == 1)\n    }\n\n    @Test func incrementTwice() {\n        counter.increment()\n        counter.increment()\n        #expect(counter.value == 2)\n    }\n}"
+      },
+      "options": [
+        {
+          "text": "Swift Testing creates a fresh instance of `CounterTests` for every `@Test`, so `counter` starts over each time regardless of run order",
+          "isMonospaced": false
+        },
+        {
+          "text": "`@Suite` runs its tests in alphabetical order, so `incrementOnce` always runs first and its state carries over correctly",
+          "isMonospaced": false
+        },
+        {
+          "text": "`counter` is a `var`, so it's shared automatically across all tests declared in the struct",
+          "isMonospaced": false
+        },
+        {
+          "text": "The tests only pass because they happen to run in declaration order",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q4",
+      "kind": "multipleChoice",
+      "prompt": "In an `XCTestCase` subclass, when do `setUp()` and `tearDown()` run relative to a test method?",
+      "explanation": "XCTest calls `setUp()` immediately before each test method and `tearDown()` immediately after it, giving every test method fresh setup and cleanup rather than sharing state across the class.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Once before and after the whole class",
+          "isMonospaced": false
+        },
+        {
+          "text": "`setUp()` runs before every test method and `tearDown()` after every test method",
+          "isMonospaced": false
+        },
+        {
+          "text": "Only if the test method calls them explicitly",
+          "isMonospaced": false
+        },
+        {
+          "text": "`setUp()` runs before the first test only",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q5",
+      "kind": "multipleChoice",
+      "prompt": "How does XCTest's default execution model compare to Swift Testing's when running tests within the same suite?",
+      "explanation": "XCTest executes a class's test methods one at a time unless parallel testing is explicitly enabled; Swift Testing parallelizes by default, so a suite that quietly relied on serial execution to avoid a data race can start failing intermittently once ported.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Both run serially by default",
+          "isMonospaced": false
+        },
+        {
+          "text": "XCTest runs test methods within a class serially by default; Swift Testing runs tests concurrently by default, so tests touching shared mutable state can interfere where they wouldn't have under XCTest",
+          "isMonospaced": false
+        },
+        {
+          "text": "Swift Testing runs tests serially; XCTest always runs in parallel",
+          "isMonospaced": false
+        },
+        {
+          "text": "Execution order makes no difference to either framework's results",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q6",
+      "kind": "multipleChoice",
+      "prompt": "A test passes every time you run it alone, but fails intermittently when the whole `XCTestCase` class runs. What's the most likely cause?",
+      "explanation": "A test that only fails in the company of others is a symptom of leaked state — a static, a singleton, or a `tearDown()` override that skips `super.tearDown()` — rather than a problem with the failing test itself.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "The test is marked `async` incorrectly",
+          "isMonospaced": false
+        },
+        {
+          "text": "State left behind by an earlier test isn't being reset — often because an override of `tearDown()` forgot to call `super.tearDown()`, or a static/shared value isn't cleared",
+          "isMonospaced": false
+        },
+        {
+          "text": "XCTest doesn't support more than one test method per class",
+          "isMonospaced": false
+        },
+        {
+          "text": "The test file wasn't added to the test target",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q7",
+      "kind": "multipleChoice",
+      "prompt": "Which test double just returns a pre-programmed answer when called, with no expectations about being called and no record kept of the call?",
+      "explanation": "A stub returns a canned value on request and doesn't care whether, or how many times, it's called — that's what separates it from a spy (which records calls) and a mock (which has expectations).",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Mock",
+          "isMonospaced": false
+        },
+        {
+          "text": "Spy",
+          "isMonospaced": false
+        },
+        {
+          "text": "Stub",
+          "isMonospaced": false
+        },
+        {
+          "text": "Dummy",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q8",
+      "kind": "multipleChoice",
+      "prompt": "How does a spy differ from a mock as a test double?",
+      "explanation": "A spy is passive — it just remembers what was called so the test can check afterward — while a mock is active, carrying built-in expectations and failing on its own if the expected calls don't occur as scripted.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "A spy records what happened to it — call count, arguments — so the test can assert on that afterward; a mock is pre-programmed with expected calls and fails the test itself if they don't happen",
+          "isMonospaced": false
+        },
+        {
+          "text": "A spy and a mock are the same thing under different names",
+          "isMonospaced": false
+        },
+        {
+          "text": "A mock can only return `Void`; a spy can return any type",
+          "isMonospaced": false
+        },
+        {
+          "text": "A spy replaces the real dependency; a mock only wraps it",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q9",
+      "kind": "code",
+      "prompt": "This test checks that `store.saveWasCalled` and `store.saveCallCount` are correct, but never checks what was actually saved. What's the problem?",
+      "explanation": "This is the over-mocking smell: asserting on the fact of a call rather than its effect. A test that instead checked `store.savedProfile?.name == \"Ada\"` would verify the behaviour a caller actually cares about, and would survive an internal refactor of how saving is implemented.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "SaveTests.swift",
+        "language": "swift",
+        "code": "@Test func savingAProfileWritesIt() {\n    let store = MockProfileStore()\n    let sut = ProfileEditor(store: store)\n\n    sut.save(Profile(name: \"Ada\"))\n\n    #expect(store.saveWasCalled == true)\n    #expect(store.saveCallCount == 1)\n}"
+      },
+      "options": [
+        {
+          "text": "Nothing — verifying the call happened is exactly what a test double is for",
+          "isMonospaced": false
+        },
+        {
+          "text": "It's coupled to implementation (that `save` was called, and how many times) instead of the outcome that matters — that the profile named \"Ada\" is what got persisted",
+          "isMonospaced": false
+        },
+        {
+          "text": "`MockProfileStore` should be a `Dummy` instead",
+          "isMonospaced": false
+        },
+        {
+          "text": "The test needs an `async` version of `save`",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q10",
+      "kind": "multipleChoice",
+      "prompt": "A type calls `URLSession.shared` directly inside its methods. Compare that to a type that takes a `URLSession`-conforming protocol through its initializer, from a testability standpoint.",
+      "explanation": "Testability comes from having a seam — a point where the real implementation can be swapped for a test double. A hard-coded singleton reference has no such seam; injecting the dependency through `init`, typed as a protocol, gives tests exactly that point of substitution.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Both are equally testable, since `URLSession` can be mocked either way",
+          "isMonospaced": false
+        },
+        {
+          "text": "The hard-coded version can only be tested by hitting the real network, since there's no seam to substitute a double; injecting the dependency through `init` gives the test a seam to hand in a stub or fake instead",
+          "isMonospaced": false
+        },
+        {
+          "text": "Injecting the dependency makes the type slower at runtime",
+          "isMonospaced": false
+        },
+        {
+          "text": "`URLSession.shared` is already a protocol, so no seam is needed",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q11",
+      "kind": "code",
+      "prompt": "You need a unit test for `currentTemperature` that doesn't touch the network. What's the smallest change that makes this testable?",
+      "explanation": "The fix is to create a seam: define a narrow protocol for the networking call the type needs, inject a conformer through the initializer instead of reaching for the shared singleton, and let tests substitute a stub or fake that returns canned data with no network involved.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "WeatherFetcher.swift",
+        "language": "swift",
+        "code": "struct WeatherFetcher {\n    func currentTemperature(for city: String) async throws -> Double {\n        let url = URL(string: \"https://api.weather.example/\\(city)\")!\n        let (data, _) = try await URLSession.shared.data(from: url)\n        return try JSONDecoder().decode(Reading.self, from: data).temperature\n    }\n}"
+      },
+      "options": [
+        {
+          "text": "Add a `#if TESTING` branch that returns a hardcoded value",
+          "isMonospaced": false
+        },
+        {
+          "text": "Introduce a protocol that covers the fetching method it needs, inject an instance of it through the initializer instead of reaching for `URLSession.shared`, and hand the test a fake or stub conforming to that protocol",
+          "isMonospaced": false
+        },
+        {
+          "text": "Mark the method `@testable` so tests can call it directly",
+          "isMonospaced": false
+        },
+        {
+          "text": "Make `currentTemperature` synchronous",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q12",
+      "kind": "multipleChoice",
+      "prompt": "Can a Swift Testing `@Test` function be `async`, and can `#expect` check the result of an `await`ed call directly?",
+      "explanation": "Swift Testing test functions can be declared `async throws` like any other async function, and `#expect` accepts an `await`ed expression directly, so there's no need for a separate expectation mechanism to test a value returned by async code.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "No — async code must be tested with `XCTestExpectation` instead",
+          "isMonospaced": false
+        },
+        {
+          "text": "Yes — `@Test` functions can be marked `async throws`, and `#expect` can wrap an `await`ed expression inline",
+          "isMonospaced": false
+        },
+        {
+          "text": "Yes, but only inside a `@Suite`, never as a top-level function",
+          "isMonospaced": false
+        },
+        {
+          "text": "Only if the function under test returns `Void`",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q13",
+      "kind": "code",
+      "prompt": "What does this test verify?",
+      "explanation": "`confirmation(expectedCount:)` fails the test unless the passed-in `confirmed` closure is invoked exactly that many times before the confirmation body finishes — here, that's the mechanism for asserting both observers got notified exactly once each.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": {
+        "filename": "NotifierTests.swift",
+        "language": "swift",
+        "code": "@Test func publishNotifiesEachObserverOnce() async {\n    await confirmation(expectedCount: 2) { confirmed in\n        let sut = Notifier()\n        sut.subscribe { confirmed() }\n        sut.subscribe { confirmed() }\n        sut.publish()\n    }\n}"
+      },
+      "options": [
+        {
+          "text": "That `publish()` returns within a fixed time limit",
+          "isMonospaced": false
+        },
+        {
+          "text": "That the confirmation closure runs exactly twice by the time `confirmation` returns — both subscribed observers are notified exactly once each when `publish()` is called",
+          "isMonospaced": false
+        },
+        {
+          "text": "That `Notifier` supports at most two subscribers",
+          "isMonospaced": false
+        },
+        {
+          "text": "That `subscribe` and `publish` are called in a specific order",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q14",
+      "kind": "code",
+      "prompt": "This test is flaky on CI but reliable locally. What's the most likely cause, and what's the better fix?",
+      "explanation": "A fixed sleep is a race with an arbitrary deadline: it passes as long as the real work finishes faster than the guess, which is exactly the kind of assumption that CI's variable load breaks. The fix is to wait on an actual completion signal from the code under test, not on wall-clock time.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "DownloadTests.swift",
+        "language": "swift",
+        "code": "@Test func downloadCompletesAndUpdatesStatus() async throws {\n    let sut = Downloader()\n    sut.start()\n    try await Task.sleep(for: .milliseconds(200))\n    #expect(sut.status == .complete)\n}"
+      },
+      "options": [
+        {
+          "text": "CI machines run an older Swift version; pin the toolchain",
+          "isMonospaced": false
+        },
+        {
+          "text": "The test guesses how long `start()` takes and waits a fixed 200ms; under CI load that guess is sometimes too short. Await a signal that the work actually finished instead of sleeping a fixed duration",
+          "isMonospaced": false
+        },
+        {
+          "text": "`Task.sleep` isn't supported inside a Swift Testing `@Test`",
+          "isMonospaced": false
+        },
+        {
+          "text": "`Downloader` needs to be marked `@MainActor`",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q15",
+      "kind": "multipleChoice",
+      "prompt": "Which of these is a typical cause of a flaky test?",
+      "explanation": "Flakiness usually traces back to state that isn't isolated per test — a singleton, a static variable, or a file left on disk from a previous run — so the outcome depends on what ran before, not just on the test's own logic.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "The test asserts on a return value",
+          "isMonospaced": false
+        },
+        {
+          "text": "Shared mutable state (a singleton, a static, a file on disk) that leaks between tests",
+          "isMonospaced": false
+        },
+        {
+          "text": "The test has a descriptive name",
+          "isMonospaced": false
+        },
+        {
+          "text": "The test is marked `@Test` instead of naming the function `test...`",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q16",
+      "kind": "multipleChoice",
+      "prompt": "Some test suites deliberately randomize test execution order between runs. Why?",
+      "explanation": "A fixed run order can mask a hidden dependency between tests indefinitely, because the same lucky order runs every time. Randomizing the order turns that latent bug into a visible, if intermittent, failure — which is the point.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "It makes the suite run faster",
+          "isMonospaced": false
+        },
+        {
+          "text": "It surfaces order-dependent tests — ones that only pass because an earlier test happened to leave behind state they silently rely on — which a fixed order would hide indefinitely",
+          "isMonospaced": false
+        },
+        {
+          "text": "Randomized order is a requirement of Swift Testing",
+          "isMonospaced": false
+        },
+        {
+          "text": "It reduces the total number of assertions needed",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q17",
+      "kind": "code",
+      "prompt": "`testLogoutClearsToken` fails when run alone but passes when the full class runs. What's wrong?",
+      "explanation": "The static property makes the two tests silently dependent on each other's run order — `testLogoutClearsToken` only has a token to clear because a previous test happened to populate a shared static. Each test should arrange its own state instead of relying on another test as a side-effecting setup step.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "SessionTests.swift",
+        "language": "swift",
+        "code": "final class SessionTests: XCTestCase {\n    static var cachedToken: String?\n\n    func testLoginStoresToken() {\n        let sut = Auth()\n        sut.login(user: \"ada\")\n        SessionTests.cachedToken = sut.token\n        XCTAssertNotNil(SessionTests.cachedToken)\n    }\n\n    func testLogoutClearsToken() {\n        XCTAssertNotNil(SessionTests.cachedToken)\n        let sut = Auth(token: SessionTests.cachedToken)\n        sut.logout()\n        XCTAssertNil(sut.token)\n    }\n}"
+      },
+      "options": [
+        {
+          "text": "`XCTAssertNil` doesn't work correctly on optionals",
+          "isMonospaced": false
+        },
+        {
+          "text": "The test depends on `static var cachedToken`, mutable state shared across test methods, being populated by `testLoginStoresToken` running first — an inter-test dependency through shared state",
+          "isMonospaced": false
+        },
+        {
+          "text": "`Auth` isn't marked `Sendable`",
+          "isMonospaced": false
+        },
+        {
+          "text": "XCTest always runs methods in declaration order, so this is actually safe",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q18",
+      "kind": "multipleChoice",
+      "prompt": "In the classic test pyramid, which layer should make up the largest share of a suite?",
+      "explanation": "Unit tests sit at the base of the pyramid because they're fast and cheap to run, which is what lets a suite afford a lot of them; the slower layers above should shrink as you go up.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "End-to-end / UI tests, since they cover the most ground",
+          "isMonospaced": false
+        },
+        {
+          "text": "Integration tests",
+          "isMonospaced": false
+        },
+        {
+          "text": "Unit tests — fast and isolated, so you can afford a lot of them",
+          "isMonospaced": false
+        },
+        {
+          "text": "Manual tests",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q19",
+      "kind": "multipleChoice",
+      "prompt": "What makes an assertion 'resilient' rather than 'brittle'?",
+      "explanation": "A resilient assertion is anchored to observable behaviour, so an internal refactor that doesn't change that behaviour leaves the test green. Checking a private detail — like an exact call order — is what makes an assertion brittle.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "It checks an outcome the caller actually cares about — a return value, persisted state, a sent message — so it survives a refactor that preserves behaviour",
+          "isMonospaced": false
+        },
+        {
+          "text": "It uses `XCTAssertEqual` instead of `XCTAssertTrue`",
+          "isMonospaced": false
+        },
+        {
+          "text": "It never fails, no matter what changes",
+          "isMonospaced": false
+        },
+        {
+          "text": "It checks that a private method was called in a specific order",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q20",
+      "kind": "multipleChoice",
+      "prompt": "A test can assert either `#expect(cart.total == 42.0)` or `#expect(cart.applyDiscountWasCalled)`. Which is more resilient to an internal refactor of `Cart`, and why?",
+      "explanation": "The total is the behaviour a caller cares about; whether a particular private method fired is an implementation detail. A refactor that computes the same correct total through a different internal path breaks the call-tracking assertion for no behavioural reason.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "`applyDiscountWasCalled` — it's more specific about what happened internally",
+          "isMonospaced": false
+        },
+        {
+          "text": "`cart.total == 42.0` — it checks the outcome a caller of `Cart` actually observes, so it stays green through any refactor that keeps the total correct",
+          "isMonospaced": false
+        },
+        {
+          "text": "They're equally resilient",
+          "isMonospaced": false
+        },
+        {
+          "text": "Neither is resilient without a mock backing it",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q21",
+      "kind": "code",
+      "prompt": "This test fails whenever `Checkout` is refactored to apply shipping before tax, even though the final total is still correct either way. What's the underlying issue?",
+      "explanation": "If both call orders produce the same correct total, the order is an implementation detail, not a behaviour. Asserting on the recorded call sequence locks in one specific implementation and breaks on any refactor that changes it without changing what the caller actually sees.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "CheckoutTests.swift",
+        "language": "swift",
+        "code": "@Test func checkoutAppliesTaxThenShipping() {\n    let calculator = MockPriceCalculator()\n    let sut = Checkout(calculator: calculator)\n\n    sut.total(for: order)\n\n    #expect(calculator.calls == [\"applyTax\", \"applyShipping\"])\n}"
+      },
+      "options": [
+        {
+          "text": "The test is coupled to an implementation detail — the internal order of calls — rather than the outcome that matters, the final total; it should assert on `sut.total(for: order)`'s return value instead",
+          "isMonospaced": false
+        },
+        {
+          "text": "`MockPriceCalculator` needs more test cases",
+          "isMonospaced": false
+        },
+        {
+          "text": "Arrays aren't `Equatable` in Swift Testing",
+          "isMonospaced": false
+        },
+        {
+          "text": "The order genuinely matters for correctness, so the test is right to fail",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q22",
+      "kind": "multipleChoice",
+      "prompt": "Compare a unit test of a view model's logic against a UI test that drives the same screen through `XCUIApplication`.",
+      "explanation": "Unit tests and UI tests catch different classes of bugs at very different costs: unit tests are fast and precise about logic but blind to wiring problems, while UI tests catch those wiring problems at the price of speed, stability, and a vaguer failure.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "The UI test is strictly better since it exercises real user-facing behaviour",
+          "isMonospaced": false
+        },
+        {
+          "text": "The unit test runs in milliseconds and isolates the logic, but can't catch a wiring mistake between the view and the model; the UI test catches that wiring but is slower and more environment-sensitive",
+          "isMonospaced": false
+        },
+        {
+          "text": "Both take roughly the same amount of time to run",
+          "isMonospaced": false
+        },
+        {
+          "text": "UI tests can't assert on visible text on screen",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q23",
+      "kind": "multipleChoice",
+      "prompt": "A suite has 200 UI tests and 20 unit tests. It takes 40 minutes to run and fails about 1 run in 10 for reasons unrelated to real bugs. What's the most effective fix?",
+      "explanation": "An inverted pyramid — mostly UI tests — is both slow and flaky by nature, since UI tests are inherently more environment-sensitive. The fix is structural: move business-logic coverage down to fast unit tests, and keep the UI layer for the few flows that need true end-to-end confidence.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Retry every failing test automatically until it passes",
+          "isMonospaced": false
+        },
+        {
+          "text": "Push logic currently only exercised through the UI layer down into unit tests, and trim the UI suite to the handful of critical end-to-end flows it should actually own",
+          "isMonospaced": false
+        },
+        {
+          "text": "Run the UI tests on faster build hardware",
+          "isMonospaced": false
+        },
+        {
+          "text": "Delete the 20 unit tests since they add little coverage",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q24",
+      "kind": "multipleChoice",
+      "prompt": "What's the main risk of relying heavily on snapshot tests for a view's UI?",
+      "explanation": "Snapshot tests are sensitive to any pixel difference, intentional or not, so a broad snapshot suite generates frequent, low-signal failures. The real risk is procedural: reviewers start re-recording snapshots reflexively instead of checking whether the new rendering is actually right.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "They can't detect any visual regressions at all",
+          "isMonospaced": false
+        },
+        {
+          "text": "They're cheap to write but tend to fail on any incidental visual change — a font update, a spacing tweak — which trains people to re-record without actually reviewing whether the new output is correct",
+          "isMonospaced": false
+        },
+        {
+          "text": "They require a physical device to run",
+          "isMonospaced": false
+        },
+        {
+          "text": "They remove the need for any other kind of test",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q25",
+      "kind": "multipleChoice",
+      "prompt": "A snapshot test for a button has been green for a year. A designer points out the button's corner radius has always been wrong. Why didn't the snapshot test catch it?",
+      "explanation": "A snapshot test verifies stability against its own recorded baseline, not correctness against a spec. If the wrong output was what got recorded, the test will happily keep passing forever — it has no independent notion of what 'right' looks like.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Snapshot tests only detect a *change* from a recorded baseline — if the baseline itself was captured with the bug already present, there's nothing to compare against and the test stays green no matter how wrong the output is",
+          "isMonospaced": false
+        },
+        {
+          "text": "The test framework doesn't support asserting on corner radius",
+          "isMonospaced": false
+        },
+        {
+          "text": "Snapshot tests only run on CI, never locally",
+          "isMonospaced": false
+        },
+        {
+          "text": "The button must have been added after the snapshot was recorded",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q26",
+      "kind": "multipleChoice",
+      "prompt": "What does 100% code coverage on a module actually tell you?",
+      "explanation": "Coverage measures execution, not verification — a line can run with no assertion checking its result and still count as covered. It's most useful as a flashlight pointing at code with zero test signal, not as a score to maximize.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "That the module is bug-free",
+          "isMonospaced": false
+        },
+        {
+          "text": "That every line executed at least once during the test run — it says nothing about whether the assertions checking that code were meaningful",
+          "isMonospaced": false
+        },
+        {
+          "text": "That no further tests are needed for that module",
+          "isMonospaced": false
+        },
+        {
+          "text": "That the module has no race conditions",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "testing-q27",
+      "kind": "code",
+      "prompt": "This test interleaves several act-then-assert steps instead of one arrange, one act, one assert. What's the practical downside of writing it this way?",
+      "explanation": "This test conflates three separate scenarios under one test name and one pass/fail. Splitting it into three tests, each with one arrange, one act, one assert, gives a failure report that pinpoints exactly which scenario broke.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": {
+        "filename": "InventoryTests.swift",
+        "language": "swift",
+        "code": "@Test func reservingStockReducesAvailability() {\n    let sut = Inventory(stock: 10)\n    #expect(sut.available == 10)\n    sut.reserve(3)\n    #expect(sut.available == 7)\n    sut.reserve(2)\n    #expect(sut.available == 5)\n}"
+      },
+      "options": [
+        {
+          "text": "It won't compile, since `#expect` can only appear once per test",
+          "isMonospaced": false
+        },
+        {
+          "text": "When one of the middle `#expect` calls fails, it's unclear whether the earlier state was ever correct — the test is really checking three scenarios crammed into one name, and a failure report doesn't say which one broke without reading the body",
+          "isMonospaced": false
+        },
+        {
+          "text": "`Inventory` must be a class, not a struct, for this to work",
+          "isMonospaced": false
+        },
+        {
+          "text": "Nothing — this is the standard arrange-act-assert shape",
+          "isMonospaced": false
+        }
+      ]
+    }
+  ]
+}
