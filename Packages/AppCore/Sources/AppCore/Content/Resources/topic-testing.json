@@ -23,11 +23,11 @@
         "codeSnippet": null,
         "options": [
           {
-            "text": "`#expect` stops the test on failure; `#require` records and continues",
+            "text": "#expect stops the test on failure; #require records and continues",
             "isMonospaced": false
           },
           {
-            "text": "`#require` throws and stops the test on failure; `#expect` records the failure and continues",
+            "text": "#require throws and stops the test on failure; #expect records the failure and continues",
             "isMonospaced": false
           },
           {
@@ -35,7 +35,7 @@
             "isMonospaced": false
           },
           {
-            "text": "`#require` is only usable inside UI tests",
+            "text": "#require is only usable inside UI tests",
             "isMonospaced": false
           }
         ]
@@ -136,7 +136,7 @@
             "isMonospaced": false
           },
           {
-            "text": "It can't be called from an `async` test function",
+            "text": "It can't be called from an async test function",
             "isMonospaced": false
           },
           {
@@ -159,7 +159,7 @@
       "codeSnippet": null,
       "options": [
         {
-          "text": "It runs once, receiving the whole array as `value`",
+          "text": "It runs once, receiving the whole array as value",
           "isMonospaced": false
         },
         {
@@ -171,7 +171,7 @@
           "isMonospaced": false
         },
         {
-          "text": "It only compiles if `value` is declared as `[Int]`",
+          "text": "It only compiles if value is declared as [Int]",
           "isMonospaced": false
         }
       ]
@@ -191,15 +191,15 @@
           "isMonospaced": false
         },
         {
-          "text": "A `@Suite` type's `init`/`deinit` run once per test, since a fresh instance is created for each `@Test`, matching the effect of `setUp`/`tearDown` running before and after every method",
+          "text": "A @Suite type's init/deinit run once per test, since a fresh instance is created for each @Test, matching the effect of setUp/tearDown running before and after every method",
           "isMonospaced": false
         },
         {
-          "text": "`@Suite` setup can only run synchronously, unlike `setUp`",
+          "text": "@Suite setup can only run synchronously, unlike setUp",
           "isMonospaced": false
         },
         {
-          "text": "`@Suite` requires an explicit `tearDown` override to reset state",
+          "text": "@Suite requires an explicit tearDown override to reset state",
           "isMonospaced": false
         }
       ]
@@ -219,15 +219,15 @@
       },
       "options": [
         {
-          "text": "Swift Testing creates a fresh instance of `CounterTests` for every `@Test`, so `counter` starts over each time regardless of run order",
+          "text": "Swift Testing creates a fresh instance of CounterTests for every @Test, so counter starts over each time regardless of run order",
           "isMonospaced": false
         },
         {
-          "text": "`@Suite` runs its tests in alphabetical order, so `incrementOnce` always runs first and its state carries over correctly",
+          "text": "@Suite runs its tests in alphabetical order, so incrementOnce always runs first and its state carries over correctly",
           "isMonospaced": false
         },
         {
-          "text": "`counter` is a `var`, so it's shared automatically across all tests declared in the struct",
+          "text": "counter is a var, so it's shared automatically across all tests declared in the struct",
           "isMonospaced": false
         },
         {
@@ -251,7 +251,7 @@
           "isMonospaced": false
         },
         {
-          "text": "`setUp()` runs before every test method and `tearDown()` after every test method",
+          "text": "setUp() runs before every test method and tearDown() after every test method",
           "isMonospaced": false
         },
         {
@@ -259,7 +259,7 @@
           "isMonospaced": false
         },
         {
-          "text": "`setUp()` runs before the first test only",
+          "text": "setUp() runs before the first test only",
           "isMonospaced": false
         }
       ]
@@ -303,11 +303,11 @@
       "codeSnippet": null,
       "options": [
         {
-          "text": "The test is marked `async` incorrectly",
+          "text": "The test is marked async incorrectly",
           "isMonospaced": false
         },
         {
-          "text": "State left behind by an earlier test isn't being reset — often because an override of `tearDown()` forgot to call `super.tearDown()`, or a static/shared value isn't cleared",
+          "text": "State left behind by an earlier test isn't being reset — often because an override of tearDown() forgot to call super.tearDown(), or a static/shared value isn't cleared",
           "isMonospaced": false
         },
         {
@@ -367,7 +367,7 @@
           "isMonospaced": false
         },
         {
-          "text": "A mock can only return `Void`; a spy can return any type",
+          "text": "A mock can only return Void; a spy can return any type",
           "isMonospaced": false
         },
         {
@@ -395,15 +395,15 @@
           "isMonospaced": false
         },
         {
-          "text": "It's coupled to implementation (that `save` was called, and how many times) instead of the outcome that matters — that the profile named \"Ada\" is what got persisted",
+          "text": "It's coupled to implementation (that save was called, and how many times) instead of the outcome that matters — that the profile named \"Ada\" is what got persisted",
           "isMonospaced": false
         },
         {
-          "text": "`MockProfileStore` should be a `Dummy` instead",
+          "text": "MockProfileStore should be a Dummy instead",
           "isMonospaced": false
         },
         {
-          "text": "The test needs an `async` version of `save`",
+          "text": "The test needs an async version of save",
           "isMonospaced": false
         }
       ]
@@ -419,11 +419,11 @@
       "codeSnippet": null,
       "options": [
         {
-          "text": "Both are equally testable, since `URLSession` can be mocked either way",
+          "text": "Both are equally testable, since URLSession can be mocked either way",
           "isMonospaced": false
         },
         {
-          "text": "The hard-coded version can only be tested by hitting the real network, since there's no seam to substitute a double; injecting the dependency through `init` gives the test a seam to hand in a stub or fake instead",
+          "text": "The hard-coded version can only be tested by hitting the real network, since there's no seam to substitute a double; injecting the dependency through init gives the test a seam to hand in a stub or fake instead",
           "isMonospaced": false
         },
         {
@@ -431,7 +431,7 @@
           "isMonospaced": false
         },
         {
-          "text": "`URLSession.shared` is already a protocol, so no seam is needed",
+          "text": "URLSession.shared is already a protocol, so no seam is needed",
           "isMonospaced": false
         }
       ]
@@ -451,19 +451,19 @@
       },
       "options": [
         {
-          "text": "Add a `#if TESTING` branch that returns a hardcoded value",
+          "text": "Add a #if TESTING branch that returns a hardcoded value",
           "isMonospaced": false
         },
         {
-          "text": "Introduce a protocol that covers the fetching method it needs, inject an instance of it through the initializer instead of reaching for `URLSession.shared`, and hand the test a fake or stub conforming to that protocol",
+          "text": "Introduce a protocol that covers the fetching method it needs, inject an instance of it through the initializer instead of reaching for URLSession.shared, and hand the test a fake or stub conforming to that protocol",
           "isMonospaced": false
         },
         {
-          "text": "Mark the method `@testable` so tests can call it directly",
+          "text": "Mark the method @testable so tests can call it directly",
           "isMonospaced": false
         },
         {
-          "text": "Make `currentTemperature` synchronous",
+          "text": "Make currentTemperature synchronous",
           "isMonospaced": false
         }
       ]
@@ -479,19 +479,19 @@
       "codeSnippet": null,
       "options": [
         {
-          "text": "No — async code must be tested with `XCTestExpectation` instead",
+          "text": "No — async code must be tested with XCTestExpectation instead",
           "isMonospaced": false
         },
         {
-          "text": "Yes — `@Test` functions can be marked `async throws`, and `#expect` can wrap an `await`ed expression inline",
+          "text": "Yes — @Test functions can be marked async throws, and #expect can wrap an awaited expression inline",
           "isMonospaced": false
         },
         {
-          "text": "Yes, but only inside a `@Suite`, never as a top-level function",
+          "text": "Yes, but only inside a @Suite, never as a top-level function",
           "isMonospaced": false
         },
         {
-          "text": "Only if the function under test returns `Void`",
+          "text": "Only if the function under test returns Void",
           "isMonospaced": false
         }
       ]
@@ -511,19 +511,19 @@
       },
       "options": [
         {
-          "text": "That `publish()` returns within a fixed time limit",
+          "text": "That publish() returns within a fixed time limit",
           "isMonospaced": false
         },
         {
-          "text": "That the confirmation closure runs exactly twice by the time `confirmation` returns — both subscribed observers are notified exactly once each when `publish()` is called",
+          "text": "That the confirmation closure runs exactly twice by the time confirmation returns — both subscribed observers are notified exactly once each when publish() is called",
           "isMonospaced": false
         },
         {
-          "text": "That `Notifier` supports at most two subscribers",
+          "text": "That Notifier supports at most two subscribers",
           "isMonospaced": false
         },
         {
-          "text": "That `subscribe` and `publish` are called in a specific order",
+          "text": "That subscribe and publish are called in a specific order",
           "isMonospaced": false
         }
       ]
@@ -547,15 +547,15 @@
           "isMonospaced": false
         },
         {
-          "text": "The test guesses how long `start()` takes and waits a fixed 200ms; under CI load that guess is sometimes too short. Await a signal that the work actually finished instead of sleeping a fixed duration",
+          "text": "The test guesses how long start() takes and waits a fixed 200ms; under CI load that guess is sometimes too short. Await a signal that the work actually finished instead of sleeping a fixed duration",
           "isMonospaced": false
         },
         {
-          "text": "`Task.sleep` isn't supported inside a Swift Testing `@Test`",
+          "text": "Task.sleep isn't supported inside a Swift Testing @Test",
           "isMonospaced": false
         },
         {
-          "text": "`Downloader` needs to be marked `@MainActor`",
+          "text": "Downloader needs to be marked @MainActor",
           "isMonospaced": false
         }
       ]
@@ -583,7 +583,7 @@
           "isMonospaced": false
         },
         {
-          "text": "The test is marked `@Test` instead of naming the function `test...`",
+          "text": "The test is marked @Test instead of naming the function test...",
           "isMonospaced": false
         }
       ]
@@ -631,15 +631,15 @@
       },
       "options": [
         {
-          "text": "`XCTAssertNil` doesn't work correctly on optionals",
+          "text": "XCTAssertNil doesn't work correctly on optionals",
           "isMonospaced": false
         },
         {
-          "text": "The test depends on `static var cachedToken`, mutable state shared across test methods, being populated by `testLoginStoresToken` running first — an inter-test dependency through shared state",
+          "text": "The test depends on static var cachedToken, mutable state shared across test methods, being populated by testLoginStoresToken running first — an inter-test dependency through shared state",
           "isMonospaced": false
         },
         {
-          "text": "`Auth` isn't marked `Sendable`",
+          "text": "Auth isn't marked Sendable",
           "isMonospaced": false
         },
         {
@@ -691,7 +691,7 @@
           "isMonospaced": false
         },
         {
-          "text": "It uses `XCTAssertEqual` instead of `XCTAssertTrue`",
+          "text": "It uses XCTAssertEqual instead of XCTAssertTrue",
           "isMonospaced": false
         },
         {
@@ -715,11 +715,11 @@
       "codeSnippet": null,
       "options": [
         {
-          "text": "`applyDiscountWasCalled` — it's more specific about what happened internally",
+          "text": "applyDiscountWasCalled — it's more specific about what happened internally",
           "isMonospaced": false
         },
         {
-          "text": "`cart.total == 42.0` — it checks the outcome a caller of `Cart` actually observes, so it stays green through any refactor that keeps the total correct",
+          "text": "cart.total == 42.0 — it checks the outcome a caller of Cart actually observes, so it stays green through any refactor that keeps the total correct",
           "isMonospaced": false
         },
         {
@@ -747,15 +747,15 @@
       },
       "options": [
         {
-          "text": "The test is coupled to an implementation detail — the internal order of calls — rather than the outcome that matters, the final total; it should assert on `sut.total(for: order)`'s return value instead",
+          "text": "The test is coupled to an implementation detail — the internal order of calls — rather than the outcome that matters, the final total; it should assert on sut.total(for: order)'s return value instead",
           "isMonospaced": false
         },
         {
-          "text": "`MockPriceCalculator` needs more test cases",
+          "text": "MockPriceCalculator needs more test cases",
           "isMonospaced": false
         },
         {
-          "text": "Arrays aren't `Equatable` in Swift Testing",
+          "text": "Arrays aren't Equatable in Swift Testing",
           "isMonospaced": false
         },
         {
@@ -919,15 +919,15 @@
       },
       "options": [
         {
-          "text": "It won't compile, since `#expect` can only appear once per test",
+          "text": "It won't compile, since #expect can only appear once per test",
           "isMonospaced": false
         },
         {
-          "text": "When one of the middle `#expect` calls fails, it's unclear whether the earlier state was ever correct — the test is really checking three scenarios crammed into one name, and a failure report doesn't say which one broke without reading the body",
+          "text": "When one of the middle #expect calls fails, it's unclear whether the earlier state was ever correct — the test is really checking three scenarios crammed into one name, and a failure report doesn't say which one broke without reading the body",
           "isMonospaced": false
         },
         {
-          "text": "`Inventory` must be a class, not a struct, for this to work",
+          "text": "Inventory must be a class, not a struct, for this to work",
           "isMonospaced": false
         },
         {
