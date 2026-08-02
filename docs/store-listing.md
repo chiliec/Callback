@@ -88,18 +88,19 @@ device.
 **Public link limit:** 100
 
 **What to test:**
-Two readability fixes found by walking the previous build screen by screen. No
-change to how anything works, and your progress carries over untouched.
+Two new topics: Testing and Architecture & Patterns, 4 lessons and 27 questions
+each. Your progress carries over untouched.
 
-• Practice → Review queue. The screen should now be headed "Review" — before,
-there was a blank strip above the All / Wrong / Flagged filter where the title
-belonged.
-• Practice → System Design → "Show model answer". The model answer should read
-as normal black body text. It used to be drawn in the same grey as placeholder
-text, which made a 12-line answer look disabled. Same on Behavioral.
-• Everything from the last build is still worth a look if you haven't got to it:
-"Up next" at the bottom of a lesson should carry you through a topic; Topics →
-Mobile System Design (4 lessons, 27 open-ended questions you rate yourself on);
+• Topics → Testing. Lessons cover test doubles, the pyramid, async testing, and
+XCTest/Swift Testing; the question bank mixes multiple choice and short code
+questions across junior/mid/senior levels.
+• Topics → Architecture & Patterns. Lessons cover MVC/MVVM/MV, dependency
+injection, coordinators, and modularization; questions cover SOLID principles,
+composition vs. inheritance, and error/boundary design alongside DI.
+• Practice → pick either new topic for a drill, or Mock Interview to get
+questions from across all nine topics mixed together.
+• Everything from the last build is still worth a look if you haven't got to
+it: "Up next" at the bottom of a lesson should carry you through a topic;
 Practice → System Design and Behavioral; Profile → Level (Junior / Mid /
 Senior).
 • Anything else: backgrounding the app mid-mock (the timer should survive),
