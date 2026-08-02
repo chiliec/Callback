@@ -19,9 +19,14 @@ struct SelfAssessCard: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Guidance")
                         .font(DSFont.headline)
+                    // Primary, not secondary: this is the model answer the whole
+                    // screen exists to deliver. System design rubrics run 10-14
+                    // lines, and in secondary grey they read as disabled text —
+                    // roughly 3.5:1 against the card, under the 4.5:1 that body
+                    // copy needs.
                     Text(rubric)
                         .font(DSFont.body)
-                        .foregroundStyle(DSColor.secondaryLabel)
+                        .foregroundStyle(DSColor.label)
                     ratingButtons
                 }
             }
