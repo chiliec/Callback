@@ -88,21 +88,19 @@ device.
 **Public link limit:** 100
 
 **What to test:**
-This build fixes the "No way to continue." report from build 17: at the end of a
-lesson, the "Up next" card named the following lesson but did nothing when
-tapped. Your progress carries over untouched.
+Two readability fixes found by walking the previous build screen by screen. No
+change to how anything works, and your progress carries over untouched.
 
-• Open any topic → its first lesson, scroll to the bottom, and tap "Up next".
-It should open the next lesson, and you should be able to keep tapping through
-to the end of the topic. On the last lesson the card is gone — there is nothing
-after it yet.
-• Practice → Review queue → Review N questions → "Covers this gap" at the
-bottom of a review card. That should open the lesson, and "Up next" should work
-from there too.
-• The lesson header should read "Lesson 2 of 3" and so on, matching where you
-actually are.
-• Still worth a look if you haven't yet: Topics → Mobile System Design (4
-lessons, 27 open-ended questions you rate yourself on), Practice → System Design
-and Behavioral, and Profile → Level (Junior / Mid / Senior).
+• Practice → Review queue. The screen should now be headed "Review" — before,
+there was a blank strip above the All / Wrong / Flagged filter where the title
+belonged.
+• Practice → System Design → "Show model answer". The model answer should read
+as normal black body text. It used to be drawn in the same grey as placeholder
+text, which made a 12-line answer look disabled. Same on Behavioral.
+• Everything from the last build is still worth a look if you haven't got to it:
+"Up next" at the bottom of a lesson should carry you through a topic; Topics →
+Mobile System Design (4 lessons, 27 open-ended questions you rate yourself on);
+Practice → System Design and Behavioral; Profile → Level (Junior / Mid /
+Senior).
 • Anything else: backgrounding the app mid-mock (the timer should survive),
 VoiceOver, and large Dynamic Type sizes.
