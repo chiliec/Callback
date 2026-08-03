@@ -64,8 +64,8 @@ struct TopicDetailView: View {
                     }
                     if !topic.questions.isEmpty {
                         Button {
-                            let sorted = topic.questions.sorted { $0.id < $1.id }
-                            drillSession = DrillSession(questions: sorted)
+                            drillSession = DrillSession(
+                                questions: QuestionOrder.practice(topic.questions))
                         } label: {
                             Text("Practice \(topic.questions.count) question\(topic.questions.count == 1 ? "" : "s")")
                                 .font(DSFont.headline)

@@ -24,6 +24,11 @@ public enum SessionKind: String, Codable, Sendable, CaseIterable {
 
 public enum Level: String, Codable, Sendable, CaseIterable {
     case junior, mid, senior
+
+    /// Easy-to-hard rank for sorting; the declaration order *is* the difficulty
+    /// order. Deriving it from `allCases` keeps the two from drifting apart if a
+    /// band is ever inserted.
+    public var rank: Int { Self.allCases.firstIndex(of: self) ?? 0 }
 }
 
 /// Self-assessment for behavioral questions, which have no gradable answer.
