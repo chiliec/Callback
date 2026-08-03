@@ -11,29 +11,21 @@
       "order": 0,
       "title": "Value vs Reference Types",
       "estimatedMinutes": 4,
-      "body": "Structs and enums are value types; classes are reference types. Value types are copied on assignment — mutations on a copy don't affect the original. Classes share identity: two variables can point to the same instance.\n\n```swift\nstruct Point { var x: Int }\nvar a = Point(x: 1)\nvar b = a\nb.x = 2 // a.x is still 1 — independent copy\n\nclass Box { var value = 1 }\nlet box1 = Box()\nlet box2 = box1\nbox2.value = 99 // box1.value is also 99 — same instance\n```\n\nThe key mental model: value types give you safety through isolation; reference types enable shared mutable state. Swift's standard library types (Array, String, Dictionary) are all value types — they use copy-on-write to keep performance acceptable.\n\nWhen to choose struct: modeling data, prefer predictability, default choice in Swift. When to choose class: need identity, inheritance, Objective-C interop, or shared mutable state.",
+      "body": "Structs and enums are value types; classes are reference types. Value types are copied on assignment — mutations on a copy don't affect the original. Classes share identity: two variables can point to the same instance.\n\n```swift\nstruct Point { var x: Int }\nvar a = Point(x: 1)\nvar b = a\nb.x = 2 // a.x is still 1 — independent copy\n\nclass Box { var value = 1 }\nlet box1 = Box()\nlet box2 = box1\nbox2.value = 99 // box1.value is also 99 — same instance\n```\n\nThe key mental model: value types give you safety through isolation; reference types enable shared mutable state. Swift's standard library types (Array, String, Dictionary) are all value types — they use copy-on-write to keep performance acceptable, so an assignment is cheap until one side actually mutates.\n\nWhen to choose struct: modeling data, prefer predictability, default choice in Swift. When to choose class: need identity, inheritance, Objective-C interop, or shared mutable state.",
       "quickCheck": {
         "id": "swift-l1-qc",
         "kind": "multipleChoice",
-        "prompt": "Which is a value type in Swift?",
-        "explanation": "Structs are value types — they are copied on assignment, giving each variable an independent instance. Classes are reference types that share identity.",
-        "correctIndex": 0,
+        "prompt": "Which of these is a value type in Swift?",
+        "explanation": "Structs are value types — copied on assignment, so each variable holds an independent instance. Classes, including NSObject subclasses, are reference types that share identity.",
+        "correctIndex": 1,
         "rubric": null,
         "level": "junior",
         "codeSnippet": null,
         "options": [
-          {
-            "text": "struct",
-            "isMonospaced": true
-          },
-          {
-            "text": "class",
-            "isMonospaced": true
-          },
-          {
-            "text": "UIViewController subclass",
-            "isMonospaced": false
-          }
+          { "text": "class", "isMonospaced": true },
+          { "text": "struct", "isMonospaced": true },
+          { "text": "NSObject subclass", "isMonospaced": false },
+          { "text": "A property observed with didSet", "isMonospaced": false }
         ]
       }
     },
@@ -53,22 +45,10 @@
         "level": "junior",
         "codeSnippet": null,
         "options": [
-          {
-            "text": "42",
-            "isMonospaced": true
-          },
-          {
-            "text": "nil",
-            "isMonospaced": true
-          },
-          {
-            "text": "0",
-            "isMonospaced": true
-          },
-          {
-            "text": "Crash",
-            "isMonospaced": false
-          }
+          { "text": "42", "isMonospaced": true },
+          { "text": "nil", "isMonospaced": true },
+          { "text": "0", "isMonospaced": true },
+          { "text": "Crash", "isMonospaced": false }
         ]
       }
     },
@@ -88,22 +68,33 @@
         "level": "junior",
         "codeSnippet": null,
         "options": [
-          {
-            "text": "extension",
-            "isMonospaced": true
-          },
-          {
-            "text": "default",
-            "isMonospaced": true
-          },
-          {
-            "text": "impl",
-            "isMonospaced": true
-          },
-          {
-            "text": "override",
-            "isMonospaced": true
-          }
+          { "text": "extension", "isMonospaced": true },
+          { "text": "default", "isMonospaced": true },
+          { "text": "impl", "isMonospaced": true },
+          { "text": "override", "isMonospaced": true }
+        ]
+      }
+    },
+    {
+      "id": "swift-l4",
+      "order": 3,
+      "title": "Closures: Capture Semantics & Escaping",
+      "estimatedMinutes": 6,
+      "body": "Closures capture the variables they reference, not a snapshot of their values — a captured `var` keeps referring to the same storage, so if that storage changes before the closure runs, the closure sees the new value.\n\n```swift\nvar count = 0\nlet printCount = { print(count) }\ncount = 5\nprintCount() // prints 5, not 0\n```\n\nA capture list freezes a value at closure-creation time instead: `{ [count] in print(count) }` copies `count` into the closure's own storage right away, so a later mutation to the outer `count` doesn't change what the closure prints.\n\n## Escaping vs non-escaping\n\nA closure parameter is non-escaping by default: the compiler guarantees it's called before the function it's passed to returns, and that it's never stored anywhere else. Passing it to something asynchronous — storing it in a property, handing it to `DispatchQueue.main.async`, keeping it as a completion handler — requires marking the parameter `@escaping`, because the closure now needs to outlive the call.\n\n```swift\nfunc runLater(_ work: @escaping () -> Void) {\n    DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)\n}\n```\n\n## Loops and per-iteration bindings\n\nEach pass of a `for-in` loop introduces a fresh, independent binding for the loop variable, so closures created inside the loop body each capture their own iteration's value rather than one shared variable that keeps changing underneath them.",
+      "quickCheck": {
+        "id": "swift-l4-qc",
+        "kind": "multipleChoice",
+        "prompt": "A function parameter's closure type is written without `@escaping`. What does that guarantee?",
+        "explanation": "Non-escaping is the default for closure parameters: the compiler guarantees the closure is called before the function returns and isn't stored for later use, which is exactly what makes @escaping necessary for anything asynchronous.",
+        "correctIndex": 1,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          { "text": "The closure runs on a background queue", "isMonospaced": false },
+          { "text": "The closure is called before the function returns and isn't stored for later", "isMonospaced": false },
+          { "text": "The closure cannot capture any variables from its surrounding scope", "isMonospaced": false },
+          { "text": "The closure runs synchronously only if marked @Sendable", "isMonospaced": false }
         ]
       }
     }
@@ -112,285 +103,465 @@
     {
       "id": "swift-q1",
       "kind": "multipleChoice",
-      "prompt": "What is the default access level in Swift?",
-      "explanation": "Declarations are `internal` by default — visible within the module but not outside.",
-      "correctIndex": 1,
+      "prompt": "You declare `struct Point { var x: Int }` at the top level of a file with no access modifiers written anywhere. What access level does `Point` get?",
+      "explanation": "Swift's default access level is `internal` when nothing is written — visible anywhere in the same module, but not to code outside it. That differs from `private` (scoped to the enclosing declaration) and from `public`/`open` (visible outside the module).",
+      "correctIndex": 2,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
-        {
-          "text": "private",
-          "isMonospaced": true
-        },
-        {
-          "text": "internal",
-          "isMonospaced": true
-        },
-        {
-          "text": "public",
-          "isMonospaced": true
-        },
-        {
-          "text": "open",
-          "isMonospaced": true
-        }
+        { "text": "public", "isMonospaced": true },
+        { "text": "private", "isMonospaced": true },
+        { "text": "internal", "isMonospaced": true },
+        { "text": "fileprivate", "isMonospaced": true }
       ]
     },
     {
       "id": "swift-q2",
       "kind": "code",
       "prompt": "What does this print?",
-      "explanation": "Arrays are value types using copy-on-write, so `b` is an independent copy; appending to `b` doesn't affect `a`.",
-      "correctIndex": 0,
+      "explanation": "Arrays are value types with copy-on-write: assigning `counters` to `copy` doesn't copy the buffer immediately, but mutating `copy` through a subscript triggers the copy first, so `counters` keeps its own independent storage and its first element is left untouched.",
+      "correctIndex": 1,
       "rubric": null,
       "level": "mid",
       "codeSnippet": {
         "filename": "main.swift",
         "language": "swift",
-        "code": "var a = [1, 2]\nvar b = a\nb.append(3)\nprint(a)"
+        "code": "struct Counter {\n    var value = 0\n}\n\nvar counters = [Counter(), Counter()]\nvar copy = counters\ncopy[0].value = 99\nprint(counters[0].value)"
       },
       "options": [
-        {
-          "text": "[1, 2]",
-          "isMonospaced": true
-        },
-        {
-          "text": "[1, 2, 3]",
-          "isMonospaced": true
-        }
+        { "text": "99", "isMonospaced": true },
+        { "text": "0", "isMonospaced": true },
+        { "text": "A compile error, since copy[0].value can't be assigned through a subscript on an array of a custom struct without an explicit setter", "isMonospaced": false },
+        { "text": "nil", "isMonospaced": true }
       ]
     },
     {
       "id": "swift-q3",
       "kind": "multipleChoice",
-      "prompt": "`let` with a class instance means…",
-      "explanation": "`let` on a reference type prevents reassigning the variable, but the instance's own stored properties can still be mutated.",
-      "correctIndex": 1,
+      "prompt": "You write `let box = Box()`, where `Box` is a class with a mutable stored property `count`. Which statement about `box.count += 1` is accurate?",
+      "explanation": "`let` only fixes the variable `box` itself — it can't later be reassigned to point at a different instance. The instance it refers to is still a reference type with mutable stored properties, so mutating `count` through it compiles and works fine.",
+      "correctIndex": 3,
       "rubric": null,
       "level": "senior",
       "codeSnippet": null,
       "options": [
-        {
-          "text": "The instance's properties cannot be mutated",
-          "isMonospaced": false
-        },
-        {
-          "text": "The reference cannot be reassigned, but instance properties can change",
-          "isMonospaced": false
-        },
-        {
-          "text": "The instance is immutable like a struct",
-          "isMonospaced": false
-        },
-        {
-          "text": "The variable must be initialized immediately",
-          "isMonospaced": false
-        }
+        { "text": "box.count can't be mutated, since let applied to a class instance is assumed to make every one of its stored properties immutable for the lifetime of the variable", "isMonospaced": false },
+        { "text": "box can later be reassigned to point at an entirely different Box instance, since let is assumed to restrict only the instance's internal stored properties rather than the variable binding itself", "isMonospaced": false },
+        { "text": "Box must redeclare count as a let constant too, or the code is rejected at compile time before box.count += 1 can ever run", "isMonospaced": false },
+        { "text": "box itself can't be reassigned to a different instance, but count and its other stored properties can still be mutated through it", "isMonospaced": false }
       ]
     },
     {
       "id": "swift-q4",
       "kind": "multipleChoice",
-      "prompt": "What does optional chaining return when any link is nil?",
-      "explanation": "Optional chaining short-circuits to nil if any step in the chain is nil, safely returning an Optional of the final expression's type.",
+      "prompt": "Given `let length = user?.address?.city?.count`, if `user.address` is nil, what is `length`?",
+      "explanation": "Optional chaining short-circuits at the first nil link and produces nil for the whole expression, typed as an Optional of whatever the final property's type would have been — here, `Int?`.",
       "correctIndex": 0,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
-        {
-          "text": "nil",
-          "isMonospaced": true
-        },
-        {
-          "text": "crash",
-          "isMonospaced": false
-        },
-        {
-          "text": "0",
-          "isMonospaced": true
-        },
-        {
-          "text": "an empty Optional",
-          "isMonospaced": false
-        }
+        { "text": "nil, typed as Int?", "isMonospaced": true },
+        { "text": "A runtime crash, since chaining through a nil optional force-unwraps every intermediate link along the way", "isMonospaced": false },
+        { "text": "0", "isMonospaced": true },
+        { "text": "An empty string, since count on a nil chain defaults to a zero-length String before being converted to a count", "isMonospaced": false }
       ]
     },
     {
       "id": "swift-q5",
       "kind": "code",
       "prompt": "What does this print?",
-      "explanation": "`compactMap` removes nil values, leaving [1, 2, 3, 5] — count 4.",
-      "correctIndex": 0,
+      "explanation": "`compactMap` applies the closure to every element and drops any nil results from the output, so the four non-nil values [1, 2, 4, 6] remain — a count of 4.",
+      "correctIndex": 2,
       "rubric": null,
       "level": "mid",
       "codeSnippet": {
         "filename": "main.swift",
         "language": "swift",
-        "code": "let nums: [Int?] = [1, 2, 3, nil, 5]\nlet result = nums.compactMap { $0 }\nprint(result.count)"
+        "code": "let nums: [Int?] = [1, 2, nil, 4, nil, 6]\nlet result = nums.compactMap { $0 }\nprint(result.count)"
       },
       "options": [
-        {
-          "text": "4",
-          "isMonospaced": true
-        },
-        {
-          "text": "5",
-          "isMonospaced": true
-        },
-        {
-          "text": "3",
-          "isMonospaced": true
-        },
-        {
-          "text": "nil",
-          "isMonospaced": true
-        }
+        { "text": "6", "isMonospaced": true },
+        { "text": "2", "isMonospaced": true },
+        { "text": "4", "isMonospaced": true },
+        { "text": "nil", "isMonospaced": true }
       ]
     },
     {
       "id": "swift-q6",
       "kind": "multipleChoice",
-      "prompt": "In a closure, capturing `self` with `[weak self]` means…",
-      "explanation": "Capturing `[weak self]` makes self optional inside the closure, breaking a potential retain cycle between the closure and the owning object.",
-      "correctIndex": 1,
+      "prompt": "A view controller sets `networkClient.onComplete = { self.updateUI() }` inside `viewDidLoad`. Compare that to writing `{ [weak self] in self?.updateUI() }` instead.",
+      "explanation": "The plain closure captures `self` strongly; if `networkClient` is retained by `self` (directly or indirectly) and holds onto the closure, that's a reference cycle — neither object can deallocate. `[weak self]` breaks the cycle by capturing an optional, weak reference instead, letting self deallocate normally while the closure safely no-ops if it's already gone.",
+      "correctIndex": 3,
       "rubric": null,
       "level": "senior",
       "codeSnippet": null,
       "options": [
-        {
-          "text": "self is captured as a strong reference",
-          "isMonospaced": false
-        },
-        {
-          "text": "self becomes nil if the object is deallocated, preventing retain cycles",
-          "isMonospaced": false
-        },
-        {
-          "text": "self is unowned and crashes if nil",
-          "isMonospaced": false
-        },
-        {
-          "text": "the closure is executed on a background thread",
-          "isMonospaced": false
-        }
+        { "text": "They behave identically at runtime; [weak self] is purely a style preference with no effect on memory", "isMonospaced": false },
+        { "text": "The plain closure is assumed to be safer, since capturing self strongly is thought to guarantee that updateUI() always has a valid, fully initialized instance available to call no matter when the closure eventually runs", "isMonospaced": false },
+        { "text": "[weak self] makes updateUI() run on a background queue instead of the main thread", "isMonospaced": false },
+        { "text": "The plain closure risks a retain cycle if self indirectly retains the closure; [weak self] avoids it by capturing self as an optional, weak reference", "isMonospaced": false }
       ]
     },
     {
       "id": "swift-q7",
       "kind": "multipleChoice",
-      "prompt": "What does the `mutating` keyword do?",
-      "explanation": "By default, methods on value types cannot modify self; `mutating` opts in to that capability and synthesizes a copy on mutation.",
+      "prompt": "Why does this fail to compile without the `mutating` keyword?\n\n```swift\nstruct Counter {\n    var value = 0\n    func increment() { value += 1 }\n}\n```",
+      "explanation": "Methods on a struct don't implicitly get write access to `self`'s stored properties, since structs are value types and a plain method might be called on a `let` instance; marking the method `mutating` opts in explicitly, and the compiler then rejects calling it on a `let` instance.",
       "correctIndex": 1,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
-        {
-          "text": "Allows a class method to change stored properties",
-          "isMonospaced": false
-        },
-        {
-          "text": "Allows a struct method to modify the struct's stored properties",
-          "isMonospaced": false
-        },
-        {
-          "text": "Makes a property thread-safe",
-          "isMonospaced": false
-        },
-        {
-          "text": "Declares a mutable computed property",
-          "isMonospaced": false
-        }
+        { "text": "func declarations can't reference stored properties at all in Swift", "isMonospaced": false },
+        { "text": "By default, a struct's instance methods can't modify its stored properties — mutating opts in to that", "isMonospaced": false },
+        { "text": "value would need to be declared as an optional (var value: Int?) instead of a plain Int, since only optional stored properties are assumed to be mutable from within a struct's own instance methods", "isMonospaced": false },
+        { "text": "increment() would need to be marked static to change value", "isMonospaced": false }
       ]
     },
     {
       "id": "swift-q8",
       "kind": "multipleChoice",
-      "prompt": "An enum with associated values is best described as…",
-      "explanation": "Associated values let each case carry distinct, typed payloads — enabling pattern matching over data-rich discriminated unions.",
-      "correctIndex": 1,
+      "prompt": "How would you best describe an enum case declared as `case success(User)` alongside `case failure(Error)`?",
+      "explanation": "Associated values let each case carry its own typed payload — here, the enum can be pattern-matched to extract either the wrapped User or the wrapped Error, rather than needing a separate class hierarchy or a struct with optional fields where at most one is ever non-nil.",
+      "correctIndex": 0,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
-        {
-          "text": "A class with subclasses",
-          "isMonospaced": false
-        },
-        {
-          "text": "A type that can hold one of several named cases, each optionally carrying data",
-          "isMonospaced": false
-        },
-        {
-          "text": "A struct with optional properties",
-          "isMonospaced": false
-        },
-        {
-          "text": "A protocol with default implementations",
-          "isMonospaced": false
-        }
+        { "text": "A case with a payload: pattern matching can extract the associated User or Error value specific to whichever case matched", "isMonospaced": false },
+        { "text": "A computed property that returns either a User or an Error depending on context", "isMonospaced": false },
+        { "text": "A protocol requirement that any conforming type must implement", "isMonospaced": false },
+        { "text": "A struct with two optional properties, user and error, where exactly one of them is assumed to always be non-nil while the other stays nil for the lifetime of the value", "isMonospaced": false }
       ]
     },
     {
       "id": "swift-q9",
       "kind": "code",
       "prompt": "What does this print?",
-      "explanation": "`defer` runs at the end of the enclosing scope, after the other statements — so A prints first, then B.",
-      "correctIndex": 0,
+      "explanation": "`defer` blocks run in reverse order of registration, right before the enclosing scope exits — after both prints execute, the second defer (registered last) runs first, then the first defer (registered first, but last to run) runs after it.",
+      "correctIndex": 2,
       "rubric": null,
       "level": "mid",
       "codeSnippet": {
         "filename": "main.swift",
         "language": "swift",
-        "code": "func test() {\n    defer { print(\"B\") }\n    print(\"A\")\n}\ntest()"
+        "code": "func process() {\n    defer { print(\"cleanup\") }\n    print(\"start\")\n    defer { print(\"second defer\") }\n    print(\"end\")\n}\nprocess()"
       },
       "options": [
-        {
-          "text": "A then B",
-          "isMonospaced": false
-        },
-        {
-          "text": "B then A",
-          "isMonospaced": false
-        },
-        {
-          "text": "AB on one line",
-          "isMonospaced": false
-        },
-        {
-          "text": "compile error",
-          "isMonospaced": false
-        }
+        { "text": "start, end, cleanup, second defer", "isMonospaced": true },
+        { "text": "cleanup, second defer, start, end", "isMonospaced": true },
+        { "text": "start, end, second defer, cleanup", "isMonospaced": true },
+        { "text": "start, cleanup, end, second defer", "isMonospaced": true }
       ]
     },
     {
       "id": "swift-q10",
       "kind": "multipleChoice",
-      "prompt": "In Swift, `Result<T, E>` is…",
-      "explanation": "`Result` is an enum making success/failure explicit at the type level, enabling structured error handling without try/catch.",
+      "prompt": "How is throwing `func fetch() throws -> User` different from returning `func fetch() -> Result<User, Error>`, from a caller's perspective?",
+      "explanation": "A throwing function propagates failure via Swift's error-propagation mechanism — the caller must try/catch it or propagate it further with throws — while Result reifies success or failure as an ordinary value that can be stored, passed around, or handled later without try at all.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        { "text": "They're identical; Swift automatically converts one form into the other wherever they appear", "isMonospaced": false },
+        { "text": "Result can only be used inside async functions, while throws works everywhere", "isMonospaced": false },
+        { "text": "throws is assumed to always be faster at runtime than Result, since Result is assumed to box its payload on the heap regardless of whether User and Error are small value types that would otherwise fit inline", "isMonospaced": false },
+        { "text": "throws requires the caller to use try/catch (or propagate with throws); Result is a plain value that can be stored, passed around, and inspected without try at all", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "swift-q11",
+      "kind": "multipleChoice",
+      "prompt": "You have `enum Direction { case north, south, east, west }` and a `switch` over a `Direction` with a case for each of the four, and no `default`. What happens if a fifth case, `case up`, is added to the enum later?",
+      "explanation": "Swift's switch statements over an enum must be exhaustive; adding a new case without a matching switch case (and no default) is a compile error everywhere that enum is switched over — which is the point, since it surfaces every place that needs updating instead of silently doing nothing for the new case.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        { "text": "Nothing — the switch still compiles and up is simply never matched at runtime", "isMonospaced": false },
+        { "text": "Every switch over Direction that isn't exhaustive (and has no default) now fails to compile, flagging the missing case", "isMonospaced": false },
+        { "text": "The compiler inserts an implicit default: break automatically for the new case", "isMonospaced": false },
+        { "text": "The program is assumed to compile fine either way, but crashes at runtime the very first time a Direction.up value is actually passed into this particular switch statement", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "swift-q12",
+      "kind": "multipleChoice",
+      "prompt": "Why won't this compile?\n\n```swift\nfunc greet(_ name: String?) {\n    guard let n = name else {\n        print(\"no name\")\n    }\n    print(\"Hello, \\(n)\")\n}\n```",
+      "explanation": "A `guard`'s `else` branch must leave the enclosing scope — with `return`, `break`, `continue`, or a call to a function that never returns — because the whole point of `guard let` is that `n` is guaranteed to exist for the rest of the scope. Without an exit, the compiler can't guarantee that, so it rejects the code.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        { "text": "The else branch doesn't exit the scope (e.g. with return), so the compiler can't guarantee n exists afterward", "isMonospaced": false },
+        { "text": "guard is assumed to only support plain Bool conditions in every version of Swift, and is thought to never support optional binding with let inside its condition clause", "isMonospaced": false },
+        { "text": "name must be a non-optional String for guard let to apply", "isMonospaced": false },
+        { "text": "print inside an else branch isn't allowed in Swift", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "swift-q13",
+      "kind": "multipleChoice",
+      "prompt": "You store items in a `Set<String>` instead of an `Array<String>` to remove duplicates. What must be true of the element type for this to work, and what do you give up?",
+      "explanation": "Set requires its element type to conform to Hashable (String already does) so it can bucket elements for fast membership checks and de-duplication; in exchange, a Set has no defined ordering, so iterating it doesn't reproduce the order elements were inserted in.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        { "text": "The element type must conform to Comparable, and you give up the ability to check membership in O(1)", "isMonospaced": false },
+        { "text": "Nothing needs to change, and Set preserves insertion order just like Array does", "isMonospaced": false },
+        { "text": "The element type must conform to Hashable, and you give up insertion-order iteration", "isMonospaced": false },
+        { "text": "The element type must conform to Codable so it can be archived to disk automatically, and you give up the ability to ever store duplicate values in the collection at all", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "swift-q14",
+      "kind": "code",
+      "prompt": "What does this print?",
+      "explanation": "`didSet` only fires on an assignment made after the property already has a value from initialization — it doesn't run for the default value set while the instance is being constructed. Setting `temperature = 72` afterward does trigger it, printing the old and new values.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": {
+        "filename": "Thermostat.swift",
+        "language": "swift",
+        "code": "struct Thermostat {\n    var temperature: Int = 70 {\n        didSet {\n            print(\"changed from \\(oldValue) to \\(temperature)\")\n        }\n    }\n}\n\nvar t = Thermostat()\nt.temperature = 72"
+      },
+      "options": [
+        { "text": "changed from 70 to 70, then changed from 70 to 72 — didSet is assumed to also fire once for the default value assigned during initialization", "isMonospaced": false },
+        { "text": "Nothing prints, since didSet is assumed to never fire on a struct's stored property, only ever on a class's", "isMonospaced": false },
+        { "text": "changed from 0 to 72, since oldValue is assumed to always default to 0 the very first time didSet runs for any property", "isMonospaced": false },
+        { "text": "changed from 70 to 72", "isMonospaced": true }
+      ]
+    },
+    {
+      "id": "swift-q15",
+      "kind": "multipleChoice",
+      "prompt": "Two extensions of the same struct live in the same file, and a method in one extension needs to call a private helper declared in the other extension. Does that work with `private`, or does it require `fileprivate`?",
+      "explanation": "`private` is visible from any extension of the same type within the same file, not just the exact declaration it's written in — so this already works with `private`. `fileprivate` would only be necessary if the caller lived in a different type, or in a top-level function, in the same file.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        { "text": "Neither — cross-extension calls to a private helper always require making it internal instead", "isMonospaced": false },
+        { "text": "private already covers this — it's visible across all extensions of the same type in the same file", "isMonospaced": false },
+        { "text": "Only fileprivate is assumed to work here, since private is thought to be scoped strictly to the single individual extension block where it happens to be declared, never anything wider", "isMonospaced": false },
+        { "text": "It requires public, since extensions are compiled as if they were separate modules", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "swift-q16",
+      "kind": "multipleChoice",
+      "prompt": "A function stores a completion closure onto a property to call later, after the function itself has already returned: `func load(completion: @escaping (Data) -> Void)`. Why is `@escaping` required here?",
+      "explanation": "Closure parameters are non-escaping by default, meaning the compiler guarantees they're called before the function returns and never persist past that call. Storing the closure in a property means it will outlive the function call, which the compiler only allows if the parameter is explicitly marked @escaping.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        { "text": "Because the closure is stored for later use and will outlive the function call, which non-escaping closures aren't allowed to do", "isMonospaced": false },
+        { "text": "Because Data isn't a value type, and only value-typed closures can be non-escaping", "isMonospaced": false },
+        { "text": "Because completion handlers are assumed to always need to run on a background queue somewhere, and only closures marked @escaping are thought to be capable of running off the main thread at all", "isMonospaced": false },
+        { "text": "Because the function is async, and only async functions can accept closure parameters at all", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "swift-q17",
+      "kind": "code",
+      "prompt": "What does this print?",
+      "explanation": "Each pass of a for-in loop introduces a fresh, independent constant for the loop variable, so every closure captures its own iteration's value of i rather than one shared variable that keeps changing underneath them — the classic 'every closure prints the last value' bug from languages with a single mutable loop variable doesn't happen here.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": {
+        "filename": "main.swift",
+        "language": "swift",
+        "code": "var handlers: [() -> Void] = []\nfor i in 0..<3 {\n    handlers.append { print(i) }\n}\nfor handler in handlers {\n    handler()\n}"
+      },
+      "options": [
+        { "text": "3, 3, 3 — every closure shares the same i, which has finished looping by the time they run", "isMonospaced": false },
+        { "text": "A compile error, since i can't be captured inside a for-in loop's body without an explicit capture list", "isMonospaced": false },
+        { "text": "0, 1, 2 — each iteration captures its own independent value of i", "isMonospaced": false },
+        { "text": "2, 1, 0, since closures are assumed to capture and replay values in reverse order of insertion", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "swift-q18",
+      "kind": "multipleChoice",
+      "prompt": "A struct's stored properties are all Codable, and you add a custom CodingKeys enum that omits one of them — a property that has a default value. What happens to automatic Codable conformance?",
+      "explanation": "Swift still synthesizes `init(from:)` and `encode(to:)` from CodingKeys, but only the cases listed in the enum participate in coding — a property left out of CodingKeys is simply skipped by both encoding and decoding, which only compiles because that property has a default value the synthesized initializer can fall back on.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        { "text": "Synthesis stops entirely, and you must write encode(to:) and init(from:) by hand", "isMonospaced": false },
+        { "text": "The omitted property is encoded anyway, since CodingKeys is assumed to only affect decoding, never encoding", "isMonospaced": false },
+        { "text": "A compile error occurs, since CodingKeys is assumed to require listing every single stored property with absolutely no exceptions permitted under any circumstance", "isMonospaced": false },
+        { "text": "Synthesis still works, but the omitted property is skipped entirely by both encoding and decoding", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "swift-q19",
+      "kind": "code",
+      "prompt": "Why does this fail to compile?",
+      "explanation": "`static` members are implicitly final — they can't be overridden by a subclass at all. Overriding a type-level method in a subclass requires declaring it `class func` in the base class instead, which explicitly permits subclasses to override it.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": {
+        "filename": "Animal.swift",
+        "language": "swift",
+        "code": "class Animal {\n    static func describe() -> String { \"an animal\" }\n}\n\nclass Dog: Animal {\n    override static func describe() -> String { \"a dog\" }\n}"
+      },
+      "options": [
+        { "text": "describe() needs to be marked @objc for the subclass to override it", "isMonospaced": false },
+        { "text": "static implies final; Dog would need Animal to declare describe() as class func instead to override it", "isMonospaced": false },
+        { "text": "Dog can't override any method declared in Animal without also overriding init", "isMonospaced": false },
+        { "text": "override is only valid for instance methods, and static func describe() is a computed property in disguise", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "swift-q20",
+      "kind": "multipleChoice",
+      "prompt": "A class has `lazy var config: Config = loadConfigFromDisk()`. Two different properties on the same instance each read `config` before anything else touches it. How many times does `loadConfigFromDisk()` run?",
+      "explanation": "`lazy` defers initialization until the first access, then caches the result — every later read returns the already-computed value without calling the initializer expression again, so it runs exactly once no matter how many properties or call sites read it afterward.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        { "text": "Once — the first access computes and caches it; later reads just return the cached value", "isMonospaced": false },
+        { "text": "Twice — once per property that reads it", "isMonospaced": false },
+        { "text": "Zero times, since lazy properties are only ever evaluated when explicitly forced with a separate call to config.evaluate()", "isMonospaced": false },
+        { "text": "Every time config is read, since lazy is assumed to only defer the type declaration, never the actual evaluation of the initializer expression itself", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "swift-q21",
+      "kind": "multipleChoice",
+      "prompt": "Given `struct User { var name: String }` and `let users: [User]`, what does `users.map(\\.name)` do, compared to `users.map { $0.name }`?",
+      "explanation": "`\\.name` is a key path literal — used here where a `(User) -> String` function is expected, which Swift converts automatically. It produces exactly the same `[String]` result as the closure form; the difference is spelling, not behavior.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        { "text": "It fails to compile, since map only ever accepts closures, never key paths, as an argument", "isMonospaced": false },
+        { "text": "It returns the User instances unchanged, since \\.name is treated as a filter predicate rather than a transform", "isMonospaced": false },
+        { "text": "It returns the same [String] array of names as the closure form — a key path used where a function is expected", "isMonospaced": false },
+        { "text": "It returns an array of key paths instead, one full KeyPath<User, String> value per element, rather than ever unwrapping to the underlying String values themselves", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "swift-q22",
+      "kind": "multipleChoice",
+      "prompt": "A function `func parse(_ s: String) throws -> Int` is called as `let value = try? parse(input)`. What is the type of `value`, and what happens if `parse` throws?",
+      "explanation": "`try?` converts a throwing call into an Optional: if the call succeeds, `value` is `.some(result)`; if it throws, the specific error is discarded and `value` is simply `nil` — an `Int?`, not an `Int` or a `Result`.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        { "text": "value is assumed to still be plain Int, and any thrown error is assumed to automatically propagate further up to the caller's own caller instead", "isMonospaced": false },
+        { "text": "value is Result<Int, Error>, capturing whichever case actually applies", "isMonospaced": false },
+        { "text": "value is Int, and a thrown error is silently replaced with 0", "isMonospaced": false },
+        { "text": "value is Int?, and a thrown error becomes nil, discarding the specific error", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "swift-q23",
+      "kind": "code",
+      "prompt": "What does this print?",
+      "explanation": "Swift's String.count counts extended grapheme clusters — user-perceived characters — not Unicode scalars. Two Regional Indicator scalars combine into a single grapheme cluster (a flag emoji), so count is 1 even though the string is built from two separate Unicode scalar values.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "main.swift",
+        "language": "swift",
+        "code": "let flag = \"\\u{1F1FA}\\u{1F1F8}\" // built from two Regional Indicator scalars\nprint(flag.count)"
+      },
+      "options": [
+        { "text": "2, since count reports the number of Unicode scalar values that make up the string", "isMonospaced": false },
+        { "text": "1 — the two scalars combine into a single extended grapheme cluster", "isMonospaced": false },
+        { "text": "4, since count reports UTF-8 code units for characters outside the ASCII range", "isMonospaced": false },
+        { "text": "0, since emoji aren't considered valid Character values in a Swift String", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "swift-q24",
+      "kind": "multipleChoice",
+      "prompt": "You write `func firstMatch<C: Collection>(in collection: C, equalTo target: C.Element) -> C.Element? where C.Element: Equatable`. Why is the `where` clause needed, given that `Collection` already appears as a constraint?",
+      "explanation": "`Collection` by itself says nothing about whether its `Element` associated type supports `==` — that's a separate capability. The `where C.Element: Equatable` clause adds that requirement on the associated type specifically, which is what lets the function body compare elements with `==`.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        { "text": "Collection alone doesn't guarantee its Element is Equatable; the where clause adds that separate requirement on the associated type", "isMonospaced": false },
+        { "text": "Without it, the function is assumed to fail to compile for an entirely unrelated reason — generic functions are thought to always require at least two separate constraints listed together before they're considered valid", "isMonospaced": false },
+        { "text": "The where clause is only decorative here; Collection already implies Equatable elements in every case", "isMonospaced": false },
+        { "text": "It restricts C itself to arrays, since where clauses on associated types are assumed to only ever apply when C happens to be Array", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "swift-q25",
+      "kind": "multipleChoice",
+      "prompt": "A function is declared `func makeShape() -> some Drawable`. Can two different calls to `makeShape()` return values of two different concrete types, both conforming to Drawable?",
+      "explanation": "`some Drawable` (an opaque return type) commits the function to one single concrete type, chosen once by the function's own implementation — every call returns that same underlying type, even though callers only ever see it as Drawable. Returning `any Drawable` instead would allow a different concrete type per call, at the cost of type-erasing every value.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        { "text": "Yes — some Drawable means each call is free to return a different concrete type, so long as it conforms", "isMonospaced": false },
+        { "text": "No, because Drawable itself would be assumed to require being declared as a class-only protocol before any opaque return type involving it could ever be considered valid at all", "isMonospaced": false },
+        { "text": "No — some commits the function to one single concrete type for all calls; any Drawable would be needed to vary it per call", "isMonospaced": false },
+        { "text": "Yes, but only if Drawable has no associated types or Self requirements anywhere in its definition", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "swift-q26",
+      "kind": "code",
+      "prompt": "Given this property wrapper, what is the type and meaning of `$health` when accessed on a Player instance?",
+      "explanation": "The `$` prefix accesses a property wrapper's `projectedValue`, whatever type that's declared as — here it's `Bool`, defined to mean 'value is at the top of its clamped range,' not the health value itself. `health` (no `$`) still goes through `wrappedValue`, the clamped Int.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "Clamped.swift",
+        "language": "swift",
+        "code": "@propertyWrapper\nstruct Clamped {\n    private var value: Int\n    let range: ClosedRange<Int>\n\n    var wrappedValue: Int {\n        get { value }\n        set { value = min(max(newValue, range.lowerBound), range.upperBound) }\n    }\n\n    var projectedValue: Bool { value == range.upperBound }\n\n    init(wrappedValue: Int, _ range: ClosedRange<Int>) {\n        self.range = range\n        self.value = min(max(wrappedValue, range.lowerBound), range.upperBound)\n    }\n}\n\nstruct Player {\n    @Clamped(0...100) var health = 100\n}"
+      },
+      "options": [
+        { "text": "Int, the same clamped value as health itself, just accessed through a different spelling", "isMonospaced": false },
+        { "text": "ClosedRange<Int>, the range health is clamped to", "isMonospaced": false },
+        { "text": "A compile error is assumed to occur here, since $ -prefixed access is thought to only ever be meaningful on properties wrapped specifically with Combine's @Published, never a custom property wrapper", "isMonospaced": false },
+        { "text": "Bool, defined by projectedValue here as whether health is currently at the top of its clamped range", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "swift-q27",
+      "kind": "multipleChoice",
+      "prompt": "Why can't you add a new stored property to a type through an extension, the way you can add a computed property or a method?",
+      "explanation": "Extensions can't change a type's memory layout. A stored property needs space allocated for it at the point an instance is created, but an extension is compiled separately from — and often after — the original declaration, with no way to retroactively resize every existing instance of that type.",
       "correctIndex": 1,
       "rubric": null,
       "level": "senior",
       "codeSnippet": null,
       "options": [
-        {
-          "text": "A protocol for async operations",
-          "isMonospaced": false
-        },
-        {
-          "text": "An enum with `.success(T)` and `.failure(E)` cases",
-          "isMonospaced": false
-        },
-        {
-          "text": "A class wrapping an Optional",
-          "isMonospaced": false
-        },
-        {
-          "text": "A generic struct for lazy evaluation",
-          "isMonospaced": false
-        }
+        { "text": "Stored properties are assumed to require the @objc attribute, which extensions can't apply to a type they don't originally declare", "isMonospaced": false },
+        { "text": "A stored property needs space in the type's memory layout, and extensions can't retroactively change that layout", "isMonospaced": false },
+        { "text": "Extensions can only be applied to protocols, not to concrete structs or classes, so stored properties never apply", "isMonospaced": false },
+        { "text": "It's a language limitation planned for removal — a future Swift version is assumed to allow stored properties in extensions", "isMonospaced": false }
       ]
     }
   ]
