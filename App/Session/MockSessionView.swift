@@ -109,7 +109,7 @@ struct MockSessionView: View {
                         .font(DSFont.sectionHeader)
                         .foregroundStyle(DSColor.secondaryLabel)
                 }
-                Text(question.prompt)
+                Text(inlineMarkdown: question.prompt)
                     .font(DSFont.question)
                 if let snippet = question.codeSnippet {
                     CodeBlock(filename: snippet.filename, language: snippet.language, code: snippet.code)
@@ -175,7 +175,7 @@ struct MockSessionView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Why")
                     .font(DSFont.headline)
-                Text(question.explanation)
+                Text(inlineMarkdown: question.explanation)
                     .font(DSFont.body)
                     .foregroundStyle(DSColor.secondaryLabel)
             }

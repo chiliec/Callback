@@ -32,7 +32,7 @@ struct QuestionPlayerView: View {
                     .foregroundStyle(DSColor.secondaryLabel)
 
                 // Question text
-                Text(question.prompt)
+                Text(inlineMarkdown: question.prompt)
                     .font(DSFont.question)
 
                 // Optional code block
@@ -148,7 +148,7 @@ struct QuestionPlayerView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Why")
                     .font(DSFont.headline)
-                Text(question.explanation)
+                Text(inlineMarkdown: question.explanation)
                     .font(DSFont.body)
                     .foregroundStyle(DSColor.secondaryLabel)
             }

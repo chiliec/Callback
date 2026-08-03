@@ -90,7 +90,7 @@ private struct ReviewRow: View {
             IconTile(systemName: entry.topic.symbolName,
                      color: DSColor.topic(entry.topic.colorToken))
             VStack(alignment: .leading, spacing: 4) {
-                Text(entry.question.prompt)
+                Text(inlineMarkdown: entry.question.prompt)
                     .lineLimit(1)
                     .font(DSFont.body)
                 Text(entry.topic.name)

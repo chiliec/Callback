@@ -50,7 +50,10 @@ struct LessonReaderView: View {
                 }
 
                 if let quickCheck = lesson.quickCheck {
-                    QuickCheckView(question: quickCheck)
+                    // The topic is passed in, not read off the question: the
+                    // content loader hangs a quick check off its `Lesson` only,
+                    // so `Question.topic` is nil for every one of them.
+                    QuickCheckView(question: quickCheck, topic: lesson.topic)
                 }
             }
             .padding(DSSpacing.sessionInset)
@@ -272,12 +275,22 @@ struct LessonReaderView: View {
 
 struct QuickCheckView: View {
     let question: Question
+    /// The lesson's topic. `question.topic` is always nil here — the loader
+    /// attaches a quick check to its lesson, not to the topic's question bank —
+    /// so answers used to be filed under an empty topic id and scored nothing.
+    let topic: Topic?
 
     @State private var pickedIndex: Int? = nil
+    @State private var isGuidanceRevealed = false
+    @State private var rating: SelfRating? = nil
     @Environment(\.modelContext) private var context
     @Environment(SaveErrorState.self) private var saveError
 
     private static let labels = ["A", "B", "C", "D"]
+
+    /// True once the reader has committed either kind of answer, which is what
+    /// reveals the explanation.
+    private var isAnswered: Bool { pickedIndex != nil || rating != nil }
 
     var body: some View {
         GroupedCard {
@@ -286,25 +299,44 @@ struct QuickCheckView: View {
                     .font(DSFont.footnote)
                     .foregroundStyle(DSColor.secondaryLabel)
 
-                Text(question.prompt)
+                Text(inlineMarkdown: question.prompt)
                     .font(DSFont.headline)
 
-                let sortedOptions = question.options.sorted { $0.order < $1.order }
-                ForEach(Array(sortedOptions.enumerated()), id: \.element.persistentModelID) { i, option in
-                    OptionRow(
-                        label: i < Self.labels.count ? Self.labels[i] : "\(i + 1)",
-                        text: option.text,
-                        isMonospaced: option.isMonospaced,
-                        state: optionState(index: i)
-                    ) {
-                        guard pickedIndex == nil else { return }
-                        pickedIndex = i
-                        persistAnswer(pickedIndex: i)
+                // Behavioral and system-design quick checks have no gradable
+                // answer and ship with `options: []` — without this branch the
+                // card renders a prompt and nothing else, and the authored
+                // rubric is unreachable. `QuestionPlayerView` has always had
+                // the equivalent; the reader's card never got it.
+                if question.kind.isSelfRated {
+                    SelfAssessCard(
+                        rubric: question.rubric ?? question.explanation,
+                        isRevealed: isGuidanceRevealed,
+                        selection: rating,
+                        onReveal: { isGuidanceRevealed = true },
+                        onRate: { newRating in
+                            guard rating == nil else { return }
+                            rating = newRating
+                            persistAnswer(pickedIndex: nil, rating: newRating)
+                        }
+                    )
+                } else {
+                    let sortedOptions = question.options.sorted { $0.order < $1.order }
+                    ForEach(Array(sortedOptions.enumerated()), id: \.element.persistentModelID) { i, option in
+                        OptionRow(
+                            label: i < Self.labels.count ? Self.labels[i] : "\(i + 1)",
+                            text: option.text,
+                            isMonospaced: option.isMonospaced,
+                            state: optionState(index: i)
+                        ) {
+                            guard pickedIndex == nil else { return }
+                            pickedIndex = i
+                            persistAnswer(pickedIndex: i, rating: nil)
+                        }
                     }
                 }
 
-                if pickedIndex != nil {
-                    Text(question.explanation)
+                if isAnswered {
+                    Text(inlineMarkdown: question.explanation)
                         .font(DSFont.footnote)
                         .foregroundStyle(DSColor.secondaryLabel)
                         .padding(.top, 4)
@@ -334,31 +366,29 @@ struct QuickCheckView: View {
         profile.readiness = ScoringEngine().readiness(topics: inputs)
     }
 
-    private func persistAnswer(pickedIndex: Int) {
-        let isCorrect: Bool
-        if let correct = question.correctIndex {
-            isCorrect = pickedIndex == correct
-        } else {
-            isCorrect = false
-        }
+    private func persistAnswer(pickedIndex: Int?, rating: SelfRating?) {
         let record = AnswerRecord(
             questionID: question.id,
-            topicID: question.topic?.id ?? "",
+            topicID: topic?.id ?? "",
             pickedIndex: pickedIndex,
-            isCorrect: isCorrect,
+            isCorrect: Grading.isCorrect(question: question, pickedIndex: pickedIndex, selfRating: rating),
             isFlagged: false,
-            answeredAt: Date()
+            answeredAt: Date(),
+            selfRating: rating
         )
         context.insert(record)
 
-        // Recompute mastery and readiness for the affected topic.
-        if let topic = question.topic {
+        // Recompute mastery and readiness for the affected topic. Credit-based,
+        // matching `DrillCompletion`: a self-rated answer is worth 0/0.5/1, so
+        // scoring it as a plain correct/incorrect bool here would round every
+        // "Decent" in the topic up to a full mark.
+        if let topic {
             let topicID = topic.id
             let topicRecords = (try? context.fetch(
                 FetchDescriptor<AnswerRecord>(predicate: #Predicate { $0.topicID == topicID })
             )) ?? []
-            let correctness = topicRecords.sorted { $0.answeredAt < $1.answeredAt }.map { $0.isCorrect }
-            topic.mastery = ScoringEngine().mastery(fromChronological: correctness)
+            let credits = topicRecords.sorted { $0.answeredAt < $1.answeredAt }.map { $0.credit }
+            topic.mastery = ScoringEngine().mastery(fromChronologicalCredit: credits)
         }
         recomputeReadiness()
 

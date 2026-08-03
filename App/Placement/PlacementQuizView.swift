@@ -79,7 +79,7 @@ struct PlacementQuizView: View {
                         .foregroundStyle(DSColor.secondaryLabel)
                 }
 
-                Text(question.prompt)
+                Text(inlineMarkdown: question.prompt)
                     .font(DSFont.question)
 
                 if let snippet = question.codeSnippet {

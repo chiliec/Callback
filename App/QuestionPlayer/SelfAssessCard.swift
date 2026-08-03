@@ -24,7 +24,7 @@ struct SelfAssessCard: View {
                     // lines, and in secondary grey they read as disabled text —
                     // roughly 3.5:1 against the card, under the 4.5:1 that body
                     // copy needs.
-                    Text(rubric)
+                    Text(inlineMarkdown: rubric)
                         .font(DSFont.body)
                         .foregroundStyle(DSColor.label)
                     ratingButtons
