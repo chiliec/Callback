@@ -28,7 +28,7 @@
           },
           {
             "text": "DispatchQueue.main only accepts async submissions, so a sync call has no effect and never runs the block",
-            "isMonospaced": true
+            "isMonospaced": false
           },
           {
             "text": "The main thread has no dispatch queue attached until a run loop starts",
@@ -67,7 +67,7 @@
           },
           {
             "text": "By requiring every stored property to be declared with let",
-            "isMonospaced": true
+            "isMonospaced": false
           },
           {
             "text": "By wrapping every property access in an NSLock behind the scenes",
@@ -196,7 +196,7 @@
         },
         {
           "text": "accountBalance is a global variable and isn't actor-isolated at all",
-          "isMonospaced": true
+          "isMonospaced": false
         },
         {
           "text": "Swift disallows reading a property before an await, so this line fails to compile",
@@ -280,7 +280,7 @@
         },
         {
           "text": "UIView conforms to Sendable, which blocks writes from off the main thread",
-          "isMonospaced": true
+          "isMonospaced": false
         },
         {
           "text": "The main thread has exclusive access to the device's network stack",
@@ -336,7 +336,7 @@
         },
         {
           "text": "Schedules updateLabel to run after the current run loop cycle only",
-          "isMonospaced": true
+          "isMonospaced": false
         },
         {
           "text": "Only works if the enclosing type is already declared @MainActor",
@@ -364,7 +364,7 @@
         },
         {
           "text": "counter must be explicitly declared as var counter: Int = 0 or the file fails to compile",
-          "isMonospaced": true
+          "isMonospaced": false
         },
         {
           "text": "The two Task blocks run one after another, so print consistently shows 2",
@@ -428,7 +428,7 @@
         },
         {
           "text": "Structured concurrency requires manually tracking a DispatchGroup for every child task",
-          "isMonospaced": true
+          "isMonospaced": false
         }
       ]
     },
@@ -456,7 +456,7 @@
         },
         {
           "text": "It's suspended without consuming resources, exactly like an await",
-          "isMonospaced": true
+          "isMonospaced": false
         }
       ]
     },
@@ -516,7 +516,7 @@
         },
         {
           "text": "Order is only guaranteed if every block is marked @Sendable",
-          "isMonospaced": true
+          "isMonospaced": false
         }
       ]
     },
@@ -536,7 +536,7 @@
       "options": [
         {
           "text": "DispatchSemaphore only works with concurrent queues, never serial ones",
-          "isMonospaced": true
+          "isMonospaced": false
         },
         {
           "text": "doSetup() throws an error partway through, so semaphore.signal() is never reached at all in this closure",
@@ -548,7 +548,7 @@
         },
         {
           "text": "semaphore.wait() has a built-in timeout after a fixed system interval",
-          "isMonospaced": true
+          "isMonospaced": false
         }
       ]
     },
@@ -608,7 +608,7 @@
         },
         {
           "text": "balance is declared with var, which fully disables the actor's isolation for that property",
-          "isMonospaced": true
+          "isMonospaced": false
         }
       ]
     },
@@ -624,7 +624,7 @@
       "options": [
         {
           "text": "async let, declared once per possible thumbnail ahead of time",
-          "isMonospaced": true
+          "isMonospaced": false
         },
         {
           "text": "Task.detached, called once per thumbnail with no group involved",
@@ -636,7 +636,7 @@
         },
         {
           "text": "DispatchQueue.concurrentPerform called from inside an async function",
-          "isMonospaced": true
+          "isMonospaced": false
         }
       ]
     },
@@ -668,7 +668,7 @@
         },
         {
           "text": "fetchAll swallows the error and returns an empty array instead of throwing",
-          "isMonospaced": true
+          "isMonospaced": false
         }
       ]
     },
@@ -696,7 +696,7 @@
         },
         {
           "text": "Wrap it with withCheckedThrowingContinuation and resume exactly once inside the completion handler",
-          "isMonospaced": true
+          "isMonospaced": false
         }
       ]
     },
@@ -728,7 +728,7 @@
         },
         {
           "text": "legacyLoadFallback is automatically cancelled once legacyLoad starts running",
-          "isMonospaced": true
+          "isMonospaced": false
         }
       ]
     },
@@ -752,7 +752,7 @@
         },
         {
           "text": "updateModel loses the implicit @MainActor isolation inherited from the enclosing method",
-          "isMonospaced": true
+          "isMonospaced": false
         },
         {
           "text": "The compiler rejects this line outright, since detached tasks can't call instance methods at all",
@@ -772,7 +772,7 @@
       "options": [
         {
           "text": "It can be called without await, but it can't touch the actor's isolated mutable state",
-          "isMonospaced": true
+          "isMonospaced": false
         },
         {
           "text": "It moves that member's execution onto a background thread pool instead of the actor's own executor",
@@ -804,7 +804,7 @@
         },
         {
           "text": "All DispatchQueue-based code is rejected in favor of async/await only",
-          "isMonospaced": true
+          "isMonospaced": false
         },
         {
           "text": "Actors are replaced at compile time with equivalent hand-written class-and-lock synchronization code",
@@ -836,7 +836,7 @@
         },
         {
           "text": "value must be declared with let for the closure to compile at all",
-          "isMonospaced": true
+          "isMonospaced": false
         },
         {
           "text": "Counter is a non-Sendable mutable class captured by a @Sendable closure, flagged as unsafe",
@@ -864,7 +864,7 @@
         },
         {
           "text": "Declaring a closure's captured values as officially safe to send across actor boundaries",
-          "isMonospaced": true
+          "isMonospaced": false
         },
         {
           "text": "Marking a function as eligible to suspend at await points",
@@ -892,7 +892,7 @@
         },
         {
           "text": "NSLock-based classes are inherently faster, since they avoid Swift's runtime scheduler entirely",
-          "isMonospaced": true
+          "isMonospaced": false
         },
         {
           "text": "Actors require every property to be a value type, unlike locked classes",
@@ -928,7 +928,7 @@
         },
         {
           "text": "fetchRowsSynchronously is automatically wrapped in a Task.detached by the compiler",
-          "isMonospaced": true
+          "isMonospaced": false
         },
         {
           "text": "It still runs on the main thread and blocks it, despite generate being async",

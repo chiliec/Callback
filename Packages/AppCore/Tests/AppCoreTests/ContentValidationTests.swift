@@ -166,6 +166,21 @@ struct ContentValidationTests {
         }
     }
 
+    /// `OptionRow` renders a monospaced option as a plain code token — it does
+    /// not parse Markdown. A backtick in a monospaced option therefore reaches the
+    /// screen verbatim. Backticks belong to prose options, which render inline
+    /// Markdown; a monospaced option carrying one is a mis-flagged prose answer.
+    @Test func monospacedOptionsAreNotBacktickedProse() throws {
+        var offenders: [String] = []
+        for q in try allQuestions() {
+            for o in q.options where o.isMonospaced && o.text.contains("`") {
+                offenders.append("\(q.id): \(o.text)")
+            }
+        }
+        #expect(offenders.isEmpty,
+                "monospaced options must not contain backticks: \(offenders)")
+    }
+
     /// Uniform option count: every gradable question offers exactly 4 options.
     @Test func gradableQuestionsHaveFourOptions() throws {
         for topic in try bundle().topics {
