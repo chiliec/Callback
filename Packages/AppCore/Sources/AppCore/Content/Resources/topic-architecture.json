@@ -4,7 +4,7 @@
   "section": "craft",
   "symbolName": "building.columns.fill",
   "colorToken": "architecture",
-  "order": 7,
+  "order": 9,
   "lessons": [
     {
       "id": "architecture-l1",

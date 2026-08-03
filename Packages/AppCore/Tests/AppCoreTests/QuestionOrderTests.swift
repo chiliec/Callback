@@ -76,7 +76,7 @@ struct QuestionOrderTests {
         let context = ModelContext(container)
         ContentLoader.seed(try ContentLoader.bundledContent(), into: context)
         let topics = try context.fetch(FetchDescriptor<Topic>())
-        #expect(topics.count == 9)
+        #expect(topics.count == 11)
 
         for topic in topics {
             let ranks = QuestionOrder.practice(topic.questions).map(\.level.rank)
