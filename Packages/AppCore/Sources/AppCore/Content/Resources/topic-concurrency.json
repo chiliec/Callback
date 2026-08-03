@@ -9,34 +9,34 @@
     {
       "id": "concurrency-l1",
       "order": 0,
-      "title": "async/await Basics",
-      "estimatedMinutes": 4,
-      "body": "Swift's `async`/`await` model replaces completion-handler callbacks with straight-line code that reads like synchronous logic — but runs asynchronously.\n\n### What `async` marks\n\nAdding `async` to a function declaration tells the compiler: *this function may suspend*. It does **not** pin the function to any particular thread.\n\n### What `await` does\n\n`await` is a **suspension point**. When execution reaches an `await`, the current task pauses and the underlying thread is released to do other work. When the awaited value is ready, the Swift runtime reschedules the task — possibly on a different thread.\n\nThis is fundamentally different from blocking: the thread is never idle while waiting.\n\n### Contrast with completion handlers\n\nCompletion handlers suffer from *callback hell* (deeply nested closures), awkward error threading, and no structured lifetime. `async`/`await` solves all three.\n\n```swift\n// async/await style\nfunc fetchUser(id: String) async throws -> User {\n    let data = try await URLSession.shared.data(from: userURL(id))\n    return try JSONDecoder().decode(User.self, from: data.0)\n}\n\n// Call site\nlet user = try await fetchUser(id: \"42\")\nprint(user.name)\n```\n\nThe call site reads top-to-bottom, errors propagate with `throws`, and there is no forgotten completion-handler branch.",
+      "title": "GCD and async/await Fundamentals",
+      "estimatedMinutes": 6,
+      "body": "Grand Central Dispatch (GCD) and Swift's `async`/`await` solve the same problem — running work without blocking — through very different mechanisms.\n\n### GCD queues\n\n`DispatchQueue.main` is a **serial** queue bound to the main thread: only one block runs at a time, in submission order. Global queues (`DispatchQueue.global(qos:)`) are **concurrent** — the system may run several submitted blocks in parallel across worker threads.\n\n`.sync` blocks the calling thread until the submitted block finishes running. `.async` returns immediately; the block runs later, on its own schedule. Calling `.sync` on the very queue you're already executing on is a classic deadlock: the queue is waiting for a slot that only the caller — who is itself blocked — can free.\n\n### async/await\n\nMarking a function `async` tells the compiler it may suspend. `await` marks a **suspension point**: the current task pauses and its thread is released back to the pool — nothing sits idle waiting. When the awaited value becomes ready, the runtime resumes the task, not necessarily on the same thread it started on.\n\n```swift\nfunc fetchUser(id: String) async throws -> User {\n    let (data, _) = try await URLSession.shared.data(from: userURL(id))\n    return try JSONDecoder().decode(User.self, from: data)\n}\n```\n\nUnlike a completion handler, the call above reads top to bottom and propagates errors with `throws` — no nested closures, no forgotten branch.",
       "quickCheck": {
         "id": "concurrency-l1-qc",
         "kind": "multipleChoice",
-        "prompt": "What does `await` do at a suspension point?",
-        "explanation": "`await` pauses the task and releases the thread to the scheduler — the thread is free for other work while the result is pending. This is not a blocking wait.",
+        "prompt": "Why does calling `DispatchQueue.main.sync { }` from code already running on the main thread deadlock?",
+        "explanation": "`DispatchQueue.main` is a serial queue: it runs one block at a time. `.sync` blocks the caller until the block finishes, but the block can never start because the queue is already occupied by the very code that's waiting on it.",
         "correctIndex": 0,
         "rubric": null,
         "level": "junior",
         "codeSnippet": null,
         "options": [
           {
-            "text": "Suspends the current task, freeing the thread for other work",
+            "text": "The main queue is serial, so the queued block can't run while the caller is blocked waiting on it",
             "isMonospaced": false
           },
           {
-            "text": "Blocks the current thread until the result is ready",
-            "isMonospaced": false
-          },
-          {
-            "text": "Creates a new thread",
-            "isMonospaced": false
-          },
-          {
-            "text": "Calls DispatchQueue.main.async",
+            "text": "DispatchQueue.main only accepts async submissions, so sync calls silently no-op",
             "isMonospaced": true
+          },
+          {
+            "text": "The main thread has no dispatch queue attached until a run loop starts",
+            "isMonospaced": false
+          },
+          {
+            "text": "Sync calls automatically retry on a background thread once the queue is busy",
+            "isMonospaced": false
           }
         ]
       }
@@ -46,31 +46,31 @@
       "order": 1,
       "title": "Actors & Data Isolation",
       "estimatedMinutes": 5,
-      "body": "Shared mutable state across threads is the root cause of data races. Swift's `actor` type makes isolation a compiler-enforced guarantee.\n\n### The `actor` keyword\n\nAn `actor` is a reference type — like a class — but the compiler ensures only **one caller executes on its state at a time**. Every access to actor-isolated state from outside must be `await`ed, making the async hop explicit.\n\n### Actor reentrancy\n\nActors are **reentrant**: while a method is suspended at an `await`, another caller *can* execute on the same actor. This means actor state may change between two `await` points in a single method — always re-check state after an `await` if it matters.\n\n### `@MainActor`\n\n`@MainActor` is a global actor that represents the main thread. Annotate a class or method with `@MainActor` to confine it to the main thread — the compiler will enforce this and automatically insert `await` hops when called from other contexts.\n\n```swift\nactor ImageCache {\n    private var cache: [URL: UIImage] = [:]\n\n    func store(_ image: UIImage, for url: URL) {\n        cache[url] = image\n    }\n\n    func image(for url: URL) -> UIImage? {\n        cache[url]\n    }\n}\n\n@MainActor\nclass FeedViewModel {\n    var images: [UIImage] = []\n\n    func load(url: URL) async {\n        let cache = ImageCache()\n        if let img = await cache.image(for: url) {\n            images.append(img)  // safe: @MainActor\n        }\n    }\n}\n```",
+      "body": "Shared mutable state touched from multiple threads without coordination is the root cause of data races. Swift's `actor` type turns that coordination into a compiler-enforced guarantee instead of a discipline you have to remember by hand.\n\n### What `actor` guarantees\n\nAn `actor` is a reference type whose stored properties and methods are **isolated**: the runtime allows only one task to execute code on the actor's isolated state at a time. Any access from outside the actor — even reading a property — must go through `await`, because the call might have to wait its turn.\n\n### Reentrancy\n\nActors are **reentrant**. When a method suspends at an `await`, the actor is free to run a *different* call in the meantime — it doesn't block waiting for the first call to finish. That means actor state can legitimately change between two `await` points inside the same method. Re-validate assumptions after an `await` rather than assuming nothing moved while you were suspended.\n\n### `@MainActor`\n\n`@MainActor` is a global actor representing the main thread. A type or method marked `@MainActor` can only run on the main thread; calling into it from another isolation domain requires `await`, and the compiler inserts the hop automatically.\n\n```swift\nactor ImageCache {\n    private var storage: [URL: UIImage] = [:]\n    func store(_ image: UIImage, for url: URL) { storage[url] = image }\n    func image(for url: URL) -> UIImage? { storage[url] }\n}\n\n@MainActor\nfinal class FeedViewModel {\n    var images: [UIImage] = []\n    func load(url: URL, cache: ImageCache) async {\n        if let img = await cache.image(for: url) {\n            images.append(img)\n        }\n    }\n}\n```",
       "quickCheck": {
         "id": "concurrency-l2-qc",
         "kind": "multipleChoice",
-        "prompt": "How does an actor prevent data races?",
-        "explanation": "Actors serialize access to their mutable state — the runtime queues concurrent callers and lets only one execute at a time, eliminating unsynchronized shared-state writes.",
+        "prompt": "How does an actor prevent a data race on its stored properties?",
+        "explanation": "Actors serialize access to their isolated state — the runtime lets only one caller execute against it at a time, so concurrent unsynchronized writes simply can't happen.",
         "correctIndex": 1,
         "rubric": null,
         "level": "junior",
         "codeSnippet": null,
         "options": [
           {
-            "text": "By running all code on a single background thread",
+            "text": "By running every actor's code on one dedicated background thread for the whole app",
             "isMonospaced": false
           },
           {
-            "text": "By serializing access to its mutable state — only one caller executes at a time",
+            "text": "By serializing access to its isolated state — only one caller executes at a time",
             "isMonospaced": false
           },
           {
-            "text": "By making all properties constants",
-            "isMonospaced": false
+            "text": "By requiring every stored property to be declared with let",
+            "isMonospaced": true
           },
           {
-            "text": "By using locks internally",
+            "text": "By wrapping every property access in an NSLock behind the scenes",
             "isMonospaced": false
           }
         ]
@@ -80,32 +80,67 @@
       "id": "concurrency-l3",
       "order": 2,
       "title": "Tasks & Structured Concurrency",
-      "estimatedMinutes": 5,
-      "body": "Swift provides several ways to launch concurrent work, each with different lifetime and actor-inheritance rules.\n\n### `Task { }` vs `Task.detached`\n\n`Task { }` inherits the current actor context and priority. `Task.detached { }` starts fresh — no actor, no priority inherited. Use detached only when you explicitly want to escape the surrounding context.\n\n### `async let` — parallel child tasks\n\n`async let` starts a child task immediately but defers the `await` until you need the value. Multiple `async let` bindings run in **parallel**.\n\n```swift\nasync let profile = fetchProfile(id: userID)\nasync let feed   = fetchFeed(id: userID)\n\nlet (p, f) = try await (profile, feed)  // both ran in parallel\n```\n\n### `TaskGroup` — dynamic fan-out\n\nWhen the number of parallel tasks isn't known at compile time, use `withTaskGroup` to spawn tasks dynamically and collect results.\n\n### Structured concurrency guarantees\n\n- **Child tasks always complete before their parent scope exits** — no orphaned work.\n- **Cancellation propagates**: cancelling a parent automatically cancels all children.\n- Check `Task.isCancelled` at meaningful points to exit early.\n\n```swift\nfunc loadDashboard() async throws -> Dashboard {\n    async let stats   = fetchStats()\n    async let notices = fetchNotices()\n    guard !Task.isCancelled else { throw CancellationError() }\n    return Dashboard(stats: try await stats, notices: try await notices)\n}\n```",
+      "estimatedMinutes": 6,
+      "body": "Swift offers several ways to start concurrent work, each with different inheritance and lifetime rules.\n\n### `Task { }` vs `Task.detached { }`\n\n`Task { }` created inside an actor-isolated or async context inherits that context's actor, priority, and task-local values. `Task.detached { }` starts a fresh, top-level task: no inherited actor, no inherited priority, no inherited task locals. Detached tasks are also **not** structured children — the enclosing scope doesn't wait for them, and cancelling the enclosing task doesn't cancel them.\n\n### `async let` — implicit structured children\n\n`async let` starts a child task immediately; the `await` is deferred until the value is actually needed. Multiple `async let` bindings run concurrently, and — being structured — each is automatically awaited or cancelled when its enclosing scope exits, even if you never explicitly await it yourself.\n\n```swift\nasync let profile = fetchProfile(id: userID)\nasync let feed = fetchFeed(id: userID)\nlet (p, f) = try await (profile, feed)\n```\n\n### `TaskGroup` — dynamic fan-out\n\nWhen the number of concurrent child tasks isn't known until runtime, `withTaskGroup(of:)` lets you `addTask` in a loop and collect results as they finish, not necessarily in submission order. Cancelling the group cancels every child that hasn't finished yet.\n\n### Bridging callback APIs\n\n`withCheckedContinuation` (and its throwing counterpart) wraps a legacy completion-handler API inside an `async` function. The continuation's `resume` must be called **exactly once** — calling it twice is a runtime misuse, and never calling it hangs the awaiting task forever.\n\n### Cancellation\n\nCancellation is cooperative: marking a task cancelled just flips a flag. Long-running work should check `Task.isCancelled` (or call `try Task.checkCancellation()`) at sensible points and exit early.",
       "quickCheck": {
         "id": "concurrency-l3-qc",
         "kind": "multipleChoice",
-        "prompt": "In structured concurrency, when do child tasks complete?",
-        "explanation": "Structured concurrency guarantees that every child task finishes before the enclosing scope returns, preventing orphaned background work and making lifetimes predictable.",
+        "prompt": "In structured concurrency, when is a child task guaranteed to have finished?",
+        "explanation": "Structured concurrency ties a child task's lifetime to its enclosing scope: the scope cannot return until every child task it created has completed or been cancelled and awaited.",
         "correctIndex": 0,
         "rubric": null,
         "level": "junior",
         "codeSnippet": null,
         "options": [
           {
-            "text": "Before the parent task returns",
+            "text": "Before the enclosing scope that created it returns",
             "isMonospaced": false
           },
           {
-            "text": "At an indeterminate time after the parent",
+            "text": "At some indeterminate point after the app is backgrounded",
             "isMonospaced": false
           },
           {
-            "text": "When the app goes to background",
+            "text": "Only once the main actor becomes idle",
             "isMonospaced": false
           },
           {
-            "text": "When the main actor is idle",
+            "text": "Whenever the system scheduler next has a free core",
+            "isMonospaced": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "concurrency-l4",
+      "order": 3,
+      "title": "Sendable, Races, Deadlocks & Swift 6 Checking",
+      "estimatedMinutes": 7,
+      "body": "Two failure modes get lumped together as 'concurrency bugs' but they're distinct. A **data race** is two threads touching the same mutable memory at once, with at least one write, and no synchronization — the outcome is undefined and often nondeterministic. A **deadlock** is threads or tasks each waiting on something the other holds, so neither ever proceeds — the outcome is a hang, not corruption.\n\n### `Sendable`\n\nA `Sendable` type is safe to move across concurrency domains — actor boundaries, `Task` closures — without introducing a data race. Value types made entirely of `Sendable` members are implicitly `Sendable`. Classes are not, by default, because references can be mutated from multiple places at once; a class can conform by being immutable, by synchronizing its own state internally, or — as an escape hatch you must justify — by being marked `@unchecked Sendable`.\n\n### `@Sendable` closures and `nonisolated`\n\nA closure typed `@Sendable` (required, for example, by `Task { }`'s initializer) must not capture non-Sendable mutable state by reference. `nonisolated` marks a member of an actor as exempt from actor isolation — callable without `await` — but it therefore cannot touch the actor's isolated mutable storage.\n\n### Locks and semaphores vs actors\n\n`DispatchSemaphore` and `NSLock` can serialize access the same way an actor does, but they block the calling thread while waiting, they aren't checked by the compiler, and misuse — such as waiting on a semaphore from the same serial queue that signals it — is a common deadlock source. An actor's `await` never blocks a thread; the thread is released back to the pool, and the compiler rejects unsynchronized access to isolated state at compile time.\n\n### Swift 6 strict concurrency\n\nUnder the Swift 6 language mode, sendable-checking violations that used to be warnings become **compile errors**: passing non-`Sendable` state across an actor boundary, or capturing mutable state in a `@Sendable` closure, simply won't build.",
+      "quickCheck": {
+        "id": "concurrency-l4-qc",
+        "kind": "multipleChoice",
+        "prompt": "Which best distinguishes a data race from a deadlock?",
+        "explanation": "A data race is unsynchronized concurrent access to shared mutable state, with at least one write, producing undefined results. A deadlock is mutual waiting that never resolves, producing a hang rather than corrupted data.",
+        "correctIndex": 2,
+        "rubric": null,
+        "level": "mid",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "A data race always crashes the process; a deadlock only ever slows it down",
+            "isMonospaced": false
+          },
+          {
+            "text": "A deadlock corrupts memory; a data race merely wastes CPU cycles",
+            "isMonospaced": false
+          },
+          {
+            "text": "A data race is unsynchronized concurrent access to shared state; a deadlock is mutual waiting that never completes",
+            "isMonospaced": false
+          },
+          {
+            "text": "They're two names the compiler uses for the same diagnostic",
             "isMonospaced": false
           }
         ]
@@ -116,27 +151,27 @@
     {
       "id": "concurrency-q1",
       "kind": "multipleChoice",
-      "prompt": "What does `await` actually do at runtime?",
-      "explanation": "`await` is a suspension point — the task pauses and the thread is released for other work. The task resumes on an appropriate executor when the result is ready.",
-      "correctIndex": 1,
+      "prompt": "What distinguishes `DispatchQueue.main` from a queue returned by `DispatchQueue.global(qos:)`?",
+      "explanation": "`DispatchQueue.main` is a serial queue bound to the main thread — one block runs at a time, in order. Global queues are concurrent: the system can run multiple submitted blocks in parallel across worker threads.",
+      "correctIndex": 2,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
         {
-          "text": "Blocks the calling thread until the result is available",
+          "text": "DispatchQueue.main runs blocks in parallel across CPU cores; global queues run one at a time",
           "isMonospaced": false
         },
         {
-          "text": "Suspends the current task and yields the thread to the scheduler",
+          "text": "Global queues can only be used for networking; DispatchQueue.main can run any kind of code",
           "isMonospaced": false
         },
         {
-          "text": "Spawns a new background thread",
+          "text": "DispatchQueue.main is serial and thread-bound; global queues are concurrent",
           "isMonospaced": false
         },
         {
-          "text": "Converts a synchronous call to asynchronous",
+          "text": "There is no practical difference — both ultimately run on the same worker threads",
           "isMonospaced": false
         }
       ]
@@ -144,27 +179,27 @@
     {
       "id": "concurrency-q2",
       "kind": "multipleChoice",
-      "prompt": "What is actor reentrancy?",
-      "explanation": "Actors are reentrant: a suspension at `await` lets other callers execute on the actor. This means actor state can change between two awaits in the same method — guard against that.",
+      "prompt": "An actor method does `let balance = accountBalance; await externalCall(); accountBalance = balance - amount`. Why is this risky?",
+      "explanation": "Actors are reentrant: at the `await`, another call is free to run on the actor and change `accountBalance` before the suspended method resumes. That method then overwrites the change using its stale, pre-await snapshot.",
       "correctIndex": 1,
       "rubric": null,
       "level": "senior",
       "codeSnippet": null,
       "options": [
         {
-          "text": "An actor can be called from multiple actors simultaneously",
+          "text": "await blocks every other call to this actor for the rest of the app's lifetime, so it deadlocks waiting on itself",
           "isMonospaced": false
         },
         {
-          "text": "While an actor is suspended at an await, another call can run on that actor",
+          "text": "Another call can interleave during the await and mutate accountBalance before this method resumes",
           "isMonospaced": false
         },
         {
-          "text": "An actor retains a strong reference to itself",
-          "isMonospaced": false
+          "text": "accountBalance is a global variable and isn't actor-isolated at all",
+          "isMonospaced": true
         },
         {
-          "text": "A method calling itself recursively inside an actor",
+          "text": "Swift disallows reading a property before an await, so this line fails to compile",
           "isMonospaced": false
         }
       ]
@@ -172,27 +207,27 @@
     {
       "id": "concurrency-q3",
       "kind": "multipleChoice",
-      "prompt": "What is the difference between `Task { }` and `Task.detached { }`?",
-      "explanation": "`Task { }` inherits the current actor (e.g. @MainActor if called from a @MainActor context). `Task.detached` runs as a free agent — no actor inherited, useful when you explicitly don't want to capture the surrounding context.",
+      "prompt": "You call `Task.detached { await self.sync() }` from inside a `@MainActor` method. What do you give up compared to plain `Task { }`?",
+      "explanation": "`Task { }` inherits the creating context's actor, priority, and task-local values. `Task.detached` starts an independent top-level task with none of that inherited — including no automatic @MainActor isolation.",
       "correctIndex": 1,
       "rubric": null,
       "level": "mid",
       "codeSnippet": null,
       "options": [
         {
-          "text": "Task.detached runs on the main thread; Task runs on a background thread",
+          "text": "Nothing — detached tasks behave identically to Task {} once they start running",
           "isMonospaced": false
         },
         {
-          "text": "Task inherits the current actor context; Task.detached runs without any actor context",
+          "text": "Inheritance of the creating context's actor, priority, and task-local values",
           "isMonospaced": false
         },
         {
-          "text": "Task is structured; Task.detached is not — Task.detached's lifetime is bound to its parent",
+          "text": "The ability to call async functions from inside the closure at all",
           "isMonospaced": false
         },
         {
-          "text": "There is no functional difference",
+          "text": "Structured cancellation of any further child tasks the detached task itself spawns",
           "isMonospaced": false
         }
       ]
@@ -200,27 +235,27 @@
     {
       "id": "concurrency-q4",
       "kind": "multipleChoice",
-      "prompt": "What does `async let` do when you declare two bindings before awaiting them?",
-      "explanation": "`async let` starts both child tasks immediately in parallel. Awaiting them collects results in declaration order regardless of which finishes first.",
+      "prompt": "You write `async let a = fetchA(); async let b = fetchB()` followed later by `let (x, y) = try await (a, b)`. When do fetchA and fetchB actually start running?",
+      "explanation": "`async let` starts its child task immediately at the declaration, not at the await. Both run concurrently from the moment they're declared; the later await only collects results that may already be in progress.",
       "correctIndex": 0,
       "rubric": null,
       "level": "mid",
       "codeSnippet": null,
       "options": [
         {
-          "text": "Both tasks run in parallel — results collected in declaration order",
+          "text": "Both start immediately at their async let declarations, running concurrently",
           "isMonospaced": false
         },
         {
-          "text": "Tasks run sequentially in declaration order",
+          "text": "Both start only once the await line is reached and executes",
           "isMonospaced": false
         },
         {
-          "text": "The second task doesn't start until the first is awaited",
+          "text": "fetchA starts immediately; fetchB waits until fetchA finishes",
           "isMonospaced": false
         },
         {
-          "text": "The compiler reorders them for optimal performance",
+          "text": "The compiler silently reorders the two declarations based on which function has fewer parameters",
           "isMonospaced": false
         }
       ]
@@ -228,92 +263,92 @@
     {
       "id": "concurrency-q5",
       "kind": "multipleChoice",
-      "prompt": "Why should UI updates be performed on `@MainActor`?",
-      "explanation": "UIKit's view hierarchy is not thread-safe — modifying views from a background thread causes undefined behavior. `@MainActor` confines code to the main thread, making safety explicit and compiler-enforced.",
+      "prompt": "Why does updating a UIKit view from a background thread cause problems?",
+      "explanation": "UIKit's view hierarchy is not thread-safe; touching it off the main thread produces undefined behavior, including crashes and visual glitches. @MainActor confines UI code to the main thread and lets the compiler enforce it.",
       "correctIndex": 0,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
         {
-          "text": "UIKit and SwiftUI are not thread-safe and require main-thread access",
+          "text": "UIKit assumes single-threaded access to its view hierarchy",
           "isMonospaced": false
         },
         {
-          "text": "Background threads cannot access any Apple framework",
+          "text": "Background threads run at a reduced clock speed on iOS devices",
           "isMonospaced": false
         },
         {
-          "text": "@MainActor provides automatic retain counting",
+          "text": "UIView conforms to Sendable, which blocks writes from off the main thread",
           "isMonospaced": true
         },
         {
-          "text": "Only @MainActor tasks can make network calls",
-          "isMonospaced": true
+          "text": "The main thread has exclusive access to the device's network stack",
+          "isMonospaced": false
         }
       ]
     },
     {
       "id": "concurrency-q6",
       "kind": "multipleChoice",
-      "prompt": "What does `Task.isCancelled` return?",
-      "explanation": "Cancellation in Swift is cooperative — `Task.isCancelled` lets you check the flag and exit early. Tasks don't stop automatically; you must check and respond.",
+      "prompt": "What does checking `Task.isCancelled` inside a long-running task actually accomplish?",
+      "explanation": "Cancellation in Swift concurrency is cooperative — nothing stops a task automatically. Checking the flag lets your code notice a cancellation request and choose to stop early; ignoring it means the task keeps running to completion.",
       "correctIndex": 1,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
         {
-          "text": "Immediately stops execution of the current task",
+          "text": "It immediately halts execution of the task at that exact line",
           "isMonospaced": false
         },
         {
-          "text": "true if a cancellation request has been sent to this task",
+          "text": "It reports whether a cancellation request was sent, so the code can choose to stop early",
           "isMonospaced": false
         },
         {
-          "text": "Cancels all child tasks in a task group",
+          "text": "It cancels every other task sharing the same executor",
           "isMonospaced": false
         },
         {
-          "text": "Throws a CancellationError automatically",
-          "isMonospaced": true
+          "text": "It throws a CancellationError automatically the very instant the flag would evaluate to true",
+          "isMonospaced": false
         }
       ]
     },
     {
       "id": "concurrency-q7",
       "kind": "multipleChoice",
-      "prompt": "What does `MainActor.run { }` do?",
-      "explanation": "`MainActor.run` lets non-main-actor code hop to the main actor to perform UI work in a single call, equivalent to a hopped `await` onto MainActor.",
+      "prompt": "What does `await MainActor.run { updateLabel() }` do when called from a background task?",
+      "explanation": "MainActor.run hops the given closure onto the main actor and awaits its completion — a one-off way to run a piece of work on the main thread from any isolation context.",
       "correctIndex": 1,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
         {
-          "text": "Blocks the current thread until the main actor is free",
+          "text": "Blocks the background thread synchronously without ever yielding control back to the scheduler",
           "isMonospaced": false
         },
         {
-          "text": "Submits a closure to run on the main actor from any context",
+          "text": "Suspends the caller, runs the closure on the main actor, and resumes with its result",
           "isMonospaced": false
         },
         {
-          "text": "Creates a new main-thread task",
-          "isMonospaced": false
-        },
-        {
-          "text": "Replaces DispatchQueue.main.sync",
+          "text": "Schedules updateLabel to run after the current run loop cycle only",
           "isMonospaced": true
+        },
+        {
+          "text": "Only works if the enclosing type is already declared @MainActor",
+          "isMonospaced": false
         }
       ]
     },
     {
       "id": "concurrency-q8",
       "kind": "code",
-      "prompt": "What is the problem with this code?",
-      "explanation": "Two concurrent tasks mutating the same variable without synchronization is a data race. Swift's strict concurrency checking would flag this; the fix is an actor or a Sendable value type.",
+      "prompt": "What's wrong with this snippet under Swift's concurrency model?",
+      "explanation": "counter is mutable state captured and written from two independently scheduled tasks with no synchronization — a data race. The final printed value is not guaranteed, and Swift 6's strict checking flags this at compile time.",
       "correctIndex": 0,
       "rubric": null,
       "level": "senior",
@@ -324,19 +359,19 @@
       },
       "options": [
         {
-          "text": "Data race — counter is shared mutable state accessed from concurrent tasks",
+          "text": "counter is mutable shared state written from two unsynchronized tasks — a data race",
           "isMonospaced": false
         },
         {
-          "text": "counter is always 2",
+          "text": "counter must be explicitly declared as var counter: Int = 0 or the file fails to compile",
+          "isMonospaced": true
+        },
+        {
+          "text": "The two Task blocks always run one after another, so print always shows 2",
           "isMonospaced": false
         },
         {
-          "text": "Compile error — counter must be let",
-          "isMonospaced": false
-        },
-        {
-          "text": "Tasks run serially so there is no race",
+          "text": "print(counter) captures a stale copy from before either task started",
           "isMonospaced": false
         }
       ]
@@ -344,55 +379,559 @@
     {
       "id": "concurrency-q9",
       "kind": "multipleChoice",
-      "prompt": "What does `Sendable` conformance mean?",
-      "explanation": "Sendable marks types safe for cross-actor or cross-task transfer. Value types are implicitly Sendable; classes must be explicitly made Sendable (usually by being immutable or internally synchronized).",
+      "prompt": "What problem does marking a type Sendable actually solve?",
+      "explanation": "Sendable is a compile-time guarantee that a type's values can be passed across actor or task boundaries without introducing a data race — it's about concurrency safety, not serialization or networking.",
       "correctIndex": 1,
       "rubric": null,
       "level": "mid",
       "codeSnippet": null,
       "options": [
         {
-          "text": "A type can be sent over a network",
+          "text": "It lets values of the type be encoded and sent over a network connection",
           "isMonospaced": false
         },
         {
-          "text": "A type is safe to pass across actor boundaries (concurrency-safe)",
+          "text": "It certifies the type is safe to share across concurrency domains without a data race",
           "isMonospaced": false
         },
         {
-          "text": "A type supports async/await calls",
+          "text": "It makes every property of the type implicitly confined to one actor",
           "isMonospaced": false
         },
         {
-          "text": "A type conforms to Codable",
-          "isMonospaced": true
+          "text": "It's a prerequisite the compiler silently enforces before any type can conform to Codable",
+          "isMonospaced": false
         }
       ]
     },
     {
       "id": "concurrency-q10",
       "kind": "multipleChoice",
-      "prompt": "How does Swift's structured concurrency differ from `DispatchQueue.async`?",
-      "explanation": "Structured concurrency ensures child tasks complete before their parent scope exits, cancellation propagates automatically, and the async/await type system enforces correct usage — things DispatchQueue cannot offer.",
+      "prompt": "A senior engineer says structured concurrency is more than sugar over `DispatchQueue.async`. What backs that claim?",
+      "explanation": "Structured concurrency ties child task lifetimes to their enclosing scope, propagates cancellation down the task tree automatically, and lets the type system express throwing/async contracts — none of which DispatchQueue's fire-and-forget closures provide on their own.",
       "correctIndex": 1,
       "rubric": null,
       "level": "senior",
       "codeSnippet": null,
       "options": [
         {
-          "text": "Structured concurrency blocks threads; DispatchQueue does not",
+          "text": "DispatchQueue.async blocks the submitting thread for the whole duration of the closure, while structured concurrency's tasks never do",
           "isMonospaced": false
         },
         {
-          "text": "Structured concurrency ties task lifetimes to their scope, propagates cancellation, and integrates with the type system",
+          "text": "Child task lifetimes are scoped, cancellation propagates automatically, and the type system enforces async/throws contracts",
           "isMonospaced": false
         },
         {
-          "text": "DispatchQueue.async supports async/await; structured concurrency does not",
+          "text": "DispatchQueue queues cannot execute more than one closure, ever",
+          "isMonospaced": false
+        },
+        {
+          "text": "Structured concurrency requires manually tracking a DispatchGroup for every child task",
+          "isMonospaced": true
+        }
+      ]
+    },
+    {
+      "id": "concurrency-q11",
+      "kind": "multipleChoice",
+      "prompt": "You submit a block with `queue.sync { doWork() }`. What happens to the thread that made the call?",
+      "explanation": "`.sync` doesn't return control to the caller until the submitted block has finished executing — the calling thread is blocked for that entire duration, unlike `.async`, which returns immediately.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "It's released back to the thread pool immediately, and doWork runs later",
+          "isMonospaced": false
+        },
+        {
+          "text": "It runs doWork on a freshly spawned thread while the caller continues in parallel",
+          "isMonospaced": false
+        },
+        {
+          "text": "It blocks until doWork finishes executing, then continues",
+          "isMonospaced": false
+        },
+        {
+          "text": "It's suspended without consuming resources, exactly like an await",
+          "isMonospaced": true
+        }
+      ]
+    },
+    {
+      "id": "concurrency-q12",
+      "kind": "code",
+      "prompt": "This function is called while already executing on the main thread. What happens when it runs?",
+      "explanation": "DispatchQueue.main is serial. Calling .sync on it from code that's already running on the main thread asks the main queue to run a block and blocks waiting for it — but the queue can't start that block until the current, blocked work finishes. Neither side can proceed: a deadlock.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": {
+        "filename": "MainSyncDeadlock.swift",
+        "language": "swift",
+        "code": "func updateUI() {\n    // already running on the main thread\n    DispatchQueue.main.sync {\n        label.text = \"Done\"\n    }\n}"
+      },
+      "options": [
+        {
+          "text": "label.text updates normally, since calling sync from the main queue is just a stylistic choice here",
+          "isMonospaced": false
+        },
+        {
+          "text": "The block runs on a background thread instead, to avoid blocking the caller",
+          "isMonospaced": false
+        },
+        {
+          "text": "It throws a runtime error that Xcode reports as a data race",
+          "isMonospaced": false
+        },
+        {
+          "text": "It deadlocks — the main queue can't run the block until the caller finishes waiting on it",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "concurrency-q13",
+      "kind": "multipleChoice",
+      "prompt": "You submit three blocks, A then B then C, to the same serial `DispatchQueue`. What can you rely on?",
+      "explanation": "A serial queue runs one block at a time and starts each one only after the previous one finishes, in the order submitted — that ordering guarantee is exactly what 'serial' means.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "A finishes before B starts, and B finishes before C starts",
+          "isMonospaced": false
+        },
+        {
+          "text": "All three may run concurrently if the system has idle cores available",
+          "isMonospaced": false
+        },
+        {
+          "text": "The queue picks whichever of the three blocks is fastest to run first",
+          "isMonospaced": false
+        },
+        {
+          "text": "Order is only guaranteed if every block is marked @Sendable",
+          "isMonospaced": true
+        }
+      ]
+    },
+    {
+      "id": "concurrency-q14",
+      "kind": "code",
+      "prompt": "`queue` is a serial DispatchQueue. Why does this pattern hang?",
+      "explanation": "Both wait() and the async block are competing for the same serial queue's one execution slot. Because wait() runs on that same serial queue rather than a different thread, the signaling block can never get a turn to run — each side is waiting on the other.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": {
+        "filename": "SemaphoreDeadlock.swift",
+        "language": "swift",
+        "code": "let semaphore = DispatchSemaphore(value: 0)\nqueue.async {\n    doSetup()\n    semaphore.signal()\n}\nqueue.sync {\n    semaphore.wait() // called on `queue` itself, a serial queue\n}"
+      },
+      "options": [
+        {
+          "text": "DispatchSemaphore only works with concurrent queues, never serial ones",
           "isMonospaced": true
         },
         {
-          "text": "There is no meaningful difference",
+          "text": "doSetup() throws an error partway through, so semaphore.signal() is never reached at all in this closure",
+          "isMonospaced": false
+        },
+        {
+          "text": "wait() occupies the serial queue's only execution slot, so the block that would call signal() never runs",
+          "isMonospaced": false
+        },
+        {
+          "text": "semaphore.wait() always times out after a fixed system interval",
+          "isMonospaced": true
+        }
+      ]
+    },
+    {
+      "id": "concurrency-q15",
+      "kind": "multipleChoice",
+      "prompt": "How do a data race and a deadlock differ in terms of observable failure?",
+      "explanation": "A data race is unsynchronized concurrent access to shared mutable state with at least one write — it produces nondeterministic, sometimes silently wrong, results. A deadlock is mutual waiting that never resolves — it produces a hang, with no corrupted data at all.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "A data race always terminates the running process immediately, while a deadlock only ever pauses execution briefly",
+          "isMonospaced": false
+        },
+        {
+          "text": "A deadlock corrupts shared memory; a data race merely wastes CPU time",
+          "isMonospaced": false
+        },
+        {
+          "text": "They describe the same failure at different layers of the stack",
+          "isMonospaced": false
+        },
+        {
+          "text": "A data race yields nondeterministic or corrupted results; a deadlock yields a permanent hang with no corruption",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "concurrency-q16",
+      "kind": "code",
+      "prompt": "Two callers invoke `withdraw(80)` on the same Account instance at nearly the same moment. Why might the balance go negative despite the guard check?",
+      "explanation": "The await inside logAttempt() is a suspension point. Both calls can pass the guard — balance is 100, and 80 <= 100 — before either has subtracted anything, because the actor is reentrant and lets the second call run during the first call's suspension. Each call then subtracts independently, taking balance below zero.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "Account.swift",
+        "language": "swift",
+        "code": "actor Account {\n    private var balance = 100\n\n    func withdraw(_ amount: Int) async {\n        guard balance >= amount else { return }\n        await logAttempt()\n        balance -= amount\n    }\n}"
+      },
+      "options": [
+        {
+          "text": "guard statements are evaluated lazily and never actually block execution",
+          "isMonospaced": false
+        },
+        {
+          "text": "Actors run their methods on multiple threads simultaneously by default",
+          "isMonospaced": false
+        },
+        {
+          "text": "Both calls can pass the guard before either await resumes, since the actor is reentrant",
+          "isMonospaced": false
+        },
+        {
+          "text": "balance is declared with var, which fully disables the actor's isolation for that property",
+          "isMonospaced": true
+        }
+      ]
+    },
+    {
+      "id": "concurrency-q17",
+      "kind": "multipleChoice",
+      "prompt": "You need to fetch an unknown number of thumbnails, decided at runtime, all concurrently, then collect every result. Which tool fits best?",
+      "explanation": "withTaskGroup lets you addTask in a loop for however many child tasks you need at runtime, then iterate over the group to collect results as they complete — exactly the dynamic-count case async let, fixed at compile time, doesn't cover.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "async let, declared once per possible thumbnail ahead of time",
+          "isMonospaced": true
+        },
+        {
+          "text": "Task.detached, called once per thumbnail with no group involved",
+          "isMonospaced": false
+        },
+        {
+          "text": "withTaskGroup, adding one child task per thumbnail in a loop",
+          "isMonospaced": false
+        },
+        {
+          "text": "DispatchQueue.concurrentPerform called from inside an async function",
+          "isMonospaced": true
+        }
+      ]
+    },
+    {
+      "id": "concurrency-q18",
+      "kind": "code",
+      "prompt": "If one of the addTask closures throws, what happens to the other in-flight child tasks in this group?",
+      "explanation": "When a child task in a throwing task group throws, the group rethrows on the next `for try await`, and — because task groups are structured — every remaining child task is automatically cancelled as the group's scope exits; none are left running.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "Fetcher.swift",
+        "language": "swift",
+        "code": "func fetchAll(_ urls: [URL]) async throws -> [Data] {\n    try await withThrowingTaskGroup(of: Data.self) { group in\n        for url in urls {\n            group.addTask { try await fetch(url) }\n        }\n        var results: [Data] = []\n        for try await data in group {\n            results.append(data)\n        }\n        return results\n    }\n}"
+      },
+      "options": [
+        {
+          "text": "The group cancels every remaining child task as it unwinds and rethrows the error",
+          "isMonospaced": false
+        },
+        {
+          "text": "The other child tasks keep running to completion in the background, detached from the group",
+          "isMonospaced": false
+        },
+        {
+          "text": "The whole process terminates immediately, since throwing task groups can't recover",
+          "isMonospaced": false
+        },
+        {
+          "text": "fetchAll silently returns an empty array instead of throwing",
+          "isMonospaced": true
+        }
+      ]
+    },
+    {
+      "id": "concurrency-q19",
+      "kind": "multipleChoice",
+      "prompt": "You need to call a legacy API that only offers `func load(completion: @escaping (Result<Data, Error>) -> Void)` from inside an `async` function. What's the idiomatic bridge?",
+      "explanation": "withCheckedThrowingContinuation hands you a continuation object; you call the legacy completion-based API inside the closure and resume the continuation exactly once with the result, turning the callback API into a normal awaitable call.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Wrap the call in Task.detached and poll a shared variable until it's set",
+          "isMonospaced": false
+        },
+        {
+          "text": "Call it directly — Swift treats any completion handler as implicitly async",
+          "isMonospaced": false
+        },
+        {
+          "text": "Use a DispatchSemaphore inside the async function to block until the completion handler eventually fires",
+          "isMonospaced": false
+        },
+        {
+          "text": "Wrap it with withCheckedThrowingContinuation and resume exactly once inside the completion handler",
+          "isMonospaced": true
+        }
+      ]
+    },
+    {
+      "id": "concurrency-q20",
+      "kind": "code",
+      "prompt": "This code calls two legacy APIs, each of which can resume the same continuation. What's the concrete risk?",
+      "explanation": "withCheckedContinuation enforces resume-exactly-once; if both legacyLoad and legacyLoadFallback complete, resume is called a second time on an already-resumed continuation, which is a misuse the runtime flags rather than something that silently succeeds twice.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "Bridge.swift",
+        "language": "swift",
+        "code": "func load() async throws -> Data {\n    try await withCheckedThrowingContinuation { continuation in\n        legacyLoad { result in\n            continuation.resume(with: result)\n        }\n        legacyLoadFallback { result in\n            continuation.resume(with: result)\n        }\n    }\n}"
+      },
+      "options": [
+        {
+          "text": "Nothing at all — the continuation simply returns whichever result arrives first and quietly ignores the rest",
+          "isMonospaced": false
+        },
+        {
+          "text": "If both callbacks fire, resume gets called twice on the same continuation, which the runtime flags as misuse",
+          "isMonospaced": false
+        },
+        {
+          "text": "The function never returns, because two callbacks conflict at compile time",
+          "isMonospaced": false
+        },
+        {
+          "text": "legacyLoadFallback is automatically cancelled once legacyLoad starts running",
+          "isMonospaced": true
+        }
+      ]
+    },
+    {
+      "id": "concurrency-q21",
+      "kind": "multipleChoice",
+      "prompt": "Inside a `@MainActor` method you write `Task.detached { self.updateModel() }` instead of `Task { self.updateModel() }`. What changes?",
+      "explanation": "Task.detached doesn't inherit the creating context's actor. updateModel() no longer runs with implicit @MainActor isolation just because the enclosing method was @MainActor — if updateModel touches main-actor state, it now needs its own isolation or an explicit hop.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Nothing — detached tasks still run on whatever actor created them",
+          "isMonospaced": false
+        },
+        {
+          "text": "updateModel runs twice as fast because it skips actor isolation checks",
+          "isMonospaced": false
+        },
+        {
+          "text": "updateModel loses the implicit @MainActor isolation inherited from the enclosing method",
+          "isMonospaced": true
+        },
+        {
+          "text": "The compiler rejects this line outright, since detached tasks can't call instance methods at all",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "concurrency-q22",
+      "kind": "multipleChoice",
+      "prompt": "What does marking a member of an actor `nonisolated` allow?",
+      "explanation": "nonisolated exempts a member from the actor's isolation, so it can be called synchronously without await from outside — but in exchange it can't read or write the actor's isolated mutable storage.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "It can be called without await, but it can't touch the actor's isolated mutable state",
+          "isMonospaced": true
+        },
+        {
+          "text": "It moves that member's execution onto a background thread pool instead of the actor's own executor",
+          "isMonospaced": false
+        },
+        {
+          "text": "It gives every caller unrestricted, synchronized access to the actor's storage",
+          "isMonospaced": false
+        },
+        {
+          "text": "It turns the member into a global actor reachable from anywhere in the app",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "concurrency-q23",
+      "kind": "multipleChoice",
+      "prompt": "Your project builds cleanly under the Swift 5 language mode with minimal concurrency checking. What's the practical effect of switching the module to the Swift 6 language mode?",
+      "explanation": "Swift 6 makes complete data-race safety a build requirement rather than a warning: passing non-Sendable values across isolation boundaries, or capturing mutable state in a @Sendable closure, becomes a compile error instead of something that used to pass silently.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Nothing changes unless the deployment target is also raised",
+          "isMonospaced": false
+        },
+        {
+          "text": "All DispatchQueue-based code is rejected in favor of async/await only",
+          "isMonospaced": true
+        },
+        {
+          "text": "Actors are silently replaced at compile time with equivalent hand-written class-and-lock synchronization code",
+          "isMonospaced": false
+        },
+        {
+          "text": "Sendable and isolation violations that used to be warnings, or invisible, become compile errors",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "concurrency-q24",
+      "kind": "code",
+      "prompt": "Under the Swift 6 language mode, what's flagged about capturing `counter` inside the `Task { }` closure?",
+      "explanation": "Task's closure is @Sendable, so anything it captures must be Sendable. Counter is a plain mutable class with no synchronization and no Sendable conformance, so capturing it here is exactly the kind of unsynchronized shared-state access strict checking is designed to catch.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": {
+        "filename": "Counter.swift",
+        "language": "swift",
+        "code": "final class Counter {\n    var value = 0\n}\n\nlet counter = Counter()\nTask {\n    counter.value += 1\n}"
+      },
+      "options": [
+        {
+          "text": "Nothing — Task closures don't require anything they capture to be Sendable",
+          "isMonospaced": false
+        },
+        {
+          "text": "value must be declared with let for the closure to compile at all",
+          "isMonospaced": true
+        },
+        {
+          "text": "Counter is a non-Sendable mutable class captured by a @Sendable closure, flagged as unsafe",
+          "isMonospaced": false
+        },
+        {
+          "text": "Task { } silently makes a fresh, independent value copy of counter before running the closure",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "concurrency-q25",
+      "kind": "multipleChoice",
+      "prompt": "What is a `DispatchSemaphore` most fundamentally used for?",
+      "explanation": "A semaphore maintains a counter that wait() decrements and signal() increments; when the count would go negative, wait() blocks — it's a low-level tool for limiting or serializing access to a resource, independent of Swift's actor model.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Limiting or serializing access to a resource through a blocking counter",
+          "isMonospaced": false
+        },
+        {
+          "text": "Declaring a closure's captured values as officially safe to send across actor boundaries",
+          "isMonospaced": true
+        },
+        {
+          "text": "Marking a function as eligible to suspend at await points",
+          "isMonospaced": false
+        },
+        {
+          "text": "Automatically retrying a failed asynchronous network request",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "concurrency-q26",
+      "kind": "multipleChoice",
+      "prompt": "A class protected by an internal `NSLock` and an `actor` can both serialize access to mutable state. What's a genuine trade-off between them, not just a style preference?",
+      "explanation": "A lock-protected class blocks the calling thread while waiting and gives the compiler no way to catch a forgotten lock() call — it's enforced only by convention. An actor's await never blocks a thread, and the compiler rejects unsynchronized access to actor-isolated state at compile time.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Actors can never be called from synchronous code, while locked classes can be used anywhere",
+          "isMonospaced": false
+        },
+        {
+          "text": "NSLock-based classes are always faster, since they avoid Swift's runtime scheduler entirely",
+          "isMonospaced": true
+        },
+        {
+          "text": "Actors require every property to be a value type, unlike locked classes",
+          "isMonospaced": false
+        },
+        {
+          "text": "A lock blocks the thread and isn't checked by the compiler; an actor's await never does",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "concurrency-q27",
+      "kind": "code",
+      "prompt": "fetchRowsSynchronously() is a heavy synchronous call with no suspension points inside it. What's the practical problem with calling it directly from this @MainActor async method?",
+      "explanation": "async doesn't move a function's body off the main thread by itself — this method is @MainActor, so it executes on the main thread, and calling a long synchronous, non-suspending function from it blocks the main thread for its whole duration, exactly as calling it from a non-async method would.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": {
+        "filename": "ViewModel.swift",
+        "language": "swift",
+        "code": "@MainActor\nfinal class ReportViewModel {\n    func generate() async {\n        let rows = fetchRowsSynchronously() // blocking, CPU-heavy, no internal await\n        self.rows = rows\n    }\n}"
+      },
+      "options": [
+        {
+          "text": "It won't compile, since @MainActor methods can't call non-async functions",
+          "isMonospaced": false
+        },
+        {
+          "text": "generate silently runs on a background thread because it's marked async",
+          "isMonospaced": false
+        },
+        {
+          "text": "fetchRowsSynchronously is automatically wrapped in a Task.detached by the compiler",
+          "isMonospaced": true
+        },
+        {
+          "text": "It still runs on the main thread and blocks it, despite generate being async",
           "isMonospaced": false
         }
       ]
