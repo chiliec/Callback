@@ -123,4 +123,55 @@ struct ContentValidationTests {
                     "\(topic.id) covers only \(levels.map(\.rawValue).sorted())")
         }
     }
+
+    /// Gradable questions in a topic's own bank (excludes lesson quick-checks).
+    private func gradable(_ topic: TopicDTO) -> [QuestionDTO] {
+        topic.questions.filter { !$0.kind.isSelfRated && !$0.options.isEmpty }
+    }
+
+    /// Systemic position tell: the older topics only ever placed the correct
+    /// answer at index 0 or 1. No single index may hold >40% of a topic's
+    /// gradable answers once the bank is large enough to measure.
+    @Test func answerPositionsAreNotClustered() throws {
+        for topic in try bundle().topics {
+            let g = gradable(topic)
+            guard g.count >= 12 else { continue }
+            var counts: [Int: Int] = [:]
+            for q in g { if let i = q.correctIndex { counts[i, default: 0] += 1 } }
+            let maxShare = Double(counts.values.max() ?? 0) / Double(g.count)
+            #expect(maxShare <= 0.40,
+                    "\(topic.id): a correctIndex holds \(Int(maxShare * 100))% of \(g.count) answers (max 40%) — \(counts.sorted { $0.key < $1.key })")
+        }
+    }
+
+    /// Systemic length tell: the correct option must not be the strictly-longest
+    /// option in more than 40% of a topic's gradable questions (chance ~25%).
+    @Test func correctOptionIsNotSystematicallyLongest() throws {
+        for topic in try bundle().topics {
+            let g = gradable(topic)
+            guard g.count >= 12 else { continue }
+            var longest = 0
+            for q in g {
+                guard let ci = q.correctIndex, q.options.indices.contains(ci) else { continue }
+                let lengths = q.options.map { $0.text.count }
+                let maxLen = lengths.max() ?? 0
+                if lengths[ci] == maxLen && lengths.filter({ $0 == maxLen }).count == 1 {
+                    longest += 1
+                }
+            }
+            let share = Double(longest) / Double(g.count)
+            #expect(share <= 0.40,
+                    "\(topic.id): correct answer is the longest option in \(Int(share * 100))% of \(g.count) questions (max 40%)")
+        }
+    }
+
+    /// Uniform option count: every gradable question offers exactly 4 options.
+    @Test func gradableQuestionsHaveFourOptions() throws {
+        for topic in try bundle().topics {
+            for q in gradable(topic) {
+                #expect(q.options.count == 4,
+                        "\(q.id) has \(q.options.count) options, expected 4")
+            }
+        }
+    }
 }
