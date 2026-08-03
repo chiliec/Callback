@@ -163,9 +163,9 @@
       "codeSnippet": null,
       "options": [
         { "text": "Move the closure's body into a separate top-level function so it can't reference self", "isMonospaced": false },
-        { "text": "Mark the property lazy so the closure is created only once", "isMonospaced": true },
-        { "text": "Declare the property static so it isn't tied to a specific instance", "isMonospaced": true },
-        { "text": "Add [weak self] or [unowned self] to the closure's capture list", "isMonospaced": true }
+        { "text": "Mark the property lazy so the closure is created only once", "isMonospaced": false },
+        { "text": "Declare the property static so it isn't tied to a specific instance", "isMonospaced": false },
+        { "text": "Add [weak self] or [unowned self] to the closure's capture list", "isMonospaced": false }
       ]
     },
     {
@@ -559,7 +559,7 @@
       "codeSnippet": null,
       "options": [
         { "text": "Switch every bridged object from a class to a struct to avoid ARC entirely", "isMonospaced": false },
-        { "text": "Wrap the loop body in an explicit autoreleasepool { } to drain temporaries more frequently", "isMonospaced": true },
+        { "text": "Wrap the loop body in an explicit autoreleasepool { } to drain temporaries more frequently", "isMonospaced": false },
         { "text": "Mark the loop variable weak so temporaries deallocate as soon as they're created", "isMonospaced": false },
         { "text": "Add [unowned self] to the loop closure to stop it from retaining the enclosing context", "isMonospaced": false }
       ]

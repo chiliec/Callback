@@ -15,8 +15,11 @@ struct MockSessionView: View {
 
     @State private var showPauseOverlay = false
     @State private var savedResult: MockCompletion.Result? = nil
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let labels = ["A", "B", "C", "D"]
+    /// See `QuestionPlayerView`: the verdict lands below the fold otherwise.
+    private static let verdictAnchor = "verdict"
     private var profile: UserProfile? { profiles.first }
 
     var body: some View {
@@ -102,54 +105,56 @@ struct MockSessionView: View {
 
     @ViewBuilder
     private func questionContent(_ question: Question) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                if let topic = question.topic {
-                    Text(topic.name.uppercased())
-                        .font(DSFont.sectionHeader)
-                        .foregroundStyle(DSColor.secondaryLabel)
-                }
-                Text(question.prompt)
-                    .font(DSFont.question)
-                if let snippet = question.codeSnippet {
-                    CodeBlock(filename: snippet.filename, language: snippet.language, code: snippet.code)
-                }
-                let sortedOptions = question.options.sorted { $0.order < $1.order }
-                ForEach(Array(sortedOptions.enumerated()), id: \.element.persistentModelID) { i, option in
-                    OptionRow(
-                        label: i < Self.labels.count ? Self.labels[i] : "\(i + 1)",
-                        text: option.text,
-                        isMonospaced: option.isMonospaced,
-                        state: answerState(optionIndex: i, question: question)
-                    ) {
-                        session.pick(i)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    if let topic = question.topic {
+                        Text(topic.name.uppercased())
+                            .font(DSFont.sectionHeader)
+                            .foregroundStyle(DSColor.secondaryLabel)
+                    }
+                    Text(inlineMarkdown: question.prompt)
+                        .font(DSFont.question)
+                    if let snippet = question.codeSnippet {
+                        CodeBlock(filename: snippet.filename, language: snippet.language, code: snippet.code)
+                    }
+                    let sortedOptions = question.options.sorted { $0.order < $1.order }
+                    ForEach(Array(sortedOptions.enumerated()), id: \.element.persistentModelID) { i, option in
+                        OptionRow(
+                            label: i < Self.labels.count ? Self.labels[i] : "\(i + 1)",
+                            text: option.text,
+                            isMonospaced: option.isMonospaced,
+                            state: answerState(optionIndex: i, question: question)
+                        ) {
+                            session.pick(i)
+                        }
+                    }
+                    if question.kind.isSelfRated {
+                        SelfAssessCard(
+                            rubric: question.rubric ?? question.explanation,
+                            isRevealed: session.isGuidanceRevealed,
+                            selection: session.rating,
+                            onReveal: { session.revealGuidance() },
+                            onRate: { session.rate($0) }
+                        )
+                    } else if session.isAnswered {
+                        verdictView(question, proxy: proxy)
                     }
                 }
-                if question.kind.isSelfRated {
-                    SelfAssessCard(
-                        rubric: question.rubric ?? question.explanation,
-                        isRevealed: session.isGuidanceRevealed,
-                        selection: session.rating,
-                        onReveal: { session.revealGuidance() },
-                        onRate: { session.rate($0) }
-                    )
-                } else if session.isAnswered {
-                    verdictView(question)
-                }
+                .padding(DSSpacing.sessionInset)
             }
-            .padding(DSSpacing.sessionInset)
-        }
-        .safeAreaInset(edge: .bottom) {
-            if session.isAnswered {
-                Button("Next") { session.advance() }
-                    .font(DSFont.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(DSColor.action)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: DSRadius.button, style: .continuous))
-                    .padding(DSSpacing.sessionInset)
-                    .background(.bar)
+            .safeAreaInset(edge: .bottom) {
+                if session.isAnswered {
+                    Button("Next") { session.advance() }
+                        .font(DSFont.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(DSColor.action)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: DSRadius.button, style: .continuous))
+                        .padding(DSSpacing.sessionInset)
+                        .background(.bar)
+                }
             }
         }
     }
@@ -157,7 +162,7 @@ struct MockSessionView: View {
     // MARK: Verdict
 
     @ViewBuilder
-    private func verdictView(_ question: Question) -> some View {
+    private func verdictView(_ question: Question, proxy: ScrollViewProxy) -> some View {
         if let picked = session.pickedIndex {
             let correct = question.correctIndex.map { picked == $0 } ?? false
             HStack(spacing: 6) {
@@ -170,12 +175,23 @@ struct MockSessionView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background((correct ? DSColor.green : DSColor.red).opacity(0.12))
             .clipShape(RoundedRectangle(cornerRadius: DSRadius.control, style: .continuous))
+            .id(Self.verdictAnchor)
+            // From `onAppear`, not `onChange(of: session.isAnswered)`: the anchor
+            // isn't in the hierarchy yet when the flag flips. See
+            // `QuestionPlayerView`.
+            .onAppear {
+                withAnimation(
+                    DSMotion.animation(.easeOut(duration: 0.3), reduceMotion: reduceMotion)
+                ) {
+                    proxy.scrollTo(Self.verdictAnchor, anchor: .top)
+                }
+            }
         }
         GroupedCard {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Why")
                     .font(DSFont.headline)
-                Text(question.explanation)
+                Text(inlineMarkdown: question.explanation)
                     .font(DSFont.body)
                     .foregroundStyle(DSColor.secondaryLabel)
             }

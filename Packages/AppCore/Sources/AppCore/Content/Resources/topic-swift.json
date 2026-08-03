@@ -162,7 +162,7 @@
       "level": "junior",
       "codeSnippet": null,
       "options": [
-        { "text": "nil, typed as Int?", "isMonospaced": true },
+        { "text": "nil, typed as Int?", "isMonospaced": false },
         { "text": "A runtime crash, since chaining through a nil optional force-unwraps every intermediate link along the way", "isMonospaced": false },
         { "text": "0", "isMonospaced": true },
         { "text": "An empty string, since count on a nil chain defaults to a zero-length String before being converted to a count", "isMonospaced": false }

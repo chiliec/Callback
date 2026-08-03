@@ -19,7 +19,7 @@ struct ReviewItemView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                Text(question.prompt)
+                Text(inlineMarkdown: question.prompt)
                     .font(DSFont.question)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -166,7 +166,9 @@ struct ReviewItemView: View {
                 Text("Why")
                     .font(DSFont.footnote)
                     .foregroundStyle(DSColor.secondaryLabel)
-                Text(question.kind.isSelfRated ? (question.rubric ?? question.explanation) : question.explanation)
+                Text(inlineMarkdown: question.kind.isSelfRated
+                     ? (question.rubric ?? question.explanation)
+                     : question.explanation)
                     .font(DSFont.body)
             }
         }

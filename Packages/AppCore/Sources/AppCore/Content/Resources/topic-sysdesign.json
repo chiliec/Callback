@@ -48,7 +48,7 @@
           { "text": "Server timestamps have higher precision", "isMonospaced": false },
           { "text": "It avoids sending a timestamp over the wire", "isMonospaced": false },
           { "text": "Device clocks are untrustworthy, so they can't order events across devices", "isMonospaced": false },
-          { "text": "`Date()` is not `Sendable`", "isMonospaced": true }
+          { "text": "Date() is not Sendable", "isMonospaced": false }
         ]
       }
     },

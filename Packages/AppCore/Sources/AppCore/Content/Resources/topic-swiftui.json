@@ -452,7 +452,7 @@
         },
         {
           "text": "Compile error — the id: \\.self parameter is only accepted for element types that already conform to Identifiable",
-          "isMonospaced": true
+          "isMonospaced": false
         },
         {
           "text": "ForEach only requires unique ids once the array's element count grows past roughly a hundred entries",
@@ -580,7 +580,7 @@
         },
         {
           "text": "No, because .animation(_:value:) here only watches isOnline, not label",
-          "isMonospaced": true
+          "isMonospaced": false
         }
       ]
     },
@@ -628,7 +628,7 @@
         },
         {
           "text": "Wrapping every destination view in AnyView ahead of time",
-          "isMonospaced": true
+          "isMonospaced": false
         },
         {
           "text": "Appending type-erased Hashable values to a NavigationPath and letting navigationDestination(for:) resolve each one to a view",
@@ -664,11 +664,11 @@
         },
         {
           "text": "Only if NameLabel is also marked @Observable itself",
-          "isMonospaced": true
+          "isMonospaced": false
         },
         {
           "text": "It depends on whether ProfileModel conforms to Equatable",
-          "isMonospaced": true
+          "isMonospaced": false
         }
       ]
     },
@@ -716,7 +716,7 @@
       "options": [
         {
           "text": "A draw(in:) method that renders pixels directly into a CGContext",
-          "isMonospaced": true
+          "isMonospaced": false
         },
         {
           "text": "A body property, exactly like any other ordinary View conformance, with no additional requirements to satisfy",
@@ -724,11 +724,11 @@
         },
         {
           "text": "An intrinsicContentSize property describing the shape's natural size",
-          "isMonospaced": true
+          "isMonospaced": false
         },
         {
           "text": "A path(in:) method that returns a Path describing the outline for a given rectangle",
-          "isMonospaced": true
+          "isMonospaced": false
         }
       ]
     },
@@ -784,7 +784,7 @@
         },
         {
           "text": "Color.clear, SwiftUI's fallback for any unset environment key",
-          "isMonospaced": true
+          "isMonospaced": false
         },
         {
           "text": "Whatever value brandAccent held the very last time the app launched",
