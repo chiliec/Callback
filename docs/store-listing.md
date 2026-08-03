@@ -88,17 +88,23 @@ device.
 **Public link limit:** 100
 
 **What to test:**
-The six original topics — Swift, Memory, Concurrency, SwiftUI, UIKit, and
-Behavioral — are now the same depth as Testing and Architecture & Patterns: 4
-lessons and 27 questions each, up from 3 lessons and 10. Your progress carries
-over untouched.
+This build fixes readability and interaction issues found while dogfooding the
+last one. Nothing about your progress or the content changes — the questions are
+the same, they just read correctly now.
 
-• Topics → any of Swift, Memory, Concurrency, SwiftUI, UIKit, Behavioral. Each
-now has a 4th lesson and a much larger question bank across junior/mid/senior
-levels — try Practice on one you'd already finished to see the new questions.
-• Practice → Mock Interview to get questions from across all nine topics
-mixed together, now drawing from a much deeper pool.
-• Behavioral drills should feel distinctly different question-to-question —
-flag anything that reads as a near-duplicate of another prompt.
+• Question text and answers → code terms like `struct` or `@MainActor` should
+render as inline code, never as literal backticks on screen. Flag any leftover
+backtick you see in a prompt, answer, explanation, or rubric.
+• Answer options → a whole-sentence answer should read as normal prose, not in
+a code font; only true code (a keyword, a value, program output) stays
+monospaced. Flag any full sentence still shown in code font.
+• Behavioral lessons → open a lesson's quick-check: it should let you reveal
+the guidance and rate yourself (Shaky / Decent / Solid) and move the topic's
+mastery, not dead-end on a prompt with nothing to tap.
+• Practice a topic → the drill should ramp easiest-to-hardest and the answer
+verdict + "Why" should scroll into view after you answer, not hide behind the
+Next button. The lesson reader's title bar should stay opaque as you scroll.
+• Code snippets → a wide snippet should fade at its right edge to show it
+scrolls sideways, rather than clipping with no hint.
 • Anything else: backgrounding the app mid-mock (the timer should survive),
 VoiceOver, and large Dynamic Type sizes.
