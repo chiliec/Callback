@@ -1,0 +1,940 @@
+{
+  "id": "networking",
+  "name": "Networking",
+  "section": "frameworks",
+  "symbolName": "network",
+  "colorToken": "networking",
+  "order": 5,
+  "lessons": [
+    {
+      "id": "networking-l1",
+      "order": 0,
+      "title": "URLSession and async/await",
+      "estimatedMinutes": 5,
+      "body": "`URLSession` is the foundation of networking on Apple platforms, and its `async`/`await` API is now the default way to call it. `URLSession.shared.data(for:)` takes a `URLRequest` and returns a `(Data, URLResponse)` tuple, suspending the calling task until the response arrives instead of handing control back through a closure.\n\n## Building a request\n\nA `URLRequest` wraps a `URL` plus everything HTTP needs beyond the address:\n\n- `httpMethod` — `\"GET\"` by default; set explicitly for `\"POST\"`, `\"PUT\"`, `\"DELETE\"`\n- `allHTTPHeaderFields` / `setValue(_:forHTTPHeaderField:)` — headers like `Authorization` or `Content-Type`\n- `httpBody` — the request payload, usually JSON-encoded `Data`\n- `timeoutInterval` — how long to wait before giving up on this specific request\n\n```swift\nvar request = URLRequest(url: url)\nrequest.httpMethod = \"POST\"\nrequest.setValue(\"application/json\", forHTTPHeaderField: \"Content-Type\")\nrequest.httpBody = try JSONEncoder().encode(payload)\nlet (data, response) = try await URLSession.shared.data(for: request)\n```\n\n`URLResponse` has to be downcast to `HTTPURLResponse` to read `statusCode` — the base type doesn't know about HTTP at all, since `URLSession` also handles `file://` and other schemes.\n\n## Why async replaced the completion handler\n\nThe old `dataTask(with:completionHandler:)` API returns a `URLSessionDataTask` you must remember to call `.resume()` on, and reports errors through an `Error?` parameter you must remember to check before touching the other two. `async`/`await` collapses that into ordinary `try`/`catch` control flow, and nested requests read top-to-bottom instead of pyramiding into nested closures.\n\n## Cancellation\n\nWrapping a call in a `Task` gives you a handle: calling `.cancel()` on that task propagates down to the underlying `URLSessionTask` and the `await` throws a `CancellationError` (surfaced as a `URLError` with code `.cancelled`). This only works if the request is actually still running inside that `Task` — a cancelled parent doesn't retroactively stop a request that a *different*, still-running task already kicked off.\n\n> KEY: A `Task` wrapping a network call is also a cancellation handle — losing track of it (starting a new one without cancelling the old) is how stale responses outrace fresh ones.",
+      "quickCheck": {
+        "id": "networking-l1-qc",
+        "kind": "multipleChoice",
+        "prompt": "What does `URLSession.shared.data(for:)` return, and how must you read the HTTP status code from it?",
+        "explanation": "It returns a `(Data, URLResponse)` tuple; `URLResponse` itself has no notion of HTTP status, so the response must be downcast to `HTTPURLResponse` before `statusCode` is available.",
+        "correctIndex": 2,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "A single Data value, with the status code readable directly as a property on that Data instance",
+            "isMonospaced": false
+          },
+          {
+            "text": "A (Data, HTTPURLResponse) tuple, since URLSession only ever talks HTTP and never any other URL scheme",
+            "isMonospaced": false
+          },
+          {
+            "text": "A (Data, URLResponse) tuple; the response must be downcast to HTTPURLResponse to read statusCode",
+            "isMonospaced": false
+          },
+          {
+            "text": "A Result<Data, URLError> value that must be switched over before the status code becomes available",
+            "isMonospaced": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "networking-l2",
+      "order": 1,
+      "title": "Codable and JSON",
+      "estimatedMinutes": 6,
+      "body": "`Codable` is `Encodable` and `Decodable` combined, and the compiler synthesizes conformance automatically once every stored property is itself `Codable` — a struct whose fields match the JSON's keys needs no extra code at all.\n\n## Naming the keys\n\nA nested `CodingKeys: String, CodingKey` enum maps a Swift property name to the JSON key it should read and write, one case per property. Omit a case and that property falls back to its own name verbatim.\n\n```swift\nstruct Profile: Decodable {\n    let displayName: String\n    let joinedAt: Date\n\n    enum CodingKeys: String, CodingKey {\n        case displayName = \"display_name\"\n        case joinedAt = \"joined_at\"\n    }\n}\n```\n\nWriting a full `CodingKeys` case for every renamed field gets tedious once a whole payload is `snake_case`. `JSONDecoder().keyDecodingStrategy = .convertFromSnakeCase` handles the common, regular case — `display_name` → `displayName` — without a `CodingKeys` enum at all, but it can't help with a key that's renamed irregularly or nested several objects deep; those still need an explicit mapping.\n\n## Dates\n\nJSON has no native date type, so `dateDecodingStrategy` tells the decoder how to read one: `.iso8601` for a timestamp string, `.secondsSince1970` for a Unix epoch number, or `.formatted(_:)` for a custom `DateFormatter`. The strategy has to match what the server actually sends — configuring `.secondsSince1970` against a server emitting ISO8601 strings throws a decoding error on every request, not silently truncated dates.\n\n## When decoding fails\n\n`DecodingError` carries four cases — `.keyNotFound`, `.typeMismatch`, `.valueNotFound`, `.dataCorrupted` — each with a `context` naming the exact coding path that failed, which is the first thing worth logging when a decode breaks. A quieter failure mode: a key that's simply *missing*, mapped to an `Optional` Swift property, decodes to `nil` with no error thrown at all — indistinguishable, from the caller's side, from the server genuinely having no value there.\n\n## Custom `init(from:)`\n\nSome payloads don't fit synthesized conformance: a field that must default to a value instead of throwing when absent, a type that varies by a `\"kind\"` discriminator, or a value that needs post-processing on the way in. Writing `init(from decoder: Decoder) throws` by hand and pulling a `KeyedDecodingContainer` out of it handles all three.\n\n> KEY: A missing key mapped to an Optional decodes to nil with no thrown error — the same shape as a value the server legitimately never set.",
+      "quickCheck": {
+        "id": "networking-l2-qc",
+        "kind": "multipleChoice",
+        "prompt": "What happens if a `CodingKeys` case is simply omitted for a stored property?",
+        "explanation": "Without an entry in `CodingKeys`, the synthesized conformance falls back to using the Swift property's own name as the JSON key, verbatim.",
+        "correctIndex": 1,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "Decoding throws immediately, since every stored property is required to have an explicit CodingKeys case listed before conformance can be synthesized at all",
+            "isMonospaced": false
+          },
+          {
+            "text": "It falls back to the property's own Swift name as the JSON key",
+            "isMonospaced": false
+          },
+          {
+            "text": "The property is silently skipped and left at its type's default value, the same way an unimplemented protocol requirement is skipped",
+            "isMonospaced": false
+          },
+          {
+            "text": "It's treated as computed rather than stored, so Codable ignores it entirely during both encoding and decoding",
+            "isMonospaced": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "networking-l3",
+      "order": 2,
+      "title": "Error Handling and Resilience",
+      "estimatedMinutes": 5,
+      "body": "A network call can fail in three distinct ways, and treating them the same hides real bugs. A `URLError` means the request never got a response at all — no connection, DNS failure, a timeout. An `HTTPURLResponse` with a 4xx or 5xx `statusCode` means the request *did* complete — the server answered, just not with success. A `DecodingError` means the response arrived and parsed the wrong shape. Each needs a different reaction.\n\n## Retry, but selectively\n\nA transient failure — a timeout, a dropped connection, a 5xx — is worth retrying, ideally with **exponential backoff plus jitter**: each attempt waits roughly twice as long as the last, and a small random offset keeps many clients that failed at the same moment from retrying in lockstep and re-overwhelming a recovering server. A 4xx is a different animal entirely: `400`, `401`, `404` describe a request that's wrong as written, and resending it unchanged fails identically every time — retrying just wastes calls. `429 Too Many Requests` is the one exception worth naming: it genuinely is meant to be retried, but only after honoring the delay the server sent back (typically a `Retry-After` header) — retrying it immediately just deepens the rate limit instead of respecting it.\n\n## Timeouts aren't always what they look like\n\n`URLRequest.timeoutInterval` (and `URLSessionConfiguration.timeoutIntervalForRequest`) bounds how long to wait *between* bytes of activity, not the request's total wall-clock duration on a standard session — a server trickling a few bytes every few seconds keeps resetting that timer indefinitely. Bounding the whole transfer needs `timeoutIntervalForResource` on the session's configuration instead.\n\n## Detecting offline\n\nCatching `URLError.notConnectedToInternet` after a failed request works, but only after paying for the failed attempt. `NWPathMonitor` from the `Network` framework observes connectivity changes proactively, letting the app show an offline state before the user even taps a button that would fail.\n\n## One error type to rule them all\n\nCalling code shouldn't have to `switch` over `URLError`, `HTTPURLResponse.statusCode`, and `DecodingError` separately at every call site. Mapping all three into one domain `enum` — `.offline`, `.serverError(Int)`, `.malformedResponse` — keeps the rest of the app decoupled from Foundation's networking types and gives every call site one consistent thing to handle.\n\n> KEY: A 4xx means the request itself is wrong; retrying it verbatim is not resilience, it's the same mistake sent again.",
+      "quickCheck": {
+        "id": "networking-l3-qc",
+        "kind": "multipleChoice",
+        "prompt": "Why shouldn't a retry-with-backoff policy treat a `404` the same way it treats a `503`?",
+        "explanation": "A `503` is typically transient — the server is temporarily overloaded or restarting — so retrying after a backoff can succeed. A `404` describes the request itself (a resource that doesn't exist); resending the identical request returns the identical `404` every time, so retrying only wastes calls.",
+        "correctIndex": 3,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "They're the same — any non-2xx status should retry the same number of times with the same backoff schedule",
+            "isMonospaced": false
+          },
+          {
+            "text": "404 responses arrive faster than 503 responses, so only 503 needs a backoff delay at all before the next attempt fires",
+            "isMonospaced": false
+          },
+          {
+            "text": "URLSession automatically retries every 503 internally, so application code only ever needs to handle 404 explicitly",
+            "isMonospaced": false
+          },
+          {
+            "text": "A 503 is typically transient and may succeed on retry; a 404 describes the request itself and will fail identically every time it's resent unchanged",
+            "isMonospaced": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "networking-l4",
+      "order": 3,
+      "title": "Authentication and Security",
+      "estimatedMinutes": 6,
+      "body": "Most API authentication rides on the `Authorization` HTTP header: `Authorization: Bearer <token>`, attached to every request that needs to prove who's asking. The token itself is usually short-lived on purpose — a stolen access token that expires in an hour is a much smaller problem than one that's valid forever.\n\n## Refresh tokens\n\nBecause the access token is short-lived, a longer-lived **refresh token** exists to mint new access tokens without forcing the user to log in again. A typical flow: a request comes back `401 Unauthorized`, the app exchanges the refresh token for a new access token, then retries the original request once with the new one attached.\n\n## The refresh race\n\nThat retry-once-after-refresh logic hides a concurrency bug if several requests are in flight when the access token expires: each one independently sees a `401`, and each independently kicks off its own refresh call, racing the server and each other. The fix is to coalesce concurrent refreshes — guard the refresh behind an actor (or a single shared `Task`) so the first `401` starts the one refresh in flight, and every other concurrent `401` awaits that same in-progress task instead of starting a new one.\n\n## Transport security\n\nApp Transport Security (ATS) requires HTTPS by default for every network call an app makes; connecting to a plain-`http://` endpoint fails unless an explicit exception is added to `Info.plist`. Exceptions exist for real cases (a legacy internal server that can't be upgraded soon), but a blanket `NSAllowsArbitraryLoads: true` — rather than a narrowly scoped exception for one specific domain — turns off the protection for every request the app makes, and is exactly the kind of change a security-conscious code review should push back on.\n\n## Where secrets actually live\n\n`UserDefaults` backs onto an unencrypted plist file that's trivially readable from a device backup or a jailbroken filesystem; it's fine for a theme preference, not for a token. The Keychain stores values encrypted and behind access-control policies tied to the device's unlock state — it's the only one of the two built for secrets.\n\n> KEY: Concurrent requests that each independently detect an expired token and each independently refresh it is a race — coalesce the refresh into one shared, in-flight task.",
+      "quickCheck": {
+        "id": "networking-l4-qc",
+        "kind": "multipleChoice",
+        "prompt": "Why does storing an auth token in `UserDefaults` matter more than it would for, say, a theme preference?",
+        "explanation": "`UserDefaults` is backed by an unencrypted plist file that's readable from a device backup or a jailbroken filesystem with no special access needed — fine for a preference with no security value, but a real exposure for a credential.",
+        "correctIndex": 0,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "UserDefaults is an unencrypted plist, readable from a backup or a jailbroken filesystem — a real exposure for a credential, not a preference",
+            "isMonospaced": false
+          },
+          {
+            "text": "UserDefaults has a strict 4KB per-key size limit, so a token simply won't fit no matter what it's used for",
+            "isMonospaced": false
+          },
+          {
+            "text": "UserDefaults values are cleared automatically on every app relaunch, so a stored token would be useless a second later regardless of where it lives",
+            "isMonospaced": false
+          },
+          {
+            "text": "There's no real difference — Keychain and UserDefaults offer identical protection, just different APIs for the same underlying storage",
+            "isMonospaced": false
+          }
+        ]
+      }
+    }
+  ],
+  "questions": [
+    {
+      "id": "networking-q1",
+      "kind": "multipleChoice",
+      "prompt": "Which `URLRequest` property sets the HTTP verb used for the request?",
+      "explanation": "`httpMethod` holds the HTTP verb as a string (`\"GET\"`, `\"POST\"`, and so on); it defaults to `\"GET\"` if never set.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "verb, since that is the property name URLRequest uses to store which HTTP method a given outgoing request is configured to send",
+          "isMonospaced": false
+        },
+        {
+          "text": "requestType",
+          "isMonospaced": false
+        },
+        {
+          "text": "action",
+          "isMonospaced": false
+        },
+        {
+          "text": "httpMethod",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q2",
+      "kind": "multipleChoice",
+      "prompt": "Compare `URLSession.shared.data(for:)` to the older `dataTask(with:completionHandler:)` API from a cancellation and error-handling standpoint.",
+      "explanation": "The completion-handler API requires remembering to call `.resume()` and to check the `Error?` parameter before touching the other results; the async version reports failures through ordinary `throw`s and ties cancellation to the wrapping `Task`, so there's no separate handle to forget to resume or a callback to forget to guard.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "They behave identically; the async version is only a naming convenience layered over the same completion-handler mechanics underneath, changing nothing about resuming or errors",
+          "isMonospaced": false
+        },
+        {
+          "text": "The completion-handler API needs a manual .resume() call and an Error? check; the async version throws on failure and ties cancellation to the wrapping Task",
+          "isMonospaced": false
+        },
+        {
+          "text": "The completion-handler API cannot be cancelled at all once `.resume()` has been called on the returned task",
+          "isMonospaced": false
+        },
+        {
+          "text": "Only the completion-handler API can report an HTTP status code; the async API can only report transport-level failures",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q3",
+      "kind": "code",
+      "prompt": "`search(_:)` fires on every keystroke. When a user types quickly, the results list sometimes ends up showing matches for an earlier, shorter query instead of the latest one. What's missing?",
+      "explanation": "Nothing here cancels the previous in-flight request before starting a new one, so an older, slower response can still arrive and overwrite a newer, faster one. Storing the previous `Task` and calling `.cancel()` on it before creating the next one ensures only the latest query's response ever lands.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "SearchViewModel.swift",
+        "language": "swift",
+        "code": "@Observable\nfinal class SearchViewModel {\n    var results: [Item] = []\n\n    func search(_ query: String) {\n        Task {\n            let url = makeURL(query)\n            let (data, _) = try await URLSession.shared.data(from: url)\n            results = try JSONDecoder().decode([Item].self, from: data)\n        }\n    }\n}"
+      },
+      "options": [
+        {
+          "text": "results should be wrapped in a separate @Published property, since @Observable alone is assumed to never propagate array mutations to SwiftUI at all",
+          "isMonospaced": false
+        },
+        {
+          "text": "JSONDecoder should be created once and reused across calls, since allocating a new one per request is what causes older responses to arrive after newer ones",
+          "isMonospaced": false
+        },
+        {
+          "text": "The previous search Task is never cancelled before a new one starts, so a slower, older response can still overwrite a newer, faster one; store the Task and cancel it before making the next one",
+          "isMonospaced": false
+        },
+        {
+          "text": "Task {} always runs on a background thread, so results is being written off the main actor and racing with SwiftUI's own render pass",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q4",
+      "kind": "multipleChoice",
+      "prompt": "A response arrives with `HTTPURLResponse.statusCode == 404`. What does that tell you?",
+      "explanation": "A 4xx status means the request reached the server and completed, but describes a problem with the request as sent — here, the requested resource doesn't exist at that URL. It's not a connectivity failure; the round trip succeeded.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "The request reached the server and got an answer — the resource at that URL doesn't exist; it isn't a connectivity failure",
+          "isMonospaced": false
+        },
+        {
+          "text": "The device has no network connection, since any 4xx code is defined as Foundation's way of representing a transport-level failure before a server is ever reached",
+          "isMonospaced": false
+        },
+        {
+          "text": "The request timed out waiting for a response, since a 404 is simply the numeric code URLSession assigns whenever timeoutInterval elapses with no data received",
+          "isMonospaced": false
+        },
+        {
+          "text": "The response body failed to decode into the expected model type, since a 404 is generated locally by JSONDecoder rather than being sent by the server",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q5",
+      "kind": "multipleChoice",
+      "prompt": "How does `URLSessionConfiguration.ephemeral` differ from `.default` in practice?",
+      "explanation": "`.default` persists cookies, cached responses, and credentials to disk across launches, the same as most browser sessions; `.ephemeral` keeps everything in memory only, gone the moment the session is deallocated — useful for a private-browsing-style flow that shouldn't leave a trace.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "They're functionally identical; .ephemeral only changes the string returned by a debug description, with no effect on caching or cookie behavior",
+          "isMonospaced": false
+        },
+        {
+          "text": ".default persists cookies, cache, and credentials to disk across launches; .ephemeral keeps everything in memory only, discarded once the session is gone",
+          "isMonospaced": false
+        },
+        {
+          "text": ".ephemeral is required for any request using async/await, while .default only supports the completion-handler APIs",
+          "isMonospaced": false
+        },
+        {
+          "text": ".ephemeral disables HTTPS entirely, making it suitable only for requests to a local development server on the same machine",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q6",
+      "kind": "code",
+      "prompt": "This loop fetches pages of results until the server reports no more. Cancelling the wrapping `Task` while a large export is running doesn't stop it promptly — it keeps fetching several more pages first. What's missing?",
+      "explanation": "`await`ing a network call does surface cancellation the *next* time control returns to the task, but nothing here checks for it between pages — the loop just keeps issuing new requests. Calling `Task.checkCancellation()` (or checking `Task.isCancelled`) at the top of each iteration stops the loop as soon as a cancellation is observed, instead of only once the underlying request itself happens to throw.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "Exporter.swift",
+        "language": "swift",
+        "code": "func exportAllPages() async throws -> [Record] {\n    var all: [Record] = []\n    var page = 1\n    while true {\n        let batch = try await fetchPage(page)\n        if batch.isEmpty { break }\n        all += batch\n        page += 1\n    }\n    return all\n}"
+      },
+      "options": [
+        {
+          "text": "fetchPage needs to be marked @Sendable before Task cancellation can ever propagate into it at all",
+          "isMonospaced": false
+        },
+        {
+          "text": "while true loops cannot be cancelled in Swift concurrency under any circumstances, regardless of what runs inside the loop body",
+          "isMonospaced": false
+        },
+        {
+          "text": "all += batch should be replaced with all.append(contentsOf:), since += on arrays silently ignores a cancelled task's state",
+          "isMonospaced": false
+        },
+        {
+          "text": "Nothing checks for cancellation between pages; Task.checkCancellation() at the loop's top stops it as soon as it's observed",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q7",
+      "kind": "multipleChoice",
+      "prompt": "What is a `CodingKeys` enum for on a `Decodable` type?",
+      "explanation": "`CodingKeys` maps each Swift property to the exact JSON key it should be read from (and written to for `Encodable`) — necessary whenever a property's Swift name doesn't match the JSON's key verbatim.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "It lists which properties are allowed to be nil during decoding, treating every other property as always required to be present",
+          "isMonospaced": false
+        },
+        {
+          "text": "It declares the order fields must appear in within the JSON payload, since JSONDecoder is defined as position-sensitive rather than key-based",
+          "isMonospaced": false
+        },
+        {
+          "text": "It maps each Swift property to the specific JSON key it should be decoded from (and encoded to)",
+          "isMonospaced": false
+        },
+        {
+          "text": "It's only needed for Encodable conformance; Decodable synthesizes correct keys automatically even when the JSON keys differ from the Swift names",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q8",
+      "kind": "multipleChoice",
+      "prompt": "`JSONDecoder().keyDecodingStrategy = .convertFromSnakeCase` is set on a decoder. Where does this strategy fall short, still requiring an explicit `CodingKeys` mapping?",
+      "explanation": "The snake_case strategy handles the regular, mechanical transform — `display_name` to `displayName` — but can't help when a key is renamed irregularly (not just re-cased) or when the mapping needs to reach into a differently-shaped nested structure; those still need a hand-written `CodingKeys` (or custom `init(from:)`).",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "A key that's renamed irregularly, or a mapping that needs to reach into a differently-nested structure, since the strategy only performs the mechanical snake_case-to-camelCase transform",
+          "isMonospaced": false
+        },
+        {
+          "text": "It never works for top-level properties, only for values nested at least one object deep inside the payload",
+          "isMonospaced": false
+        },
+        {
+          "text": "It only applies when encoding, not decoding, so a Decodable-only type gets no benefit from setting it at all",
+          "isMonospaced": false
+        },
+        {
+          "text": "Nothing — it's a strict superset of a hand-written CodingKeys enum and makes one unnecessary in every case",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q9",
+      "kind": "code",
+      "prompt": "The server renamed a field from `\"is_verified\"` to `\"is_confirmed\"`, but this `CodingKeys` case wasn't updated. Decoding never throws, yet `isVerified` is always `false` in the app. Why no error?",
+      "explanation": "`isVerified` is `Bool?`, and a missing key mapped to an Optional property decodes to `nil` — not a thrown error — because the decoder treats an absent key on an Optional the same as a value the server legitimately never set. The stale CodingKeys case now points at a key that no longer exists, so it always resolves to nil, which the call site is silently defaulting to false.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "Account.swift",
+        "language": "swift",
+        "code": "struct Account: Decodable {\n    let isVerified: Bool?\n\n    enum CodingKeys: String, CodingKey {\n        case isVerified = \"is_verified\"\n    }\n}\n\n// account.isVerified ?? false"
+      },
+      "options": [
+        {
+          "text": "isVerified is Optional, so a missing key decodes to nil instead of throwing; the stale key mapping now points nowhere, and ?? false quietly hides it",
+          "isMonospaced": false
+        },
+        {
+          "text": "Bool always decodes successfully regardless of what key it's mapped to, since Bool has a compiler-provided default value of false built into Decodable",
+          "isMonospaced": false
+        },
+        {
+          "text": "CodingKeys entries are only used for encoding; decoding always falls back to matching by property name regardless of what's declared in the enum",
+          "isMonospaced": false
+        },
+        {
+          "text": "JSONDecoder silently renames any unmatched key to the closest property name it can find using a fuzzy string match before decoding continues",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q10",
+      "kind": "multipleChoice",
+      "prompt": "A server sends `\"createdAt\": \"2026-08-03T10:15:00Z\"`, but the decoder is configured with `dateDecodingStrategy = .secondsSince1970`. What happens when decoding a model with a `Date` field for that key?",
+      "explanation": "The strategy tells the decoder what shape to expect for the raw value — a number of seconds — so an ISO8601 string in that position doesn't match, and decoding throws a `DecodingError` (typically `.typeMismatch` or `.dataCorrupted`) rather than silently producing a wrong or truncated date.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "The date decodes successfully but is truncated to just the year and month, dropping the time-of-day portion of the string",
+          "isMonospaced": false
+        },
+        {
+          "text": "JSONDecoder automatically detects the string is ISO8601 and overrides the configured strategy for that one field only",
+          "isMonospaced": false
+        },
+        {
+          "text": "Decoding throws a DecodingError, since the configured strategy expects a numeric value and the string doesn't match that shape",
+          "isMonospaced": false
+        },
+        {
+          "text": "The field decodes to the Unix epoch (January 1, 1970), since that's the default fallback value for any Date whose raw representation can't be parsed",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q11",
+      "kind": "multipleChoice",
+      "prompt": "Which `DecodingError` case fires when a JSON value's type doesn't match what the Swift model expects at that key — say, a JSON string where an `Int` was declared?",
+      "explanation": "`.typeMismatch` is specifically for a value that's present and at the right key, but whose JSON type (string, number, object, array) doesn't match the Swift type the model declared for it.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "keyNotFound",
+          "isMonospaced": false
+        },
+        {
+          "text": "valueNotFound",
+          "isMonospaced": false
+        },
+        {
+          "text": "dataCorrupted, since any mismatch between a declared Swift type and the raw JSON payload is always reported under this single catch-all case",
+          "isMonospaced": false
+        },
+        {
+          "text": "typeMismatch",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q12",
+      "kind": "multipleChoice",
+      "prompt": "A `retryCount` field should default to `0` whenever the server omits it, rather than the decode failing. Why can't a plain, synthesized `Decodable` conformance do this for a non-Optional `Int` property, and what's the fix?",
+      "explanation": "Synthesized conformance treats a missing key as a decode failure unless the property is Optional — there's no built-in way to say 'use this default instead.' Writing a custom `init(from:)` that tries `decodeIfPresent` and falls back to `0` when the key is absent handles exactly this case.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "It already works with no changes needed, since every Int property is treated as implicitly Optional with a default of 0 by the synthesized conformance",
+          "isMonospaced": false
+        },
+        {
+          "text": "Synthesized conformance treats a missing key as a decode failure unless the property is Optional; a custom init(from:) using decodeIfPresent with a fallback to 0 handles the default explicitly",
+          "isMonospaced": false
+        },
+        {
+          "text": "Change retryCount's type to String, since only String properties are permitted to declare a default value in a Decodable initializer",
+          "isMonospaced": false
+        },
+        {
+          "text": "Add @propertyWrapper to the declaration, since property wrappers are the only mechanism Decodable recognizes for supplying a fallback value",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q13",
+      "kind": "multipleChoice",
+      "prompt": "What's the fundamental difference between catching a `URLError` and reading a non-2xx `HTTPURLResponse.statusCode`?",
+      "explanation": "A `URLError` means no HTTP response was ever obtained at all — a transport-layer problem like no connection or a timeout. A non-2xx status code means a response *was* obtained; the server itself reported failure. They're different layers of the same call and call for different handling.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "URLError means no response arrived; a non-2xx status means one did, and the server reported failure",
+          "isMonospaced": false
+        },
+        {
+          "text": "They're two names for the same failure; URLError is simply the legacy term used before HTTPURLResponse existed",
+          "isMonospaced": false
+        },
+        {
+          "text": "A non-2xx status code can only occur when using the completion-handler API, never with async/await",
+          "isMonospaced": false
+        },
+        {
+          "text": "URLError is thrown only for POST requests, while a non-2xx status code is only possible on GET requests",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q14",
+      "kind": "multipleChoice",
+      "prompt": "Why shouldn't a generic retry policy automatically retry a request that came back `400 Bad Request`?",
+      "explanation": "A `400` describes a problem with the request itself, not a transient server or network condition — resending the exact same request produces the exact same `400` every time. Retrying only wastes a call; the request needs to change, not repeat.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "400 responses take longer to arrive than other status codes, so retrying would make the overall request slower without changing the outcome",
+          "isMonospaced": false
+        },
+        {
+          "text": "URLSession already retries every 400 internally before the completion handler or async call ever sees it, so an application-level retry would double the attempts",
+          "isMonospaced": false
+        },
+        {
+          "text": "A 400 can only be returned by servers that don't support retries as a matter of protocol, unlike a 5xx",
+          "isMonospaced": false
+        },
+        {
+          "text": "A 400 describes a problem with the request itself, and resending it unchanged will fail identically every time — retrying wastes a call instead of fixing anything",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q15",
+      "kind": "code",
+      "prompt": "This retry helper is meant to smooth over flaky server connections, but a teammate notices it keeps hammering the server with the same bad request even when it's a client error. What's wrong with the retry condition?",
+      "explanation": "The condition retries on *any* non-2xx status, including 4xx codes like 400 or 401 that describe a problem with the request itself — those will fail identically on every retry. The retry should only trigger for genuinely transient conditions: 5xx server errors and transport-level `URLError`s, not client errors.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "RetryingClient.swift",
+        "language": "swift",
+        "code": "func send(_ request: URLRequest, attemptsLeft: Int = 3) async throws -> Data {\n    let (data, response) = try await URLSession.shared.data(for: request)\n    let status = (response as? HTTPURLResponse)?.statusCode ?? 200\n    if status >= 300 && attemptsLeft > 0 {\n        return try await send(request, attemptsLeft: attemptsLeft - 1)\n    }\n    return data\n}"
+      },
+      "options": [
+        {
+          "text": "attemptsLeft should count up instead of down, since a descending counter is what actually causes the recursion to terminate prematurely",
+          "isMonospaced": false
+        },
+        {
+          "text": "The function needs to be marked @discardableResult, since ignoring its return value is what's triggering the repeated retries",
+          "isMonospaced": false
+        },
+        {
+          "text": "status >= 300 retries every 4xx along with every 5xx; a 400 or 401 will fail identically on every attempt, so only 5xx (and transport errors) should trigger a retry, not any non-2xx",
+          "isMonospaced": false
+        },
+        {
+          "text": "Nothing is wrong; hammering the server on every non-2xx is the expected behavior of a retry helper by definition",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q16",
+      "kind": "multipleChoice",
+      "prompt": "Exponential backoff already spaces out retries with growing delays. What does adding random jitter to each delay accomplish that backoff alone doesn't?",
+      "explanation": "Without jitter, many clients that all failed at the same moment (say, during an outage) retry on the exact same schedule, arriving at the server simultaneously in waves and behaving like a fresh spike of load. A small random offset spreads those retries out in time, so they don't pile up in sync.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "It shortens the average total time spent retrying compared to backoff without jitter, since randomness statistically lowers every individual delay",
+          "isMonospaced": false
+        },
+        {
+          "text": "It keeps many clients that failed at the same moment from retrying in lockstep and re-overwhelming the server all at once with a synchronized wave",
+          "isMonospaced": false
+        },
+        {
+          "text": "It's required by ATS, which rejects any retry schedule that doesn't include a randomized delay component before each attempt",
+          "isMonospaced": false
+        },
+        {
+          "text": "It guarantees the retry will eventually succeed, since a randomized delay is treated as evidence of a genuine, unique attempt rather than an identical resend",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q17",
+      "kind": "multipleChoice",
+      "prompt": "What does `NWPathMonitor` (from the `Network` framework) offer over just catching `URLError.notConnectedToInternet` after a request fails?",
+      "explanation": "`NWPathMonitor` observes connectivity changes proactively and can update the UI to an offline state before the user even attempts an action that would fail — catching the error only tells you after paying for a failed request.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Nothing — they report the exact same information at the exact same moment, just through two different-looking APIs",
+          "isMonospaced": false
+        },
+        {
+          "text": "NWPathMonitor only works over Wi-Fi and cannot observe a cellular connection's state at all",
+          "isMonospaced": false
+        },
+        {
+          "text": "NWPathMonitor observes connectivity proactively, so the app can reflect an offline state before the user even attempts a request that would otherwise fail",
+          "isMonospaced": false
+        },
+        {
+          "text": "Catching URLError.notConnectedToInternet requires a paid Apple Developer entitlement that NWPathMonitor does not",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q18",
+      "kind": "multipleChoice",
+      "prompt": "What's the benefit of mapping `URLError`, an HTTP status code, and `DecodingError` into one shared domain error `enum` before it reaches the rest of the app?",
+      "explanation": "Without that mapping, every call site has to know about, and separately handle, three different Foundation-specific error shapes. A single domain type gives the rest of the app one consistent thing to switch over, decoupled from exactly which networking layer produced the failure.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "The rest of the app gets one consistent error type to handle, decoupled from which of the three underlying Foundation types actually produced the failure",
+          "isMonospaced": false
+        },
+        {
+          "text": "It's required before URLSession.shared.data(for:) will compile, since the compiler rejects any call site that doesn't map to a single domain error type first",
+          "isMonospaced": false
+        },
+        {
+          "text": "It makes the network call synchronous, since domain errors cannot be thrown from within an async context",
+          "isMonospaced": false
+        },
+        {
+          "text": "It automatically retries the request once for every error case without any additional retry code needed",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q19",
+      "kind": "code",
+      "prompt": "This download of a large file is expected to fail after 30 seconds if the server stalls, but instead it sometimes runs for several minutes against a server that trickles a byte every few seconds. `timeoutInterval` is set correctly. What's misunderstood here?",
+      "explanation": "On a standard (non-background) session, `timeoutInterval` bounds the time between bytes of activity, not the transfer's total wall-clock duration — each new byte resets the timer, so a slow trickle keeps the request alive well past 30 seconds. Bounding the whole transfer needs `timeoutIntervalForResource` on the session's `URLSessionConfiguration` instead.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "Downloader.swift",
+        "language": "swift",
+        "code": "var request = URLRequest(url: fileURL)\nrequest.timeoutInterval = 30\nlet (fileHandle, _) = try await URLSession.shared.download(for: request)"
+      },
+      "options": [
+        {
+          "text": "download(for:) ignores timeoutInterval entirely and always uses a hardcoded 60-second timeout regardless of what's set on the request",
+          "isMonospaced": false
+        },
+        {
+          "text": "timeoutInterval bounds gaps between bytes, not total duration; timeoutIntervalForResource bounds the whole transfer instead",
+          "isMonospaced": false
+        },
+        {
+          "text": "The URL points to a file:// resource, and timeoutInterval only applies to https:// requests, never to a download task of any kind",
+          "isMonospaced": false
+        },
+        {
+          "text": "download(for:) requires a background URLSessionConfiguration before any timeout value takes effect at all",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q20",
+      "kind": "multipleChoice",
+      "prompt": "What does `URLCache` do for a `URLSession` request, in broad terms?",
+      "explanation": "`URLCache` stores previous responses (respecting the server's `Cache-Control` headers and the request's cache policy) so a repeat request for the same resource can be served from the cache instead of hitting the network again.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "It encrypts request bodies before they're sent, independent of whether the connection itself is HTTPS",
+          "isMonospaced": false
+        },
+        {
+          "text": "It stores previous responses so a repeated request for the same resource can be served from the cache instead of going back to the network",
+          "isMonospaced": false
+        },
+        {
+          "text": "It automatically retries any request that returns a 5xx status code, functioning as a built-in retry layer",
+          "isMonospaced": false
+        },
+        {
+          "text": "It converts every response body to JSON regardless of the server's actual Content-Type header",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q21",
+      "kind": "code",
+      "prompt": "A user signs out and a different user signs into the same device. Briefly, the second user's feed shows a cached response meant for the first account. `requestCachePolicy` is left at its default. What's the underlying mistake?",
+      "explanation": "The shared `URLCache` keys entries by URL, not by which account made the request, so a per-user response gets served to whoever asks for that same URL next — including a different signed-in user. Account-scoped responses need either cache-busting (a policy that skips the shared cache, or a per-user cache) or an explicit cache flush on sign-out; leaving the default policy in place is what lets the first user's cached data leak into the next session.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "FeedService.swift",
+        "language": "swift",
+        "code": "func fetchFeed(authToken: String) async throws -> [Post] {\n    var request = URLRequest(url: feedURL)\n    request.setValue(\"Bearer \\(authToken)\", forHTTPHeaderField: \"Authorization\")\n    let (data, _) = try await URLSession.shared.data(for: request)\n    return try JSONDecoder().decode([Post].self, from: data)\n}"
+      },
+      "options": [
+        {
+          "text": "URLCache keys responses by URL alone, not by account; flush the shared cache on sign-out, or bypass it for account-scoped requests",
+          "isMonospaced": false
+        },
+        {
+          "text": "JSONDecoder caches decoded model instances internally by type, so [Post] from the first account is reused automatically for the second",
+          "isMonospaced": false
+        },
+        {
+          "text": "The Authorization header is being cached alongside the response, so the second user's request is silently being sent with the first user's token",
+          "isMonospaced": false
+        },
+        {
+          "text": "feedURL must be identical for every account by construction, so this bug is actually a server-side routing mistake and not something the client can address",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q22",
+      "kind": "multipleChoice",
+      "prompt": "What's the standard header and format for attaching a bearer token to an outgoing request?",
+      "explanation": "The `Authorization` header carries the scheme and the token together: `Authorization: Bearer <token>` — the word `Bearer`, a space, then the token value.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "A custom X-Auth-Token header, since Authorization is defined as reserved exclusively for Basic authentication and cannot carry a bearer token",
+          "isMonospaced": false
+        },
+        {
+          "text": "The token placed directly in the URL's query string, since headers cannot carry values longer than a session identifier",
+          "isMonospaced": false
+        },
+        {
+          "text": "Authorization: Bearer <token>",
+          "isMonospaced": false
+        },
+        {
+          "text": "The token set as httpBody on every request, regardless of that request's actual HTTP method",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q23",
+      "kind": "multipleChoice",
+      "prompt": "Why does an auth token belong in the Keychain rather than `UserDefaults`?",
+      "explanation": "The Keychain stores values encrypted and behind access-control policies tied to the device's unlock state; `UserDefaults` is an unencrypted plist, trivially readable from a backup or a jailbroken filesystem — fine for preferences, not for a credential.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "UserDefaults values are synced to iCloud automatically and instantly, which would leak the token to every device signed into the same Apple ID within seconds",
+          "isMonospaced": false
+        },
+        {
+          "text": "UserDefaults cannot store String values at all, only numeric and Boolean preference types",
+          "isMonospaced": false
+        },
+        {
+          "text": "Both offer identical protection; the choice is purely a matter of API style and has no security implication either way",
+          "isMonospaced": false
+        },
+        {
+          "text": "Keychain encrypts values behind access-control policies tied to device unlock state; UserDefaults is an unencrypted, backup-readable plist",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q24",
+      "kind": "multipleChoice",
+      "prompt": "By default, what does App Transport Security (ATS) require of an app's network connections?",
+      "explanation": "ATS requires HTTPS (TLS) by default for every network connection an app makes; a plain `http://` request fails unless an explicit, scoped exception is added to `Info.plist`.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Nothing by default — ATS is an opt-in feature that must be explicitly enabled in Info.plist before it restricts any connection",
+          "isMonospaced": false
+        },
+        {
+          "text": "HTTPS (TLS) for every connection; a plain http:// request fails unless an explicit exception is added to Info.plist",
+          "isMonospaced": false
+        },
+        {
+          "text": "A valid Apple Developer certificate embedded in the binary, checked before any request is permitted to leave the device",
+          "isMonospaced": false
+        },
+        {
+          "text": "That every request include an Authorization header, regardless of whether the endpoint needs authentication",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q25",
+      "kind": "code",
+      "prompt": "After a token expires, every request from this client starts failing repeatedly with `401`, even though the refresh endpoint itself is healthy. What's wrong with this handler?",
+      "explanation": "On a `401`, this retries the exact same request with the exact same (already-expired) token — nothing here ever calls the refresh endpoint or attaches a new token before retrying. The fix is to exchange the refresh token for a new access token on the first `401`, then retry once with that new token attached.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "AuthorizedClient.swift",
+        "language": "swift",
+        "code": "func send(_ request: URLRequest) async throws -> Data {\n    let (data, response) = try await URLSession.shared.data(for: request)\n    let status = (response as? HTTPURLResponse)?.statusCode ?? 200\n    if status == 401 {\n        return try await send(request)\n    }\n    return data\n}"
+      },
+      "options": [
+        {
+          "text": "The retry needs a delay before it runs, since a 401 always resolves itself if the client simply waits a few hundred milliseconds before resending",
+          "isMonospaced": false
+        },
+        {
+          "text": "URLSession.shared should be replaced with a fresh URLSession instance on every call, since reusing the shared instance is what causes a 401 to repeat",
+          "isMonospaced": false
+        },
+        {
+          "text": "On a 401 it retries the identical request with the identical, already-expired token — nothing here refreshes the token or attaches a new one before resending",
+          "isMonospaced": false
+        },
+        {
+          "text": "status should be compared to 403 instead of 401, since 403 is the code that actually indicates an expired access token",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q26",
+      "kind": "code",
+      "prompt": "Five screens each call `authorizedFetch` around the same moment, right after the access token expires. All five hit `401`, and all five independently call `refreshToken()`. What's the practical problem, and what's the fix?",
+      "explanation": "Five concurrent refreshes race the server and each other — wasted calls at best, and at worst a stale response from an earlier refresh overwrites a newer token that a later refresh already stored. The fix is to coalesce concurrent refreshes behind a single shared task (an actor holding an in-flight `Task<String, Error>?`): the first `401` starts the one refresh, and every other concurrent `401` awaits that same task instead of starting its own.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "TokenClient.swift",
+        "language": "swift",
+        "code": "func authorizedFetch(_ request: URLRequest) async throws -> Data {\n    let (data, response) = try await send(request, token: currentToken)\n    if (response as? HTTPURLResponse)?.statusCode == 401 {\n        currentToken = try await refreshToken()\n        return try await send(request, token: currentToken).0\n    }\n    return data\n}"
+      },
+      "options": [
+        {
+          "text": "There's no problem — five independent refresh calls all racing the server at once is the expected, correct way to handle several screens expiring together",
+          "isMonospaced": false
+        },
+        {
+          "text": "Five concurrent refreshes race each other and a stale result can overwrite a newer token; coalesce them behind one shared in-flight task instead",
+          "isMonospaced": false
+        },
+        {
+          "text": "refreshToken() must be marked @MainActor, since only main-actor-isolated functions are permitted to mutate an authentication token",
+          "isMonospaced": false
+        },
+        {
+          "text": "currentToken should be declared as a constant instead of a variable, since a let binding is what prevents redundant refresh calls from occurring",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "networking-q27",
+      "kind": "multipleChoice",
+      "prompt": "A pull request adds `NSAppTransportSecurity` → `NSAllowsArbitraryLoads: true` to `Info.plist` so one legacy internal endpoint can be reached over plain HTTP. Why should a reviewer push back on this specific change?",
+      "explanation": "`NSAllowsArbitraryLoads` disables ATS for every request the app makes, not just the one legacy endpoint that needed an exception — a narrowly scoped exception naming that one domain (`NSExceptionDomains`) gets the same endpoint working without weakening transport security for every other request the app sends.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "It has no real effect, since ATS exceptions declared in Info.plist are ignored by iOS starting with any reasonably recent OS version",
+          "isMonospaced": false
+        },
+        {
+          "text": "It will fail App Store review automatically and unconditionally, so the only question worth asking is which specific rejection message to expect back",
+          "isMonospaced": false
+        },
+        {
+          "text": "It disables ATS app-wide, not just for the legacy endpoint; a scoped NSExceptionDomains entry fixes it without the blanket weakening",
+          "isMonospaced": false
+        },
+        {
+          "text": "It only affects Wi-Fi connections, so the same legacy endpoint reached over cellular would still be blocked by ATS regardless of this change",
+          "isMonospaced": false
+        }
+      ]
+    }
+  ]
+}
