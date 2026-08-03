@@ -27,7 +27,7 @@
             "isMonospaced": false
           },
           {
-            "text": "DispatchQueue.main only accepts async submissions, so sync calls silently no-op",
+            "text": "DispatchQueue.main only accepts async submissions, so a sync call has no effect and never runs the block",
             "isMonospaced": true
           },
           {
@@ -128,7 +128,7 @@
         "codeSnippet": null,
         "options": [
           {
-            "text": "A data race always crashes the process; a deadlock only ever slows it down",
+            "text": "A data race crashes the process outright; a deadlock merely slows it down",
             "isMonospaced": false
           },
           {
@@ -255,7 +255,7 @@
           "isMonospaced": false
         },
         {
-          "text": "The compiler silently reorders the two declarations based on which function has fewer parameters",
+          "text": "The compiler reorders the two declarations based on which function has fewer parameters",
           "isMonospaced": false
         }
       ]
@@ -367,7 +367,7 @@
           "isMonospaced": true
         },
         {
-          "text": "The two Task blocks always run one after another, so print always shows 2",
+          "text": "The two Task blocks run one after another, so print consistently shows 2",
           "isMonospaced": false
         },
         {
@@ -399,7 +399,7 @@
           "isMonospaced": false
         },
         {
-          "text": "It's a prerequisite the compiler silently enforces before any type can conform to Codable",
+          "text": "It's a required prerequisite the compiler enforces before any type can conform to Codable",
           "isMonospaced": false
         }
       ]
@@ -547,7 +547,7 @@
           "isMonospaced": false
         },
         {
-          "text": "semaphore.wait() always times out after a fixed system interval",
+          "text": "semaphore.wait() has a built-in timeout after a fixed system interval",
           "isMonospaced": true
         }
       ]
@@ -563,7 +563,7 @@
       "codeSnippet": null,
       "options": [
         {
-          "text": "A data race always terminates the running process immediately, while a deadlock only ever pauses execution briefly",
+          "text": "A data race terminates the running process immediately, while a deadlock only ever pauses execution for a moment",
           "isMonospaced": false
         },
         {
@@ -667,7 +667,7 @@
           "isMonospaced": false
         },
         {
-          "text": "fetchAll silently returns an empty array instead of throwing",
+          "text": "fetchAll swallows the error and returns an empty array instead of throwing",
           "isMonospaced": true
         }
       ]
@@ -807,7 +807,7 @@
           "isMonospaced": true
         },
         {
-          "text": "Actors are silently replaced at compile time with equivalent hand-written class-and-lock synchronization code",
+          "text": "Actors are replaced at compile time with equivalent hand-written class-and-lock synchronization code",
           "isMonospaced": false
         },
         {
@@ -843,7 +843,7 @@
           "isMonospaced": false
         },
         {
-          "text": "Task { } silently makes a fresh, independent value copy of counter before running the closure",
+          "text": "Task { } makes a fresh, independent copy of counter's current value before running the closure",
           "isMonospaced": false
         }
       ]
@@ -891,7 +891,7 @@
           "isMonospaced": false
         },
         {
-          "text": "NSLock-based classes are always faster, since they avoid Swift's runtime scheduler entirely",
+          "text": "NSLock-based classes are inherently faster, since they avoid Swift's runtime scheduler entirely",
           "isMonospaced": true
         },
         {
@@ -923,7 +923,7 @@
           "isMonospaced": false
         },
         {
-          "text": "generate silently runs on a background thread because it's marked async",
+          "text": "generate automatically runs on a background thread because it's marked async",
           "isMonospaced": false
         },
         {
