@@ -22,22 +22,10 @@
         "level": "junior",
         "codeSnippet": null,
         "options": [
-          {
-            "text": "When retain count drops to 0",
-            "isMonospaced": false
-          },
-          {
-            "text": "When the app moves to background",
-            "isMonospaced": false
-          },
-          {
-            "text": "After every function returns",
-            "isMonospaced": false
-          },
-          {
-            "text": "At the end of the run loop",
-            "isMonospaced": false
-          }
+          { "text": "When retain count drops to 0", "isMonospaced": false },
+          { "text": "When the app moves to background", "isMonospaced": false },
+          { "text": "After every function returns", "isMonospaced": false },
+          { "text": "At the end of the run loop", "isMonospaced": false }
         ]
       }
     },
@@ -57,22 +45,10 @@
         "level": "junior",
         "codeSnippet": null,
         "options": [
-          {
-            "text": "Optional",
-            "isMonospaced": false
-          },
-          {
-            "text": "non-Optional",
-            "isMonospaced": false
-          },
-          {
-            "text": "AnyObject",
-            "isMonospaced": true
-          },
-          {
-            "text": "Any",
-            "isMonospaced": true
-          }
+          { "text": "Optional", "isMonospaced": false },
+          { "text": "non-Optional", "isMonospaced": false },
+          { "text": "AnyObject", "isMonospaced": true },
+          { "text": "Any", "isMonospaced": true }
         ]
       }
     },
@@ -92,22 +68,33 @@
         "level": "junior",
         "codeSnippet": null,
         "options": [
-          {
-            "text": "Optional inside the closure",
-            "isMonospaced": false
-          },
-          {
-            "text": "unowned",
-            "isMonospaced": false
-          },
-          {
-            "text": "a strong reference",
-            "isMonospaced": false
-          },
-          {
-            "text": "nil immediately",
-            "isMonospaced": false
-          }
+          { "text": "Optional inside the closure", "isMonospaced": false },
+          { "text": "unowned", "isMonospaced": false },
+          { "text": "a strong reference", "isMonospaced": false },
+          { "text": "nil immediately", "isMonospaced": false }
+        ]
+      }
+    },
+    {
+      "id": "memory-l4",
+      "order": 3,
+      "title": "Leak Patterns, Autorelease Pools & Debugging Tools",
+      "estimatedMinutes": 5,
+      "body": "Beyond simple two-object cycles, several everyday APIs create leaks in ways that are easy to miss. `Timer.scheduledTimer(target:)` retains its target strongly — a repeating timer on `self` keeps `self` alive as long as the timer is scheduled, and if `self` also holds the timer in a property, neither side is ever released.\n\n```swift\nclass ReportViewController: UIViewController {\n    weak var timer: Timer?  // storing it weakly doesn't fix the cycle by itself\n\n    override func viewWillDisappear(_ animated: Bool) {\n        super.viewWillDisappear(animated)\n        timer?.invalidate()  // break the cycle explicitly — don't rely on deinit\n    }\n}\n```\n\nThe fix has to be proactive: call `invalidate()` from a lifecycle method like `viewWillDisappear`, not from `deinit` — if the timer is what's keeping the view controller alive, `deinit` will never run to invalidate it.\n\n`NotificationCenter` observers used to require an explicit `removeObserver` call in `deinit` to avoid a dangling-pointer crash on the next post. Since iOS 9, the framework holds observers weakly and stops delivering to a deallocated one automatically — the crash risk is gone, though tidying up observers you no longer need is still good hygiene. Delegate properties should almost always be `weak var delegate: SomeDelegate?`: a strong delegate reference is one of the most common accidental cycles, since the delegate typically already owns the object it delegates to.\n\nWhen memory pressure hits, ARC doesn't proactively free anything extra — it has already freed everything it can prove is unreachable. The tools for finding what's *not* unreachable but shouldn't still be alive are Xcode's **Memory Graph Debugger** (a snapshot of every live object and the reference path keeping it alive) and Instruments' **Allocations** and **Leaks** templates (which track instance counts over time and flag cycles with no incoming root reference).\n\nAn `autoreleasepool { }` block is a manual escape hatch: code that produces many autoreleased Objective-C-bridged objects in a tight loop can spike peak memory, because those objects only get freed when the pool drains — normally once per run-loop turn. Wrapping the loop body in its own pool drains far more often, capping the peak instead of letting temporaries accumulate.",
+      "quickCheck": {
+        "id": "memory-l4-qc",
+        "kind": "multipleChoice",
+        "prompt": "Why can relying on `deinit` to call `timer.invalidate()` fail to ever break a Timer-based retain cycle?",
+        "explanation": "Timer.scheduledTimer(target:) retains its target strongly. If that same object is what's supposed to invalidate the timer inside deinit, deinit itself never runs — the timer is the very thing keeping the object alive, so the cycle has to be broken from outside (e.g. viewWillDisappear), not from within deinit.",
+        "correctIndex": 2,
+        "rubric": null,
+        "level": "mid",
+        "codeSnippet": null,
+        "options": [
+          { "text": "Because Timer.invalidate() is asynchronous and completes after deinit already ran", "isMonospaced": false },
+          { "text": "Because Timer instances ignore invalidate() calls made specifically from deinit", "isMonospaced": false },
+          { "text": "Because the timer retains the object strongly, so deinit never runs while the cycle exists", "isMonospaced": false },
+          { "text": "Because deinit cannot call methods on self, only read stored properties", "isMonospaced": false }
         ]
       }
     }
@@ -116,65 +103,41 @@
     {
       "id": "memory-q1",
       "kind": "multipleChoice",
-      "prompt": "What does ARC stand for, and what does it do?",
-      "explanation": "ARC analyzes object ownership at compile time and inserts retain/release calls, eliminating manual memory management while keeping deterministic deallocation timing.",
+      "prompt": "What does ARC stand for, and what problem does it solve?",
+      "explanation": "ARC (Automatic Reference Counting) is a compile-time mechanism: the compiler inserts retain and release calls for you based on static analysis of ownership, so you don't track object lifetimes by hand.",
       "correctIndex": 0,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
-        {
-          "text": "Automatic Reference Counting — tracks object lifetimes and inserts retain/release automatically",
-          "isMonospaced": false
-        },
-        {
-          "text": "Async Resource Control — manages async tasks",
-          "isMonospaced": false
-        },
-        {
-          "text": "App Runtime Cache — caches frequently used objects",
-          "isMonospaced": false
-        },
-        {
-          "text": "Automatic Resource Cleanup — releases unused resources in the run loop",
-          "isMonospaced": false
-        }
+        { "text": "Automatic Reference Counting — the compiler inserts retain/release calls based on static analysis of ownership", "isMonospaced": false },
+        { "text": "Adaptive Runtime Cache — a background thread periodically scans for unreachable objects and reclaims them, much like a tracing garbage collector", "isMonospaced": false },
+        { "text": "Async Resource Coordinator — a scheduler that defers deallocation until the run loop goes idle", "isMonospaced": false },
+        { "text": "Application Resource Controller — a system service that caps how much memory a process may allocate", "isMonospaced": false }
       ]
     },
     {
       "id": "memory-q2",
       "kind": "multipleChoice",
-      "prompt": "When should you use `unowned` instead of `weak`?",
-      "explanation": "`unowned` assumes the object is always alive when accessed; use it only when the closure's lifetime is strictly shorter than the object's, to avoid the Optional overhead of `weak`.",
-      "correctIndex": 1,
+      "prompt": "You're deciding between `weak` and `unowned` for a back-reference from a child object to its parent. When is `unowned` the appropriate choice?",
+      "explanation": "`unowned` skips the Optional wrapper and the nil-check `weak` requires, but it only works safely if the referenced object is guaranteed to outlive the reference; otherwise it crashes rather than degrading gracefully to nil.",
+      "correctIndex": 2,
       "rubric": null,
       "level": "mid",
       "codeSnippet": null,
       "options": [
-        {
-          "text": "When the captured object may be nil at access time",
-          "isMonospaced": false
-        },
-        {
-          "text": "When you are certain the captured object outlives the closure",
-          "isMonospaced": false
-        },
-        {
-          "text": "Always — unowned is more performant",
-          "isMonospaced": false
-        },
-        {
-          "text": "When the reference is to a struct",
-          "isMonospaced": false
-        }
+        { "text": "Whenever the reference points at a delegate, since delegates are conventionally unowned", "isMonospaced": false },
+        { "text": "When the child's own lifetime is longer than the parent's", "isMonospaced": false },
+        { "text": "When the referenced object outlives the reference by design", "isMonospaced": false },
+        { "text": "When you want the compiler to insert a nil check automatically before every access", "isMonospaced": false }
       ]
     },
     {
       "id": "memory-q3",
       "kind": "code",
-      "prompt": "What happens when this code runs?",
-      "explanation": "a.next holds b and b.next holds a — a strong cycle keeps both objects alive even after the variables are nil'd. Neither deinit is called.",
-      "correctIndex": 0,
+      "prompt": "What happens when this code finishes running?",
+      "explanation": "a.next holds b strongly and b.next holds a strongly, so each object's retain count stays above zero even after the local variables a and b are set to nil — neither deinit fires and both nodes leak.",
+      "correctIndex": 1,
       "rubric": null,
       "level": "senior",
       "codeSnippet": {
@@ -183,57 +146,33 @@
         "code": "class Node {\n    var next: Node?\n    deinit { print(\"deinit\") }\n}\nvar a: Node? = Node()\nvar b: Node? = Node()\na?.next = b\nb?.next = a\na = nil\nb = nil"
       },
       "options": [
-        {
-          "text": "deinit is never printed — retain cycle",
-          "isMonospaced": false
-        },
-        {
-          "text": "deinit prints twice",
-          "isMonospaced": false
-        },
-        {
-          "text": "deinit prints once",
-          "isMonospaced": false
-        },
-        {
-          "text": "compile error",
-          "isMonospaced": false
-        }
+        { "text": "deinit prints twice, once for each node, in the order they were nil'd", "isMonospaced": false },
+        { "text": "deinit never prints — the two nodes hold each other in a retain cycle", "isMonospaced": false },
+        { "text": "deinit prints once, for whichever node was created first", "isMonospaced": false },
+        { "text": "The program crashes because next is still non-nil when the variable is cleared", "isMonospaced": false }
       ]
     },
     {
       "id": "memory-q4",
       "kind": "multipleChoice",
-      "prompt": "What is the correct way to break a retain cycle in a stored closure property?",
-      "explanation": "A capture list prevents the closure from incrementing self's retain count, breaking the cycle and allowing deallocation.",
-      "correctIndex": 0,
+      "prompt": "A view model stores a closure in a property, and the closure calls a method on `self`. What's the most direct way to prevent this from creating a permanent retain cycle?",
+      "explanation": "Adding self to the closure's capture list changes how the closure captures it — weakly or unowned — so the closure no longer contributes a strong reference back to the object that owns it.",
+      "correctIndex": 3,
       "rubric": null,
       "level": "mid",
       "codeSnippet": null,
       "options": [
-        {
-          "text": "Use [weak self] or [unowned self] in the closure capture list",
-          "isMonospaced": false
-        },
-        {
-          "text": "Mark the closure @escaping",
-          "isMonospaced": true
-        },
-        {
-          "text": "Declare the closure as a lazy var",
-          "isMonospaced": true
-        },
-        {
-          "text": "Use a local variable instead of self",
-          "isMonospaced": false
-        }
+        { "text": "Move the closure's body into a separate top-level function so it can't reference self", "isMonospaced": false },
+        { "text": "Mark the property lazy so the closure is created only once", "isMonospaced": true },
+        { "text": "Declare the property static so it isn't tied to a specific instance", "isMonospaced": true },
+        { "text": "Add [weak self] or [unowned self] to the closure's capture list", "isMonospaced": true }
       ]
     },
     {
       "id": "memory-q5",
       "kind": "code",
-      "prompt": "What does this print?",
-      "explanation": "`t` goes out of scope at the end of `test()`, so ARC calls deinit before `test()` returns — 'gone' prints before 'after'.",
+      "prompt": "What does this print, and in what order?",
+      "explanation": "`t` is a local variable inside test(); once test() returns, that scope ends and t's only strong reference disappears, so ARC calls deinit before control returns to the caller and \"after\" is printed.",
       "correctIndex": 0,
       "rubric": null,
       "level": "junior",
@@ -243,113 +182,65 @@
         "code": "class Tracker {\n    deinit { print(\"gone\") }\n}\nfunc test() {\n    let t = Tracker()\n    _ = t\n}\ntest()\nprint(\"after\")"
       },
       "options": [
-        {
-          "text": "gone then after",
-          "isMonospaced": false
-        },
-        {
-          "text": "after then gone",
-          "isMonospaced": false
-        },
-        {
-          "text": "gone",
-          "isMonospaced": false
-        },
-        {
-          "text": "nothing",
-          "isMonospaced": false
-        }
+        { "text": "gone, then after", "isMonospaced": false },
+        { "text": "after, then gone", "isMonospaced": false },
+        { "text": "gone only — after never prints", "isMonospaced": false },
+        { "text": "Neither prints; the object is deallocated silently since it's unused after assignment", "isMonospaced": false }
       ]
     },
     {
       "id": "memory-q6",
       "kind": "multipleChoice",
-      "prompt": "Value types (struct/enum) and ARC: which statement is correct?",
-      "explanation": "ARC tracks class instances only. Structs and enums are stored by value (on the stack or inline) and need no reference counting.",
-      "correctIndex": 1,
+      "prompt": "A junior developer says: \"Structs get retain-counted too, just less often than classes.\" Is this accurate?",
+      "explanation": "ARC's bookkeeping exists specifically for reference types. Structs and enums are copied by value; there is no shared instance to count references to, so no retain/release traffic happens for them at all.",
+      "correctIndex": 2,
       "rubric": null,
-      "level": "junior",
+      "level": "mid",
       "codeSnippet": null,
       "options": [
-        {
-          "text": "Value types are always reference-counted",
-          "isMonospaced": false
-        },
-        {
-          "text": "Value types are not reference-counted; ARC applies to class instances",
-          "isMonospaced": false
-        },
-        {
-          "text": "Value types use a separate reference counting system",
-          "isMonospaced": false
-        },
-        {
-          "text": "Only enums with associated values are reference-counted",
-          "isMonospaced": false
-        }
+        { "text": "Yes — structs are retained once, on first assignment, then never again", "isMonospaced": false },
+        { "text": "Yes, but only for structs that happen to contain at least one class-typed property somewhere inside them", "isMonospaced": false },
+        { "text": "No — ARC only tracks class instances; structs and enums carry no retain count", "isMonospaced": false },
+        { "text": "No — structs use a separate, lighter-weight counting scheme instead of ARC", "isMonospaced": false }
       ]
     },
     {
       "id": "memory-q7",
       "kind": "multipleChoice",
-      "prompt": "Why must a `weak` reference always be declared as Optional?",
-      "explanation": "ARC zeroes a weak reference when its target is deallocated. Optional is the natural type for a value that can become nil at any time.",
+      "prompt": "Why does Swift require a `weak` reference to be an Optional type?",
+      "explanation": "When the referenced object is deallocated, ARC has to leave the weak variable pointing at something valid — it zeroes it to nil. Only an Optional type can legally hold that nil.",
       "correctIndex": 1,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
-        {
-          "text": "Because the compiler requires it for syntax",
-          "isMonospaced": false
-        },
-        {
-          "text": "Because the object may be deallocated and ARC sets the reference to nil automatically",
-          "isMonospaced": false
-        },
-        {
-          "text": "To allow the reference to be reassigned",
-          "isMonospaced": false
-        },
-        {
-          "text": "Because weak references are stored on the heap",
-          "isMonospaced": false
-        }
+        { "text": "Because weak references are always declared with var, and var requires Optional", "isMonospaced": false },
+        { "text": "Because ARC sets the reference to nil automatically once the object is deallocated", "isMonospaced": false },
+        { "text": "Because the Swift compiler cannot resolve the concrete type of a weak reference otherwise", "isMonospaced": false },
+        { "text": "Because weak references are stored differently in memory and require boxing", "isMonospaced": false }
       ]
     },
     {
       "id": "memory-q8",
       "kind": "multipleChoice",
-      "prompt": "In which scenario does `unowned` cause a crash?",
-      "explanation": "Accessing an `unowned` reference after the object has been deallocated is undefined behavior and triggers an immediate crash.",
-      "correctIndex": 1,
+      "prompt": "A closure captures a view controller with `[unowned self]` and is stored on a singleton that outlives the view controller. What happens when the singleton later invokes the closure?",
+      "explanation": "unowned assumes its target is still alive at the point of access. If the view controller has already been deallocated by the time the singleton fires the closure, accessing self triggers undefined behavior — typically a crash.",
+      "correctIndex": 3,
       "rubric": null,
       "level": "senior",
       "codeSnippet": null,
       "options": [
-        {
-          "text": "When the captured object is still alive",
-          "isMonospaced": false
-        },
-        {
-          "text": "When the closure is stored longer than the captured object's lifetime",
-          "isMonospaced": false
-        },
-        {
-          "text": "When used inside an actor",
-          "isMonospaced": false
-        },
-        {
-          "text": "When the reference is to a struct",
-          "isMonospaced": false
-        }
+        { "text": "The closure silently no-ops since self is now nil", "isMonospaced": false },
+        { "text": "ARC extends the view controller's lifetime for as long as the closure itself is retained", "isMonospaced": false },
+        { "text": "The compiler rejects storing an unowned capture on a singleton at build time", "isMonospaced": false },
+        { "text": "Accessing a deallocated unowned reference crashes immediately", "isMonospaced": false }
       ]
     },
     {
       "id": "memory-q9",
       "kind": "code",
-      "prompt": "Will `deinit` print after this runs?",
-      "explanation": "`a.b` is weak, so B's retain count doesn't include that reference. When `b = nil`, the only strong ref to B is gone, and deinit fires.",
+      "prompt": "Will \"B gone\" print after this code runs?",
+      "explanation": "A's reference to B is weak, so it doesn't count toward B's retain count. Once the local `b` variable is cleared, B has no remaining strong references — including from A — and deinit runs.",
       "correctIndex": 0,
       "rubric": null,
       "level": "mid",
@@ -359,50 +250,318 @@
         "code": "class A {\n    weak var b: B?\n}\nclass B {\n    var a: A?\n    deinit { print(\"B gone\") }\n}\nvar a: A? = A()\nvar b: B? = B()\na?.b = b\nb?.a = a\na = nil\nb = nil"
       },
       "options": [
-        {
-          "text": "Yes — B gone prints",
-          "isMonospaced": false
-        },
-        {
-          "text": "No — retain cycle",
-          "isMonospaced": false
-        },
-        {
-          "text": "compile error",
-          "isMonospaced": false
-        },
-        {
-          "text": "runtime error",
-          "isMonospaced": false
-        }
+        { "text": "Yes — the weak reference doesn't keep B alive, so it deinitializes normally", "isMonospaced": false },
+        { "text": "No — A and B still form a retain cycle through the two properties", "isMonospaced": false },
+        { "text": "It depends on which variable, a or b, is cleared first", "isMonospaced": false },
+        { "text": "No — B can only deinitialize once A itself deinitializes first", "isMonospaced": false }
       ]
     },
     {
       "id": "memory-q10",
       "kind": "multipleChoice",
-      "prompt": "Capturing `self` in an escaping closure stored as a property creates a retain cycle because…",
-      "explanation": "The cycle is: self.property → closure → self. Either side keeping the other alive prevents deallocation until the cycle is explicitly broken.",
+      "prompt": "A property holds an `@escaping` closure that captures `self` with no capture list. Why does this alone create a retain cycle?",
+      "explanation": "The object owns the closure through its property, and the closure owns the object through the default strong capture of self — each side is the only thing keeping the other one alive, so neither can ever reach a retain count of zero.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        { "text": "Because @escaping closures are heap-allocated once and never deallocated by ARC", "isMonospaced": false },
+        { "text": "Because the property observer re-captures self on every write", "isMonospaced": false },
+        { "text": "The property retains the closure, and the closure's default capture retains self back — a two-way hold", "isMonospaced": false },
+        { "text": "Because Swift closures always capture their enclosing type twice: once by reference and once by value", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "memory-q11",
+      "kind": "multipleChoice",
+      "prompt": "Two variables, `first` and `second`, both point at the same class instance. If you set `first = nil`, what happens to the underlying object?",
+      "explanation": "The instance's retain count only drops by one strong reference. Since `second` still holds a strong reference, the count stays above zero and the object remains alive.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        { "text": "It's deallocated immediately, since first was the original owner", "isMonospaced": false },
+        { "text": "Nothing yet — the object stays alive because second still holds a strong reference", "isMonospaced": false },
+        { "text": "It's deallocated the next time the run loop turns over", "isMonospaced": false },
+        { "text": "second becomes nil automatically, mirroring first", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "memory-q12",
+      "kind": "multipleChoice",
+      "prompt": "What is an autorelease pool primarily used to manage?",
+      "explanation": "Some Cocoa/Objective-C APIs return objects marked for deferred release. An autorelease pool batches those deferred releases and drains them at a defined point, rather than releasing each one the instant it goes out of scope.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        { "text": "Weak references that would otherwise never be zeroed out", "isMonospaced": false },
+        { "text": "Retain cycles created by closures capturing self", "isMonospaced": false },
+        { "text": "Struct copies produced by copy-on-write", "isMonospaced": false },
+        { "text": "Deferred-release objects, drained together", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "memory-q13",
+      "kind": "code",
+      "prompt": "This helper bridges a Swift object across a C callback boundary. If the opaque pointer is later read with takeUnretainedValue() but release() is never called on it, what happens?",
+      "explanation": "passRetained bumps the retain count by one, outside of ARC's normal bookkeeping. takeUnretainedValue reads the object without touching that count, so the extra retain from passRetained is never balanced by a matching release — the object leaks for the rest of the process's life.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "UnmanagedBridge.swift",
+        "language": "swift",
+        "code": "func makeContext(_ obj: AnyObject) -> UnsafeMutableRawPointer {\n    Unmanaged.passRetained(obj).toOpaque()\n}\n\nfunc read(_ ptr: UnsafeMutableRawPointer) -> AnyObject {\n    Unmanaged<AnyObject>.fromOpaque(ptr).takeUnretainedValue()\n}"
+      },
+      "options": [
+        { "text": "The extra retain from passRetained is never balanced, so the object leaks permanently", "isMonospaced": false },
+        { "text": "ARC notices the missing release and inserts one automatically at the next deallocation pass", "isMonospaced": false },
+        { "text": "The object deallocates as soon as read returns, since Unmanaged bypasses ARC entirely", "isMonospaced": false },
+        { "text": "takeUnretainedValue balances the retain internally, so no leak occurs", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "memory-q14",
+      "kind": "multipleChoice",
+      "prompt": "A `lazy var` holding a class instance is first accessed inside a method. When is that instance actually created?",
+      "explanation": "A lazy property's initializer doesn't run at object construction time; it runs the first time the property is read, and the result is cached for every subsequent access.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        { "text": "At the moment the owning object is initialized, same as any other stored property", "isMonospaced": false },
+        { "text": "Every time the property is read, producing a fresh instance each time", "isMonospaced": false },
+        { "text": "The first time the property is read; the result is then cached for later reads", "isMonospaced": false },
+        { "text": "Only when the app receives a memory warning", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "memory-q15",
+      "kind": "code",
+      "prompt": "This view controller schedules a repeating timer in viewDidLoad. What's wrong with it?",
+      "explanation": "Timer.scheduledTimer(target:) retains its target strongly, and the view controller retains the timer back through its property — a cycle. Because the view controller is never deallocated, deinit (and the invalidate() call inside it) never runs, so the timer keeps firing and the strong reference is never broken.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": {
+        "filename": "ReportViewController.swift",
+        "language": "swift",
+        "code": "class ReportViewController: UIViewController {\n    var timer: Timer?\n\n    override func viewDidLoad() {\n        super.viewDidLoad()\n        timer = Timer.scheduledTimer(timeInterval: 5, target: self,\n                                      selector: #selector(refresh), userInfo: nil, repeats: true)\n    }\n\n    @objc func refresh() { /* reload data */ }\n\n    deinit { timer?.invalidate() }\n}"
+      },
+      "options": [
+        { "text": "repeats: true is invalid syntax for a Timer created this way", "isMonospaced": false },
+        { "text": "The timer retains the view controller strongly, so deinit never runs to invalidate it", "isMonospaced": false },
+        { "text": "@objc selectors cannot be used with Timer, only with NotificationCenter", "isMonospaced": false },
+        { "text": "The timer fires only once because scheduledTimer ignores the repeats parameter on the main run loop", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "memory-q16",
+      "kind": "multipleChoice",
+      "prompt": "You suspect a screen is leaking after every push/pop cycle. Which Xcode tool is best suited to confirm that an instance count keeps growing instead of returning to a baseline?",
+      "explanation": "The Memory Graph Debugger snapshots every live object and its reference paths at a point in time, letting you compare instance counts across navigation cycles and trace exactly which reference is keeping a supposedly-dismissed object alive.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        { "text": "The View Debugger, since it shows the live view hierarchy and every constraint currently applied to it", "isMonospaced": false },
+        { "text": "Console.app, filtered on the app's process name", "isMonospaced": false },
+        { "text": "The Time Profiler, since it samples CPU stack traces", "isMonospaced": false },
+        { "text": "The Memory Graph Debugger, which snapshots live objects and their reference paths", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "memory-q17",
+      "kind": "multipleChoice",
+      "prompt": "A class has a stored property that is itself a struct. What does that imply about retain counting for the struct's contents?",
+      "explanation": "A struct has no retain count of its own — it's copied by value, embedded directly in the class instance's storage. If the struct in turn holds a class property, that inner class reference is what actually gets retained.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        { "text": "The struct itself is never retained; only any class instances nested inside it are", "isMonospaced": false },
+        { "text": "The struct is retained once and shares that single retain count with the owning class", "isMonospaced": false },
+        { "text": "The struct triggers a second, independent ARC pass separate from the class's own", "isMonospaced": false },
+        { "text": "Storing a struct inside a class always forces a copy-on-write duplication at access time", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "memory-q18",
+      "kind": "multipleChoice",
+      "prompt": "A struct has `var friends: [String]`. You copy the struct into a new variable, then append to friends on only the copy. When does the underlying array buffer actually get duplicated?",
+      "explanation": "Array is copy-on-write: assigning the struct copies the struct's fields, including the array's reference to its buffer, but the underlying storage is shared until a mutation happens. The append call is what detects a shared buffer and triggers the real duplication.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        { "text": "Immediately when the struct is copied, before any mutation happens", "isMonospaced": false },
+        { "text": "Never — arrays inside structs always share one buffer permanently", "isMonospaced": false },
+        { "text": "At the point of the append call, when Array detects the buffer is shared and copies it first", "isMonospaced": false },
+        { "text": "Only if the array's element count exceeds its current capacity", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "memory-q19",
+      "kind": "code",
+      "prompt": "This class registers for a notification in init and cleans up in deinit. On a deployment target of iOS 13, is that cleanup call load-bearing?",
+      "explanation": "Since iOS 9, NotificationCenter holds observers weakly and stops delivering to a deallocated observer automatically, so this particular removeObserver call is redundant rather than required — on older targets it was mandatory to avoid a crash on the next post. It's still harmless and a defensible habit, just not load-bearing here.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "SyncManager.swift",
+        "language": "swift",
+        "code": "class SyncManager {\n    init() {\n        NotificationCenter.default.addObserver(self, selector: #selector(handle),\n                                                name: .didSync, object: nil)\n    }\n\n    @objc func handle() { /* ... */ }\n\n    deinit {\n        NotificationCenter.default.removeObserver(self)\n    }\n}"
+      },
+      "options": [
+        { "text": "No — on any target, addObserver never retains its observer at all", "isMonospaced": false },
+        { "text": "No — since iOS 9, NotificationCenter holds observers weakly, so that crash risk is gone", "isMonospaced": false },
+        { "text": "Yes — without it, the app crashes the next time .didSync is posted after SyncManager is gone", "isMonospaced": false },
+        { "text": "Yes — SyncManager can't be deallocated at all until removeObserver runs first", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "memory-q20",
+      "kind": "multipleChoice",
+      "prompt": "Is a closure a value type or a reference type in Swift?",
+      "explanation": "Closures capture their environment on the heap and are reference types: assigning a closure to a new variable, or storing the same closure in two properties, shares the identical captured context rather than duplicating it.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        { "text": "Value type — each assignment copies the captured variables", "isMonospaced": false },
+        { "text": "Neither — closures are a compiler-only construct with no runtime representation", "isMonospaced": false },
+        { "text": "It depends on whether the closure is marked @escaping", "isMonospaced": false },
+        { "text": "Reference type — assigning it shares the same captured context, not a copy", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "memory-q21",
+      "kind": "multipleChoice",
+      "prompt": "Two Array<Int> variables currently share the same underlying buffer via copy-on-write. What specifically triggers the actual buffer copy?",
+      "explanation": "Swift's COW containers check the buffer's reference count immediately before a mutation. If more than one owner holds it, the mutating operation copies the buffer first and applies the change to the new copy; if the count is 1, it mutates in place.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        { "text": "A mutating operation on one of them, once it detects the buffer is shared", "isMonospaced": false },
+        { "text": "The moment the second variable is assigned from the first", "isMonospaced": false },
+        { "text": "Reading either array's count property", "isMonospaced": false },
+        { "text": "Passing either array as a function argument, regardless of whether the function mutates it", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "memory-q22",
+      "kind": "multipleChoice",
+      "prompt": "A protocol used purely as a `weak var` delegate type needs to add `: AnyObject` to its declaration. Why?",
+      "explanation": "weak only makes sense for reference types, since it relies on ARC's per-instance retain count going to zero. Constraining the protocol to AnyObject rules out struct or enum conformers, which have no retain count for weak to hook into.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        { "text": "Because AnyObject conformance makes the protocol Sendable across actors automatically", "isMonospaced": false },
+        { "text": "Because protocols cannot be used as property types without a class constraint", "isMonospaced": false },
+        { "text": "Because weak requires a reference type, and AnyObject rules out value-type conformers", "isMonospaced": false },
+        { "text": "Because Objective-C interop always requires an explicit AnyObject constraint", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "memory-q23",
+      "kind": "code",
+      "prompt": "How many total strong references to the Item instance exist right after this code runs, before anything is set to nil?",
+      "explanation": "`a` holds one strong reference, and appending it to `list` creates a second, independent strong reference to the very same instance — arrays store references to class instances, not copies of them.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": {
+        "filename": "ReferenceCount.swift",
+        "language": "swift",
+        "code": "class Item {\n    deinit { print(\"gone\") }\n}\nvar a: Item? = Item()\nvar list: [Item] = []\nif let a = a {\n    list.append(a)\n}"
+      },
+      "options": [
+        { "text": "One — appending to an array doesn't create a new reference, just an index", "isMonospaced": false },
+        { "text": "Two — one from the variable a, one from the array's element storage", "isMonospaced": false },
+        { "text": "Zero — the if-let creates a temporary copy, and the original a is unaffected", "isMonospaced": false },
+        { "text": "Three — one from a, one from the array, and one held internally by ARC's bookkeeping", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "memory-q24",
+      "kind": "multipleChoice",
+      "prompt": "In the classic delegate pattern, the delegate-owning object holds its delegate as `weak var delegate: SomeDelegate?`. Why weak rather than strong?",
+      "explanation": "The delegating object (say, a data source) is typically owned by the delegate itself, or by something the delegate also owns. If the data source held its delegate strongly, the two would retain each other for as long as either exists — a cycle. Weak lets the data source refer to its delegate without contributing to that reference's lifetime.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        { "text": "Because delegate protocols cannot be marked class-only in Swift", "isMonospaced": false },
+        { "text": "Because a strong delegate reference would make the delegate's methods run synchronously", "isMonospaced": false },
+        { "text": "Because Objective-C requires weak delegates but Swift does not", "isMonospaced": false },
+        { "text": "Because the delegate typically already owns the delegating object", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "memory-q25",
+      "kind": "code",
+      "prompt": "A C callback stores a Swift object with Unmanaged.passUnretained, and a cleanup function later calls takeRetainedValue() on it exactly once. What's the problem?",
+      "explanation": "passUnretained doesn't add any retain of its own — it just wraps the pointer. takeRetainedValue, however, assumes it's consuming a +1 retain and releases one on top of reading the value. Since no matching retain was ever added, this releases one reference too many, which can deallocate the object early or corrupt memory.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "UnmanagedCleanup.swift",
+        "language": "swift",
+        "code": "func makeContext(_ obj: AnyObject) -> UnsafeMutableRawPointer {\n    Unmanaged.passUnretained(obj).toOpaque()\n}\n\nfunc cleanup(_ ptr: UnsafeMutableRawPointer) {\n    let obj = Unmanaged<AnyObject>.fromOpaque(ptr).takeRetainedValue()\n    print(obj)\n}"
+      },
+      "options": [
+        { "text": "passUnretained added no retain, but takeRetainedValue releases one anyway — an over-release", "isMonospaced": false },
+        { "text": "This is the correct, balanced pairing for passing an object across a C boundary", "isMonospaced": false },
+        { "text": "The object leaks, since neither call ever releases the reference passUnretained created", "isMonospaced": false },
+        { "text": "Unmanaged wrappers are read-only, so takeRetainedValue silently does nothing here", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "memory-q26",
+      "kind": "multipleChoice",
+      "prompt": "An object's retain count reaches zero while your app is in the middle of a method call on a completely unrelated object. When does deinit run?",
+      "explanation": "ARC deallocation isn't deferred to idle time or the next run loop pass — it happens synchronously, the instant the last strong reference is released, wherever that happens to occur in your code.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        { "text": "At the next iteration of the main run loop", "isMonospaced": false },
+        { "text": "Only after the current call stack fully unwinds back to the top level", "isMonospaced": false },
+        { "text": "Immediately, at the exact point the last strong reference is released", "isMonospaced": false },
+        { "text": "The next time the app receives a memory warning", "isMonospaced": false }
+      ]
+    },
+    {
+      "id": "memory-q27",
+      "kind": "multipleChoice",
+      "prompt": "A tight loop creates thousands of temporary Objective-C-bridged objects per iteration and is observed to hold peak memory far higher than expected until the loop finishes. What's the most likely fix?",
+      "explanation": "Objects an API hands back as autoreleased sit in the current autorelease pool until it drains, which normally happens once per run-loop iteration. Wrapping the loop body in its own autoreleasepool { } block drains those temporaries far more often, capping the peak instead of letting thousands accumulate.",
       "correctIndex": 1,
       "rubric": null,
       "level": "senior",
       "codeSnippet": null,
       "options": [
-        {
-          "text": "escaping closures always retain self strongly by default",
-          "isMonospaced": false
-        },
-        {
-          "text": "self retains the closure (via the property) and the closure retains self (via capture) — both keep each other alive",
-          "isMonospaced": false
-        },
-        {
-          "text": "the closure is reference-counted separately from self",
-          "isMonospaced": false
-        },
-        {
-          "text": "Swift does not allow closures to capture self",
-          "isMonospaced": false
-        }
+        { "text": "Switch every bridged object from a class to a struct to avoid ARC entirely", "isMonospaced": false },
+        { "text": "Wrap the loop body in an explicit autoreleasepool { } to drain temporaries more frequently", "isMonospaced": true },
+        { "text": "Mark the loop variable weak so temporaries deallocate as soon as they're created", "isMonospaced": false },
+        { "text": "Add [unowned self] to the loop closure to stop it from retaining the enclosing context", "isMonospaced": false }
       ]
     }
   ]

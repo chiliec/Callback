@@ -128,10 +128,18 @@ private let sampleJSON = """
                 allIds.insert(qc.id)
                 #expect(!qc.prompt.isEmpty)
                 #expect(!qc.explanation.isEmpty)
-                #expect(qc.correctIndex != nil)
-                #expect(qc.options.count >= 2)
-                if let ci = qc.correctIndex {
-                    #expect(ci >= 0 && ci < qc.options.count)
+
+                switch qc.kind {
+                case .multipleChoice, .code:
+                    #expect(qc.correctIndex != nil)
+                    #expect(qc.options.count >= 2)
+                    if let ci = qc.correctIndex {
+                        #expect(ci >= 0 && ci < qc.options.count)
+                    }
+                case .behavioral, .systemDesign:
+                    #expect(qc.correctIndex == nil)
+                    #expect(qc.options.isEmpty)
+                    #expect(qc.rubric != nil)
                 }
             }
         }
@@ -266,7 +274,7 @@ private let sampleJSON = """
 
 @Test func bundledContentLoadsEveryTopicInTheManifest() throws {
     let bundle = try ContentLoader.bundledContent()
-    #expect(bundle.version == 4)
+    #expect(bundle.version == 5)
     #expect(bundle.topics.count == 9)
     #expect(Set(bundle.topics.map(\.id)).count == bundle.topics.count)
 }

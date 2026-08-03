@@ -9,29 +9,29 @@
     {
       "id": "uikit-l1",
       "order": 0,
-      "title": "View Controller Lifecycle",
-      "estimatedMinutes": 5,
-      "body": "Every UIViewController moves through a predictable sequence of lifecycle methods. Understanding when each fires — and what work belongs there — prevents subtle bugs.\n\n**The sequence on first presentation:**\n1. `loadView` — UIKit creates (or you manually assign) `self.view`. Rarely overridden unless you want a fully custom root view.\n2. `viewDidLoad` — called **once**, after the view is in memory. This is the right place for one-time setup: adding subviews, installing Auto Layout constraints, configuring data sources.\n3. `viewWillAppear(_:)` — called before **each** appearance. Use it for work that must refresh on re-entry: starting animations, re-subscribing to notifications, updating data that may have changed.\n4. `viewDidAppear(_:)` — view is on screen. Start timers or analytics here.\n5. `viewWillDisappear(_:)` — about to leave screen. Stop animations, save drafts.\n6. `viewDidDisappear(_:)` — off screen. Release resources tied to visibility.\n\n**Key rule:** layout code (addSubview, NSLayoutConstraint) lives in `viewDidLoad`; appearance-driven animations live in `viewWillAppear`/`viewWillDisappear`.\n\n```swift\nclass ProfileViewController: UIViewController {\n    private let avatarView = UIImageView()\n\n    override func viewDidLoad() {\n        super.viewDidLoad()\n        view.addSubview(avatarView)\n        NSLayoutConstraint.activate([\n            avatarView.centerXAnchor.constraint(equalTo: view.centerXAnchor),\n            avatarView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 24)\n        ])\n    }\n\n    override func viewWillAppear(_ animated: Bool) {\n        super.viewWillAppear(animated)\n        avatarView.image = currentUser.avatar\n    }\n}\n```",
+      "title": "View Controller Lifecycle & Containment",
+      "estimatedMinutes": 6,
+      "body": "Every UIViewController moves through a predictable sequence of lifecycle methods. Understanding when each fires — and what work belongs there — prevents subtle bugs.\n\n**The sequence on first presentation:**\n1. `loadView` — UIKit creates (or you manually assign) `self.view`. Rarely overridden unless you want a fully custom root view.\n2. `viewDidLoad` — called **once**, after the view is in memory. This is the right place for one-time setup: adding subviews, installing Auto Layout constraints, configuring data sources.\n3. `viewWillAppear(_:)` — called before **each** appearance. Use it for work that must refresh on re-entry: starting animations, re-subscribing to notifications, updating data that may have changed.\n4. `viewDidAppear(_:)` — view is on screen. Start timers or analytics here.\n5. `viewWillDisappear(_:)` — about to leave screen. Stop animations, save drafts.\n6. `viewDidDisappear(_:)` — off screen. Release resources tied to visibility.\n\n**Key rule:** layout code (addSubview, NSLayoutConstraint) lives in `viewDidLoad`; appearance-driven animations live in `viewWillAppear`/`viewWillDisappear`.\n\n**Containment** extends this lifecycle to container view controllers (e.g. a custom tab or paging controller) that host other view controllers as children. Adding a child correctly takes three steps: call `addChild(_:)`, add the child's `view` as a subview, then call `didMove(toParent:)` once the child is fully installed. Skipping `didMove(toParent:)` — or calling it before the child's view is actually in the hierarchy — leaves the child improperly installed even though it's visible on screen.\n\n```swift\nclass ProfileViewController: UIViewController {\n    private let avatarView = UIImageView()\n\n    override func viewDidLoad() {\n        super.viewDidLoad()\n        view.addSubview(avatarView)\n        NSLayoutConstraint.activate([\n            avatarView.centerXAnchor.constraint(equalTo: view.centerXAnchor),\n            avatarView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 24)\n        ])\n    }\n\n    override func viewWillAppear(_ animated: Bool) {\n        super.viewWillAppear(animated)\n        avatarView.image = currentUser.avatar\n    }\n}\n```",
       "quickCheck": {
         "id": "uikit-l1-qc",
         "kind": "multipleChoice",
         "prompt": "Which method is called exactly once when the view controller's view is first loaded into memory?",
         "explanation": "viewDidLoad fires a single time after the view hierarchy is loaded. viewWillAppear and viewDidAppear fire on every appearance, and loadView is for creating the view itself — not responding to it being loaded.",
-        "correctIndex": 0,
+        "correctIndex": 2,
         "rubric": null,
         "level": "junior",
         "codeSnippet": null,
         "options": [
-          {
-            "text": "viewDidLoad",
-            "isMonospaced": true
-          },
           {
             "text": "viewWillAppear",
             "isMonospaced": true
           },
           {
             "text": "viewDidAppear",
+            "isMonospaced": true
+          },
+          {
+            "text": "viewDidLoad",
             "isMonospaced": true
           },
           {
@@ -44,25 +44,25 @@
     {
       "id": "uikit-l2",
       "order": 1,
-      "title": "Auto Layout & Constraints",
+      "title": "Auto Layout, Constraints & UIStackView",
       "estimatedMinutes": 6,
-      "body": "Auto Layout solves view positioning by satisfying a system of linear constraints at runtime, adapting to any screen size or orientation.\n\n**Core concepts:**\n- **NSLayoutConstraint** represents a linear equation: `item1.attribute = multiplier × item2.attribute + constant`.\n- **`translatesAutoresizingMaskIntoConstraints = false`** — set this on any view you constrain programmatically, or you'll get conflicts.\n- **Intrinsic content size** — views like `UILabel` and `UIButton` know their natural size from content.\n- **Content Hugging Priority (CHP)** — how strongly a view resists growing *beyond* its intrinsic size.\n- **Compression Resistance Priority (CRP)** — how strongly a view resists shrinking *below* its intrinsic size.\n- **Ambiguous layouts** appear when constraints don't fully determine position or size. **Unsatisfiable layouts** occur when constraints conflict.\n\n```swift\nlet label = UILabel()\nlabel.translatesAutoresizingMaskIntoConstraints = false\nview.addSubview(label)\n\nNSLayoutConstraint.activate([\n    label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),\n    label.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),\n    label.centerYAnchor.constraint(equalTo: view.centerYAnchor)\n])\nlabel.setContentCompressionResistancePriority(.required, for: .horizontal)\n```",
+      "body": "Auto Layout solves view positioning by satisfying a system of linear constraints at runtime, adapting to any screen size or orientation.\n\n**Core concepts:**\n- **NSLayoutConstraint** represents a linear equation: `item1.attribute = multiplier × item2.attribute + constant`.\n- **`translatesAutoresizingMaskIntoConstraints = false`** — set this on any view you constrain programmatically, or you'll get conflicts.\n- **Intrinsic content size** — views like `UILabel` and `UIButton` know their natural size from content.\n- **Content Hugging Priority (CHP)** — how strongly a view resists growing *beyond* its intrinsic size.\n- **Compression Resistance Priority (CRP)** — how strongly a view resists shrinking *below* its intrinsic size.\n- **Ambiguous layouts** appear when constraints don't fully determine position or size — several results satisfy them equally. **Unsatisfiable layouts** occur when constraints actively conflict, and UIKit logs a warning while breaking one of them.\n\n**UIStackView** arranges a row or column of views without you hand-writing constraints between them: it derives spacing and sizing from its `axis`, `distribution`, `spacing`, and `alignment` properties. It's still Auto Layout underneath — each arranged view's intrinsic size and priorities still matter — it just saves you from maintaining the constraints yourself.\n\n```swift\nlet label = UILabel()\nlabel.translatesAutoresizingMaskIntoConstraints = false\nview.addSubview(label)\n\nNSLayoutConstraint.activate([\n    label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),\n    label.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),\n    label.centerYAnchor.constraint(equalTo: view.centerYAnchor)\n])\nlabel.setContentCompressionResistancePriority(.required, for: .horizontal)\n```",
       "quickCheck": {
         "id": "uikit-l2-qc",
         "kind": "multipleChoice",
         "prompt": "What property must you set to false before adding programmatic Auto Layout constraints to a view?",
         "explanation": "UIKit generates implicit constraints from a view's autoresizingMask unless you opt out. Setting translatesAutoresizingMaskIntoConstraints to false removes those implicit constraints so your manual ones can work without conflicts.",
-        "correctIndex": 0,
+        "correctIndex": 1,
         "rubric": null,
         "level": "junior",
         "codeSnippet": null,
         "options": [
           {
-            "text": "translatesAutoresizingMaskIntoConstraints",
+            "text": "clipsToBounds",
             "isMonospaced": true
           },
           {
-            "text": "clipsToBounds",
+            "text": "translatesAutoresizingMaskIntoConstraints",
             "isMonospaced": true
           },
           {
@@ -81,31 +81,66 @@
       "order": 2,
       "title": "Responder Chain, Target-Action & Delegation",
       "estimatedMinutes": 5,
-      "body": "UIKit uses three complementary patterns for event handling and communication between objects.\n\n**Responder Chain**\nEvery `UIResponder` (views, view controllers, the app itself) participates in a chain. When a touch event fires, UIKit hit-tests to find the deepest view that was tapped — the *first responder*. If that view doesn't handle the event, it travels *up* through superviews, then the view controller, then the window, then UIApplication.\n\n**Target-Action**\n`UIControl` subclasses (buttons, sliders, etc.) use target-action to decouple event source from handler. You register a target object and selector; when the event fires, UIKit sends the message.\n\n**Delegation**\nDelegation lets one object hand off responsibilities to another via a protocol. The delegating object holds a `weak` reference to its delegate to **prevent retain cycles**.\n\n```swift\n// Target-action\nlet button = UIButton(type: .system)\nbutton.addTarget(self, action: #selector(handleTap), for: .touchUpInside)\n\n@objc private func handleTap() {\n    print(\"Button tapped\")\n}\n\n// Delegation\nprotocol CardViewDelegate: AnyObject {\n    func cardViewDidDismiss(_ cardView: CardView)\n}\n\nclass CardView: UIView {\n    weak var delegate: CardViewDelegate?\n\n    private func dismiss() {\n        delegate?.cardViewDidDismiss(self)\n    }\n}\n```",
+      "body": "UIKit uses three complementary patterns for event handling and communication between objects.\n\n**Responder Chain**\nEvery `UIResponder` (views, view controllers, the app itself) participates in a chain. When a touch event fires, UIKit hit-tests to find the deepest view that was tapped — the *first responder*. If that view doesn't handle the event, it travels *up* through superviews, then the view controller, then the window, then UIApplication.\n\n**Target-Action**\n`UIControl` subclasses (buttons, sliders, etc.) use target-action to decouple event source from handler. You register a target object and selector; when the event fires, UIKit sends the message.\n\n**Delegation**\nDelegation lets one object hand off responsibilities to another via a protocol. The delegating object holds a `weak` reference to its delegate to **prevent retain cycles**. Delegate protocols are typically adopted through a **class extension** — e.g. `extension ProfileViewController: CardViewDelegate { ... }` — which keeps the delegate methods grouped separately from the view controller's own logic.\n\n```swift\n// Target-action\nlet button = UIButton(type: .system)\nbutton.addTarget(self, action: #selector(handleTap), for: .touchUpInside)\n\n@objc private func handleTap() {\n    print(\"Button tapped\")\n}\n\n// Delegation\nprotocol CardViewDelegate: AnyObject {\n    func cardViewDidDismiss(_ cardView: CardView)\n}\n\nclass CardView: UIView {\n    weak var delegate: CardViewDelegate?\n\n    private func dismiss() {\n        delegate?.cardViewDidDismiss(self)\n    }\n}\n```",
       "quickCheck": {
         "id": "uikit-l3-qc",
         "kind": "multipleChoice",
         "prompt": "Why should a delegate property be declared `weak`?",
         "explanation": "The delegating object is usually owned by its delegate (e.g. a VC owns its subview). If the subview held a strong reference back to the VC, both objects would keep each other alive indefinitely — a retain cycle. weak breaks the cycle.",
-        "correctIndex": 0,
+        "correctIndex": 3,
         "rubric": null,
         "level": "junior",
         "codeSnippet": null,
         "options": [
           {
-            "text": "To prevent a retain cycle between the delegating object and its delegate",
+            "text": "Because delegates are always declared as value types in UIKit, never reference types",
             "isMonospaced": false
           },
           {
-            "text": "Because delegates are value types",
+            "text": "Because UIKit requires it for all stored properties on a view controller",
             "isMonospaced": false
           },
           {
-            "text": "Because UIKit requires it for all properties",
+            "text": "To improve rendering performance",
             "isMonospaced": false
           },
           {
-            "text": "To improve performance",
+            "text": "To break the retain cycle between delegate and delegating object",
+            "isMonospaced": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "uikit-l4",
+      "order": 3,
+      "title": "Cell Reuse, Diffable Data Sources & SwiftUI Interop",
+      "estimatedMinutes": 7,
+      "body": "UITableView and UICollectionView keep memory bounded by reusing cell objects rather than allocating one per row. `dequeueReusableCell(withIdentifier:for:)` pulls a cell from a per-identifier pool — if none is free, the pool creates one, but a cell built earlier for a completely different row can come back with its old content still attached.\n\nThat's why cells reset their own state — typically in `prepareForReuse()`, or right when new data is bound — before showing anything new: image views must clear a placeholder before a fresh async image load starts, any in-flight request for the *previous* row must be cancelled, and selection/highlight state must be reset. Skipping this produces the classic flash-of-wrong-content-then-correction bug during fast scrolling.\n\n**Diffable data sources** (`UITableViewDiffableDataSource`/`UICollectionViewDiffableDataSource`) replace manual `reloadData()`/`performBatchUpdates(_:)` bookkeeping. You build an `NSDiffableDataSourceSnapshot` describing the *target* state and call `apply(_:animatingDifferences:)`; the data source diffs it against the current snapshot and animates only the rows that actually changed, inserted, or moved, instead of matching index paths to your own model mutations by hand.\n\n**Interop with SwiftUI:** `UIViewRepresentable`/`UIViewControllerRepresentable` wrap a UIKit view or view controller for use inside a SwiftUI hierarchy, and a plain SwiftUI view can be hosted inside UIKit via `UIHostingController`. Because UIKit's delegate pattern doesn't map onto SwiftUI's value-type world, a nested `Coordinator` class is the conventional bridge — it conforms to the UIKit delegate protocol and forwards callbacks into SwiftUI bindings or closures it holds.",
+      "quickCheck": {
+        "id": "uikit-l4-qc",
+        "kind": "multipleChoice",
+        "prompt": "A custom UITableViewCell shows a downloaded avatar in an image view. What must it do to avoid briefly showing a stale avatar when the cell is recycled for a different row?",
+        "explanation": "Because dequeued cells keep whatever their previous row last set, the cell needs to reset or reassign the image view's content — and cancel any in-flight load for the old row — typically in prepareForReuse or right when new data is bound.",
+        "correctIndex": 0,
+        "rubric": null,
+        "level": "mid",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "Reset the image view's content in prepareForReuse, or right when new data binds",
+            "isMonospaced": false
+          },
+          {
+            "text": "Nothing — dequeueReusableCell already clears all subview state before returning the cell",
+            "isMonospaced": false
+          },
+          {
+            "text": "Call reloadData() after configuring each cell to force a brand-new instance",
+            "isMonospaced": false
+          },
+          {
+            "text": "Register a uniquely named cell class per row so no two rows ever share an instance",
             "isMonospaced": false
           }
         ]
@@ -116,27 +151,27 @@
     {
       "id": "uikit-q1",
       "kind": "multipleChoice",
-      "prompt": "What is the correct order of view controller lifecycle calls on first presentation?",
-      "explanation": "viewDidLoad fires once when the view loads into memory. viewWillAppear fires before each appearance, viewDidAppear after — the sequence is always load → willAppear → didAppear on first show.",
-      "correctIndex": 0,
+      "prompt": "On first presentation, a view controller's view hasn't appeared on screen yet. Which lifecycle sequence actually fires, in order?",
+      "explanation": "viewDidLoad runs once, right after the view hierarchy is built. viewWillAppear then fires just before the view is actually placed on screen, and viewDidAppear right after it becomes visible — that ordering holds on every presentation, first time included.",
+      "correctIndex": 3,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
         {
-          "text": "viewDidLoad → viewWillAppear → viewDidAppear",
+          "text": "viewWillAppear, then viewDidLoad, then viewDidAppear",
           "isMonospaced": false
         },
         {
-          "text": "viewWillAppear → viewDidLoad → viewDidAppear",
+          "text": "loadView, then viewDidAppear, then viewWillAppear",
           "isMonospaced": false
         },
         {
-          "text": "viewDidLoad → viewDidAppear → viewWillAppear",
+          "text": "viewDidAppear, then viewWillAppear, then viewDidLoad",
           "isMonospaced": false
         },
         {
-          "text": "viewWillAppear → viewDidAppear → viewDidLoad",
+          "text": "viewDidLoad, then viewWillAppear, then viewDidAppear",
           "isMonospaced": false
         }
       ]
@@ -144,27 +179,27 @@
     {
       "id": "uikit-q2",
       "kind": "multipleChoice",
-      "prompt": "What is the difference between `frame` and `bounds`?",
-      "explanation": "frame locates the view in its parent's coordinate space. bounds describes the view's own coordinate space — its origin is usually (0,0) unless scrolled. Auto Layout works in bounds.",
-      "correctIndex": 1,
+      "prompt": "A view's frame is CGRect(x: 40, y: 100, width: 200, height: 80). What does its bounds look like, assuming no scrolling or transform is applied?",
+      "explanation": "frame places the view inside its superview's coordinate system. bounds describes the view's own internal coordinate system, which starts at (0,0) unless something like a scroll offset shifts it. Width and height normally match between the two; only the origin differs.",
+      "correctIndex": 2,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
         {
-          "text": "They are the same rectangle expressed in different spaces",
+          "text": "CGRect(x: 40, y: 100, width: 200, height: 80) — bounds and frame describe the same rectangle",
           "isMonospaced": false
         },
         {
-          "text": "frame is the view's rectangle in its superview's coordinate system; bounds is in the view's own coordinate system",
+          "text": "CGRect(x: -40, y: -100, width: 200, height: 80) — bounds mirrors frame's origin",
           "isMonospaced": false
         },
         {
-          "text": "bounds includes subviews; frame does not",
+          "text": "CGRect(x: 0, y: 0, width: 200, height: 80) — bounds uses the view's own coordinate space",
           "isMonospaced": false
         },
         {
-          "text": "frame is in points; bounds is in pixels",
+          "text": "CGRect(x: 0, y: 0, width: 400, height: 160) — bounds doubles frame's size for Retina scaling",
           "isMonospaced": false
         }
       ]
@@ -172,27 +207,27 @@
     {
       "id": "uikit-q3",
       "kind": "multipleChoice",
-      "prompt": "Why does UITableView use `dequeueReusableCell(withIdentifier:)`?",
-      "explanation": "Table views can have thousands of rows but only a dozen cells visible. Cell reuse pools off-screen cells and recycles them, keeping memory usage proportional to the visible area.",
-      "correctIndex": 1,
+      "prompt": "A table view has 5,000 rows but only ever shows about 12 on screen at once. What problem does dequeueReusableCell(withIdentifier:for:) solve here?",
+      "explanation": "Reuse means a small, bounded number of cell objects — roughly however many fit on screen plus a buffer — get recycled as different rows scroll into view, rather than the table view allocating thousands of cell instances up front.",
+      "correctIndex": 2,
       "rubric": null,
       "level": "mid",
       "codeSnippet": null,
       "options": [
         {
-          "text": "To prevent duplicate cell registrations",
+          "text": "It preloads all 5,000 rows' cells into memory so scrolling never allocates",
           "isMonospaced": false
         },
         {
-          "text": "To reuse off-screen cell objects rather than creating new ones — saving memory and allocation cost",
+          "text": "It guarantees a row's cell keeps a stable identity matching a database primary key",
           "isMonospaced": false
         },
         {
-          "text": "To guarantee cells are returned in insertion order",
+          "text": "It recycles a small pool of cells instead of allocating a new one per row",
           "isMonospaced": false
         },
         {
-          "text": "Because UIKit requires identifier registration",
+          "text": "It compresses off-screen cells into a lighter placeholder format to save memory",
           "isMonospaced": false
         }
       ]
@@ -200,27 +235,27 @@
     {
       "id": "uikit-q4",
       "kind": "multipleChoice",
-      "prompt": "Why should `@IBOutlet` connections be `weak`?",
-      "explanation": "The view hierarchy already retains subviews strongly. A weak outlet lets the VC reference the view without inflating its retain count — when the view is removed, it deallocates normally.",
-      "correctIndex": 1,
+      "prompt": "A storyboard-connected @IBOutlet property on a view controller is declared weak. What would actually change if it were declared strong instead?",
+      "explanation": "The view hierarchy (superview to subviews) already keeps a strong reference to every installed subview. weak just avoids the outlet being a second, redundant owner — declaring it strong here wouldn't itself create a retain cycle, since the view controller isn't part of the chain the view retains.",
+      "correctIndex": 3,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
         {
-          "text": "Because UIKit requires weak IBOutlets by Xcode convention",
+          "text": "Interface Builder rejects the connection entirely, accepting only weak outlets",
           "isMonospaced": false
         },
         {
-          "text": "Because the view hierarchy holds a strong reference to subviews; a weak outlet avoids a retain cycle through the view controller",
+          "text": "The app crashes on launch from having two strong references to one view",
           "isMonospaced": false
         },
         {
-          "text": "To improve rendering performance",
+          "text": "The outlet starts updating automatically whenever the underlying view resizes",
           "isMonospaced": false
         },
         {
-          "text": "Because strong IBOutlets cause memory leaks in all cases",
+          "text": "Little changes — the view hierarchy already retains the subview strongly",
           "isMonospaced": false
         }
       ]
@@ -228,27 +263,27 @@
     {
       "id": "uikit-q5",
       "kind": "multipleChoice",
-      "prompt": "The main thread rule in UIKit means…",
-      "explanation": "UIKit was not built for concurrent access — modifying views from background threads produces unpredictable rendering artifacts or crashes. Always marshal UI updates to the main thread.",
-      "correctIndex": 1,
+      "prompt": "Why must UIKit view and layout code run on the main thread?",
+      "explanation": "UIKit was designed as a single-threaded framework — its view and layout internals assume only one thread touches them at a time. Unsynchronized concurrent access from another thread is what actually produces the crashes and rendering glitches, not a compiler rule, a storage detail, or a networking restriction.",
+      "correctIndex": 0,
       "rubric": null,
       "level": "junior",
       "codeSnippet": null,
       "options": [
         {
-          "text": "You should always use DispatchQueue.main.async for all UIKit calls",
+          "text": "UIKit's view and layout internals assume only one thread touches them",
           "isMonospaced": false
         },
         {
-          "text": "UIKit's view and layout systems must only be accessed from the main thread",
+          "text": "Swift's compiler rejects any UIResponder call made outside the main thread",
           "isMonospaced": false
         },
         {
-          "text": "Network calls must happen on the main thread",
+          "text": "Auto Layout constraints live in a database only the main thread can read",
           "isMonospaced": false
         },
         {
-          "text": "UIKit is thread-safe; the rule is advisory",
+          "text": "Background threads in iOS are limited to networking APIs only",
           "isMonospaced": false
         }
       ]
@@ -256,27 +291,27 @@
     {
       "id": "uikit-q6",
       "kind": "multipleChoice",
-      "prompt": "What does constraint priority do?",
-      "explanation": "Priorities (1–1000) let Auto Layout gracefully resolve conflicting constraints. A required constraint (1000) must hold; lower priorities can be sacrificed to satisfy higher ones.",
+      "prompt": "Two constraints on the same view conflict — one is required, one has priority 500. What does Auto Layout do at layout time?",
+      "explanation": "Priority (1–1000) tells Auto Layout how much a constraint may be sacrificed under conflict. A required constraint holds; anything below it gives way rather than producing a layout the system can't resolve.",
       "correctIndex": 1,
       "rubric": null,
       "level": "senior",
       "codeSnippet": null,
       "options": [
         {
-          "text": "Determines which view is rendered on top (z-order)",
+          "text": "It throws a fatal error — only one constraint may ever target a given attribute",
           "isMonospaced": false
         },
         {
-          "text": "Sets the strength of a constraint — lower priority constraints break before higher priority ones when there is a conflict",
+          "text": "It breaks the 500-priority constraint and keeps the required one intact",
           "isMonospaced": false
         },
         {
-          "text": "Controls how quickly an animation resolves the constraint",
+          "text": "It averages the two constraints' requested values into one blended result",
           "isMonospaced": false
         },
         {
-          "text": "Defines which constraint is evaluated first during layout",
+          "text": "It drops both constraints and falls back on the view's intrinsic content size",
           "isMonospaced": false
         }
       ]
@@ -284,27 +319,27 @@
     {
       "id": "uikit-q7",
       "kind": "multipleChoice",
-      "prompt": "When does `layoutSubviews` get called?",
-      "explanation": "`layoutSubviews` is called by UIKit during the layout pass triggered by `setNeedsLayout` (deferred) or `layoutIfNeeded` (immediate). Override it to do custom subview positioning after bounds are known.",
-      "correctIndex": 1,
+      "prompt": "A custom UIView overrides layoutSubviews() to reposition two child views by hand. Under what circumstance does that override actually run?",
+      "explanation": "layoutSubviews fires whenever the view genuinely needs a fresh layout pass — a bounds change, or a deferred (setNeedsLayout) or immediate (layoutIfNeeded) request. It isn't tied to a timer, a one-time first load, or the drawing-specific needsDisplay flag.",
+      "correctIndex": 2,
       "rubric": null,
       "level": "senior",
       "codeSnippet": null,
       "options": [
         {
-          "text": "Only when you explicitly call it",
+          "text": "Only the very first time the view is ever added to a window, and never on any later bounds change",
           "isMonospaced": false
         },
         {
-          "text": "Whenever the view's bounds change or `setNeedsLayout` is called, at the next layout pass",
+          "text": "On a fixed timer UIKit runs alongside the display refresh",
           "isMonospaced": false
         },
         {
-          "text": "On every frame of the run loop",
+          "text": "Whenever the bounds change or setNeedsLayout()/layoutIfNeeded() is called",
           "isMonospaced": false
         },
         {
-          "text": "Only during initial view loading",
+          "text": "Only when the view explicitly sets needsDisplay = true",
           "isMonospaced": false
         }
       ]
@@ -312,27 +347,27 @@
     {
       "id": "uikit-q8",
       "kind": "multipleChoice",
-      "prompt": "How does a touch event travel through the responder chain?",
-      "explanation": "The responder chain starts at the first responder (usually the hit-tested view), then moves up through the view hierarchy, view controllers, window, and application until someone handles the event.",
-      "correctIndex": 1,
+      "prompt": "A tap lands on a UIButton nested inside several superviews, none of which handle the touch themselves. Where does the responder chain look for a handler after the button, if the button doesn't consume the event?",
+      "explanation": "The chain climbs from the hit-tested responder upward: superview by superview, then the containing view controller, the window, and finally the application — each link gets a chance before the event is discarded.",
+      "correctIndex": 0,
       "rubric": null,
       "level": "senior",
       "codeSnippet": null,
       "options": [
         {
-          "text": "From the window down to the first subview found",
+          "text": "Up through each superview, then the view controller, window, and app",
           "isMonospaced": false
         },
         {
-          "text": "From the hit-tested view up through superviews toward the window and then the app delegate",
+          "text": "Down into the button's own subviews before considering anything above",
           "isMonospaced": false
         },
         {
-          "text": "Directly to the view controller regardless of view hierarchy",
+          "text": "Directly to the app delegate, bypassing any view controller in between",
           "isMonospaced": false
         },
         {
-          "text": "Through a shared UIApplication singleton",
+          "text": "Back to whichever view most recently called becomeFirstResponder()",
           "isMonospaced": false
         }
       ]
@@ -340,27 +375,27 @@
     {
       "id": "uikit-q9",
       "kind": "multipleChoice",
-      "prompt": "What is the difference between UITableViewDelegate and UITableViewDataSource?",
-      "explanation": "DataSource answers 'what data to show' (numberOfRows, cellForRowAt). Delegate answers 'how to behave' (didSelectRowAt, heightForRowAt). Separating concerns lets you reuse the same data source with different interaction behaviors.",
+      "prompt": "A UITableView's data source implements numberOfRowsInSection returning 0 for every section — so cellForRowAt is never invoked, even though it's implemented too — while the delegate's tableView(_:didSelectRowAt:) is implemented. What happens?",
+      "explanation": "DataSource methods (numberOfRowsInSection, cellForRowAt) are what actually produce rows and their content. Returning 0 rows means cellForRowAt never runs, so nothing is on screen. Delegate methods like didSelectRowAt only react to interaction with rows that already exist — with a row count of zero, there's nothing on screen to select in the first place.",
       "correctIndex": 0,
       "rubric": null,
       "level": "mid",
       "codeSnippet": null,
       "options": [
         {
-          "text": "DataSource provides data (cell content, count); Delegate handles interaction (selection, row height, actions)",
+          "text": "The table view shows no rows at all, since nothing exists for didSelectRowAt to be called on",
           "isMonospaced": false
         },
         {
-          "text": "They are interchangeable — only one is needed",
+          "text": "The table view falls back to a single default row, treating didSelectRowAt as enough to render it",
           "isMonospaced": false
         },
         {
-          "text": "Delegate provides data; DataSource handles interaction",
+          "text": "It crashes at launch — UITableViewDelegate methods require a matching data source method to exist",
           "isMonospaced": false
         },
         {
-          "text": "DataSource is for static tables; Delegate is for dynamic tables",
+          "text": "The rows render correctly — delegate and data source are just two names for one protocol",
           "isMonospaced": false
         }
       ]
@@ -368,27 +403,535 @@
     {
       "id": "uikit-q10",
       "kind": "multipleChoice",
-      "prompt": "What is `intrinsicContentSize` used for?",
-      "explanation": "intrinsicContentSize tells Auto Layout the natural dimensions a view prefers based on its content (e.g. a label's text size). Content hugging and compression resistance work relative to this size.",
-      "correctIndex": 1,
+      "prompt": "A UILabel with a long line of text has no explicit width or height constraints, just leading/top constraints pinning its position. How does Auto Layout decide its size?",
+      "explanation": "Views like UILabel and UIButton can report a natural size — intrinsicContentSize — derived from their content. Auto Layout uses that as an implicit constraint whenever no explicit width/height is given.",
+      "correctIndex": 2,
       "rubric": null,
       "level": "mid",
       "codeSnippet": null,
       "options": [
         {
-          "text": "Defining the minimum size a view should never go below",
+          "text": "It fills 100% of the superview's remaining width and height",
           "isMonospaced": false
         },
         {
-          "text": "Communicating a view's natural size to Auto Layout based on its content",
+          "text": "It sizes to zero until an explicit width or height constraint appears",
           "isMonospaced": false
         },
         {
-          "text": "Setting the frame of a view programmatically",
+          "text": "It asks the label for its intrinsicContentSize based on text and font",
           "isMonospaced": false
         },
         {
-          "text": "Overriding the bounds of a subview",
+          "text": "It inherits the frame of whichever sibling view was added just before it",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q11",
+      "kind": "multipleChoice",
+      "prompt": "A container view controller adds a child's view as a subview but never calls didMove(toParent:). What goes wrong?",
+      "explanation": "didMove(toParent:) is the signal that containment is complete. Skipping it leaves the child improperly installed — its view can be visible, but it never receives the full containment lifecycle callbacks the system expects for it.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "The child's view fails to render until the app is relaunched",
+          "isMonospaced": false
+        },
+        {
+          "text": "Auto Layout refuses to activate constraints on the child's view",
+          "isMonospaced": false
+        },
+        {
+          "text": "The parent crashes the next time it deallocates, its child array corrupted by the dangling reference",
+          "isMonospaced": false
+        },
+        {
+          "text": "The child never receives the callbacks marking it as properly installed",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q12",
+      "kind": "code",
+      "prompt": "What triggers handleLogin() to run in this view controller?",
+      "explanation": "addTarget(_:action:for:) registers self and a selector against a specific control event. When that event — touchUpInside here — occurs, UIKit sends the message directly; no closures, KVO, or plist entries are involved.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": {
+        "filename": "LoginViewController.swift",
+        "language": "swift",
+        "code": "class LoginViewController: UIViewController {\n    private let loginButton = UIButton(type: .system)\n\n    override func viewDidLoad() {\n        super.viewDidLoad()\n        loginButton.addTarget(self, action: #selector(handleLogin), for: .touchUpInside)\n    }\n\n    @objc private func handleLogin() {\n        print(\"logging in\")\n    }\n}"
+      },
+      "options": [
+        {
+          "text": "SwiftUI's action-closure mechanism, which UIButton bridges to automatically",
+          "isMonospaced": false
+        },
+        {
+          "text": "UIKit sends the handleLogin selector to self when touchUpInside fires",
+          "isMonospaced": false
+        },
+        {
+          "text": "A KVO observation registered implicitly by addTarget(_:action:for:)",
+          "isMonospaced": false
+        },
+        {
+          "text": "Nothing runs unless handleLogin is listed in Info.plist as an exported selector",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q13",
+      "kind": "code",
+      "prompt": "Scrolling fast through a list of avatars, a cell sometimes briefly shows a different user's photo before correcting itself. What's missing from this cell?",
+      "explanation": "Because cells are reused, an image-loading closure kicked off for row A can still be in flight when the cell is recycled for row B. Without cancelling that earlier request — typically in prepareForReuse — its completion handler fires late and overwrites row B's image with row A's result.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": {
+        "filename": "AvatarCell.swift",
+        "language": "swift",
+        "code": "class AvatarCell: UITableViewCell {\n    @IBOutlet private var avatarView: UIImageView!\n\n    func configure(with url: URL) {\n        avatarView.image = placeholder\n        imageLoader.load(url) { image in\n            self.avatarView.image = image\n        }\n    }\n}"
+      },
+      "options": [
+        {
+          "text": "Calling reloadData() at the start of configure(with:) to rebuild the cell",
+          "isMonospaced": false
+        },
+        {
+          "text": "Marking avatarView as weak so it can't retain a stale image",
+          "isMonospaced": false
+        },
+        {
+          "text": "Registering the cell class with register(_:forCellReuseIdentifier:) instead of an outlet",
+          "isMonospaced": false
+        },
+        {
+          "text": "Cancelling the prior row's in-flight image load, e.g. in prepareForReuse()",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q14",
+      "kind": "multipleChoice",
+      "prompt": "A row of three labels needs even horizontal spacing and should adapt automatically as one label's text changes length. What's the main advantage of a UIStackView over hand-written NSLayoutConstraints here?",
+      "explanation": "UIStackView still uses Auto Layout underneath — it just derives and manages the constraints between its arranged views from axis/distribution/spacing/alignment, which is why adding, removing, or resizing arranged views doesn't require rewriting constraints by hand.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "It derives spacing and sizing constraints from its axis and distribution",
+          "isMonospaced": false
+        },
+        {
+          "text": "It bypasses Auto Layout, positioning views with manual frame math for speed",
+          "isMonospaced": false
+        },
+        {
+          "text": "It's required whenever more than two views sit side by side",
+          "isMonospaced": false
+        },
+        {
+          "text": "It removes the need for each label to report an intrinsic content size",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q15",
+      "kind": "code",
+      "prompt": "What does calling apply(_:animatingDifferences:) here actually do, compared to removing the item from a plain array and calling reloadData()?",
+      "explanation": "Diffable data sources compute the difference between the previous and new snapshot themselves — insertions, deletions, moves — and animate exactly that difference. reloadData(), by contrast, reconfigures every visible cell regardless of what actually changed.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "InboxViewController.swift",
+        "language": "swift",
+        "code": "var snapshot = dataSource.snapshot()\nsnapshot.deleteItems([archivedMessage])\ndataSource.apply(snapshot, animatingDifferences: true)"
+      },
+      "options": [
+        {
+          "text": "It behaves like reloadData(), just with an animation curve layered on top",
+          "isMonospaced": false
+        },
+        {
+          "text": "It requires manually calling beginUpdates()/endUpdates() first, like the older APIs",
+          "isMonospaced": false
+        },
+        {
+          "text": "It diffs the snapshot against the current one, animating only the changed rows",
+          "isMonospaced": false
+        },
+        {
+          "text": "It replaces the entire data source object with a new instance from the snapshot",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q16",
+      "kind": "multipleChoice",
+      "prompt": "A view's constraints compile and activate with no runtime warning, but the view still has no well-defined width. What's actually going on?",
+      "explanation": "Ambiguous means Auto Layout has more than one mathematically valid layout satisfying every constraint at once — nothing conflicts, so nothing warns, but the system still has to arbitrarily pick a resulting width. That's distinct from unsatisfiable, where constraints actively contradict each other and Auto Layout does log a warning while breaking one of them.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "This only happens when translatesAutoresizingMaskIntoConstraints defaults to true",
+          "isMonospaced": false
+        },
+        {
+          "text": "Xcode's layout engine caches a prior width whenever a constraint set is incomplete",
+          "isMonospaced": false
+        },
+        {
+          "text": "The view has a required constraint pinned to a superview that hasn't loaded yet",
+          "isMonospaced": false
+        },
+        {
+          "text": "The constraints are ambiguous, since they're consistent but not fully determined",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q17",
+      "kind": "multipleChoice",
+      "prompt": "A screen's layout is built entirely in code, with no XIB or storyboard involved. What's a fair trade-off of that choice versus using Interface Builder?",
+      "explanation": "Programmatic layout trades away Interface Builder's visual canvas for the ordinary benefits of code review: it diffs cleanly in source control and makes conditional or parameterized layout logic easy to add. There's no restriction against Auto Layout, no meaningful runtime speed difference, and nothing being removed from the SDK here.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "No live preview while designing, but easier to review in a code diff",
+          "isMonospaced": false
+        },
+        {
+          "text": "Programmatic UI cannot use Auto Layout at all, only frame-based positioning",
+          "isMonospaced": false
+        },
+        {
+          "text": "Storyboards compile to noticeably faster-executing code than hand-written layout",
+          "isMonospaced": false
+        },
+        {
+          "text": "XIBs and storyboards are being removed from UIKit in an upcoming release",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q18",
+      "kind": "code",
+      "prompt": "What would change if [weak self] were removed from this closure, assuming networkService retains the closure until the download completes?",
+      "explanation": "Without [weak self], the closure captures self strongly by default. As long as networkService holds onto that closure, self stays alive too — for a one-shot completion handler that's usually a delayed deallocation rather than a permanent leak, but it does mean the view controller can outlive its dismissal until the network call resolves.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": {
+        "filename": "DownloadViewController.swift",
+        "language": "swift",
+        "code": "class DownloadViewController: UIViewController {\n    func startDownload() {\n        networkService.fetchLargeFile { [weak self] result in\n            self?.updateProgress(with: result)\n        }\n    }\n}"
+      },
+      "options": [
+        {
+          "text": "Nothing — closures never capture self unless self. is written explicitly",
+          "isMonospaced": false
+        },
+        {
+          "text": "self is captured strongly, delaying dealloc until the download finishes",
+          "isMonospaced": false
+        },
+        {
+          "text": "The app crashes immediately at the call site with an unowned-reference error",
+          "isMonospaced": false
+        },
+        {
+          "text": "self is still captured weakly, regardless of the closure's own capture list",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q19",
+      "kind": "code",
+      "prompt": "This view controller is dismissed, but Instruments still shows it alive minutes later. What's the most likely cause, given this code?",
+      "explanation": "A repeating Timer is kept alive by the run loop until something calls invalidate() on it, and this timer's closure captures self strongly with no [weak self]. Timer alive, closure retaining self, timer never invalidated — that combination is exactly what keeps the view controller from deallocating.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "PollingViewController.swift",
+        "language": "swift",
+        "code": "class PollingViewController: UIViewController {\n    private var timer: Timer?\n\n    override func viewDidLoad() {\n        super.viewDidLoad()\n        timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in\n            self.refresh()\n        }\n    }\n}"
+      },
+      "options": [
+        {
+          "text": "UIViewController subclasses are retained by UIKit itself until the whole app terminates, independent of timers",
+          "isMonospaced": false
+        },
+        {
+          "text": "The Timer holds its closure strongly, capturing self, and is never invalidated",
+          "isMonospaced": false
+        },
+        {
+          "text": "Timer.scheduledTimer keeps its target alive only until the first fire",
+          "isMonospaced": false
+        },
+        {
+          "text": "The closure syntax used here isn't valid Swift and wouldn't compile",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q20",
+      "kind": "multipleChoice",
+      "prompt": "A view controller registers an observer with NotificationCenter.default.addObserver(forName: .someUpdate, object: nil, queue: nil) { _ in self.reloadData() } in viewDidLoad, capturing self, and never calls removeObserver or discards the returned token. iOS 9 / macOS 10.11 added automatic observer removal on deinit for the older selector-based addObserver(_:selector:name:object:) API. What's the concrete risk with the block-based registration shown here?",
+      "explanation": "The automatic on-deinit cleanup Apple added in iOS 9 / macOS 10.11 applies to the selector-based addObserver(_:selector:name:object:) API. Block-based registrations via addObserver(forName:object:queue:using:) aren't covered by it — NotificationCenter keeps the block, and anything it captures, alive as part of the registration, so it keeps firing on future posts until removeObserver is called explicitly or the returned token is removed.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "No risk — the same on-deinit removal introduced in iOS 9 for observer cleanup covers block-based registrations exactly like it covers the selector-based API",
+          "isMonospaced": false
+        },
+        {
+          "text": "The code won't compile — addObserver(forName:object:queue:using:) is only valid when the observing object also registers through the selector-based API",
+          "isMonospaced": false
+        },
+        {
+          "text": "NotificationCenter silently queues the notification until removeObserver is called, then delivers everything at once",
+          "isMonospaced": false
+        },
+        {
+          "text": "That on-deinit removal only covers the selector-based API — this block registration keeps self retained and keeps firing until removeObserver is called explicitly",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q21",
+      "kind": "code",
+      "prompt": "SwiftUI re-renders the parent view several times while this ActivityIndicatorView stays on screen. How many times does makeUIView run across those re-renders?",
+      "explanation": "makeUIView is the one-time constructor for the underlying UIKit object; SwiftUI keeps that instance around across re-renders and calls updateUIView to reflect new state onto the same view, rather than tearing it down and rebuilding it every time.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "ActivityIndicatorView.swift",
+        "language": "swift",
+        "code": "struct ActivityIndicatorView: UIViewRepresentable {\n    func makeUIView(context: Context) -> UIActivityIndicatorView {\n        let view = UIActivityIndicatorView(style: .medium)\n        view.startAnimating()\n        return view\n    }\n\n    func updateUIView(_ uiView: UIActivityIndicatorView, context: Context) {\n    }\n}"
+      },
+      "options": [
+        {
+          "text": "Once per re-render — UIViewRepresentable fully rebuilds the view just like body does",
+          "isMonospaced": false
+        },
+        {
+          "text": "Once — makeUIView creates the view; updateUIView handles later updates",
+          "isMonospaced": false
+        },
+        {
+          "text": "Zero times — makeUIView only runs inside a NavigationStack",
+          "isMonospaced": false
+        },
+        {
+          "text": "Twice — once to measure size, once to actually display it",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q22",
+      "kind": "multipleChoice",
+      "prompt": "An existing UIKit app wants to add one new screen written entirely in SwiftUI, pushed onto an existing UINavigationController. What makes that possible?",
+      "explanation": "UIHostingController<Content> is a genuine UIViewController subclass that hosts a SwiftUI view's rendering — that's what makes it pushable, presentable, and embeddable anywhere a UIKit view controller is expected. UIViewRepresentable solves the opposite direction, wrapping a UIKit view for use inside SwiftUI.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Wrapping the SwiftUI view in a UIHostingController, itself a UIViewController that can be pushed like any other",
+          "isMonospaced": false
+        },
+        {
+          "text": "SwiftUI views push directly onto a UINavigationController's stack — View already conforms to UIViewController itself, no wrapper needed",
+          "isMonospaced": false
+        },
+        {
+          "text": "The whole app must be rewritten in SwiftUI before any single screen can adopt it",
+          "isMonospaced": false
+        },
+        {
+          "text": "UIViewRepresentable, which converts a SwiftUI view into a UINavigationController-compatible object",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q23",
+      "kind": "multipleChoice",
+      "prompt": "A UIViewRepresentable wraps a UISearchBar and needs to react to UISearchBarDelegate callbacks by updating a SwiftUI @Binding. Since the representable struct itself can't conform to a class-only delegate protocol, what's the conventional fix?",
+      "explanation": "UISearchBarDelegate requires a class instance, and UIViewRepresentable conformers are structs. The Coordinator — a small class produced by makeCoordinator() — is the standard bridge: it becomes the actual delegate, receives UIKit callbacks, and pushes updates into SwiftUI state through a binding or closure it holds.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Mark the representable struct as a class instead of a struct, so it conforms directly",
+          "isMonospaced": false
+        },
+        {
+          "text": "A nested Coordinator class, from makeCoordinator(), conforms to the delegate protocol",
+          "isMonospaced": false
+        },
+        {
+          "text": "Have the SwiftUI view itself conform to the delegate and act as the search bar's delegate",
+          "isMonospaced": false
+        },
+        {
+          "text": "Poll the search bar's text property on a timer instead of using the delegate",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q24",
+      "kind": "multipleChoice",
+      "prompt": "A storyboard button is connected to `@IBAction func didTapSave(_ sender: UIButton)`. What determines when this method actually runs?",
+      "explanation": "An @IBAction is a method Interface Builder can wire to a specific control event, such as Touch Up Inside for a button. The connection determines which event triggers it, and it fires every time that event occurs — not once, not on a timer, and not tied to viewDidLoad.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "It runs automatically whenever viewDidLoad executes, tap or no tap",
+          "isMonospaced": false
+        },
+        {
+          "text": "It runs once per second for as long as the button stays on screen",
+          "isMonospaced": false
+        },
+        {
+          "text": "Whichever control event Interface Builder wires that connection to",
+          "isMonospaced": false
+        },
+        {
+          "text": "It only runs the first time the button is tapped, then the connection expires",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q25",
+      "kind": "code",
+      "prompt": "Calling both setNeedsLayout() and layoutIfNeeded() back to back here — what does the second call actually add?",
+      "explanation": "setNeedsLayout() flags the view dirty for the next layout pass, which UIKit would otherwise perform later on its own schedule. layoutIfNeeded() checks that flag and, if set, runs the layout pass right away — useful when you need updated frames before an animation starts, rather than waiting for the next natural pass.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": {
+        "filename": "BadgeView.swift",
+        "language": "swift",
+        "code": "func updateBadgeCount(_ count: Int) {\n    badgeLabel.text = \"\\(count)\"\n    setNeedsLayout()\n    layoutIfNeeded()\n}"
+      },
+      "options": [
+        {
+          "text": "It's a no-op unless setNeedsLayout() was never called first",
+          "isMonospaced": false
+        },
+        {
+          "text": "It marks the view as needing layout a second time, doubling the effect",
+          "isMonospaced": false
+        },
+        {
+          "text": "It forces the layout pass to happen immediately instead of waiting",
+          "isMonospaced": false
+        },
+        {
+          "text": "It schedules layoutSubviews() to run on a background thread for speed",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q26",
+      "kind": "code",
+      "prompt": "What has to stay true for this performBatchUpdates call to avoid a crash, that wouldn't matter if the code instead just called tableView.reloadData()?",
+      "explanation": "performBatchUpdates (and the older beginUpdates/endUpdates) require your row-level delete/insert/move calls to exactly match what actually happened to the underlying data — get the count or index paths wrong and it throws an NSInternalInconsistencyException. reloadData() has no such requirement: it re-reads the data source from scratch, at the cost of animating nothing.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "FeedViewController.swift",
+        "language": "swift",
+        "code": "tableView.performBatchUpdates({\n    self.items.remove(at: 3)\n    self.tableView.deleteRows(at: [IndexPath(row: 3, section: 0)], with: .automatic)\n}, completion: nil)"
+      },
+      "options": [
+        {
+          "text": "The closure must run asynchronously on a background queue, or UIKit rejects it",
+          "isMonospaced": false
+        },
+        {
+          "text": "The mutation and the table update must agree on which index paths changed",
+          "isMonospaced": false
+        },
+        {
+          "text": "items must be an NSArray rather than a Swift Array for the API to accept it",
+          "isMonospaced": false
+        },
+        {
+          "text": "deleteRows must be called before items.remove(at:), or the animation is skipped",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "uikit-q27",
+      "kind": "multipleChoice",
+      "prompt": "UIControl-based views (buttons, sliders, switches) have historically used target-action rather than closures for handling events. What's a genuine practical reason for that design, beyond simply predating Swift closures?",
+      "explanation": "Target-action decouples the event source from the handler through a loose (selector, target) pair rather than a captured closure — that lets several controls share one action method, or one control fan out to several targets, without each pairing owning its own closure allocation. It's an architectural choice, not a hard limitation on closures inside UIKit — later APIs do accept them directly, e.g. UIAction on iOS 14+.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "One control can register multiple targets, or share one action across controls",
+          "isMonospaced": false
+        },
+        {
+          "text": "UIControl subclasses cannot capture values inside a closure, a compiler limitation",
+          "isMonospaced": false
+        },
+        {
+          "text": "Closures aren't supported inside any UIKit event-handling API, even today",
+          "isMonospaced": false
+        },
+        {
+          "text": "Target-action runs noticeably faster at runtime than any closure-based callback",
           "isMonospaced": false
         }
       ]

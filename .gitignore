@@ -14,3 +14,6 @@ build/
 # Keep the design handoff out of the app repo history noise
 CallbackPrepDesign.zip
 design_handoff_callback_ios/
+
+# Subagent-driven-development scratch (briefs, reports, review packages)
+.superpowers/
