@@ -88,20 +88,17 @@ device.
 **Public link limit:** 100
 
 **What to test:**
-Two new topics: Testing and Architecture & Patterns, 4 lessons and 27 questions
-each. Your progress carries over untouched.
+The six original topics — Swift, Memory, Concurrency, SwiftUI, UIKit, and
+Behavioral — are now the same depth as Testing and Architecture & Patterns: 4
+lessons and 27 questions each, up from 3 lessons and 10. Your progress carries
+over untouched.
 
-• Topics → Testing. Lessons cover test doubles, the pyramid, async testing, and
-XCTest/Swift Testing; the question bank mixes multiple choice and short code
-questions across junior/mid/senior levels.
-• Topics → Architecture & Patterns. Lessons cover MVC/MVVM/MV, dependency
-injection, coordinators, and modularization; questions cover SOLID principles,
-composition vs. inheritance, and error/boundary design alongside DI.
-• Practice → pick either new topic for a drill, or Mock Interview to get
-questions from across all nine topics mixed together.
-• Everything from the last build is still worth a look if you haven't got to
-it: "Up next" at the bottom of a lesson should carry you through a topic;
-Practice → System Design and Behavioral; Profile → Level (Junior / Mid /
-Senior).
+• Topics → any of Swift, Memory, Concurrency, SwiftUI, UIKit, Behavioral. Each
+now has a 4th lesson and a much larger question bank across junior/mid/senior
+levels — try Practice on one you'd already finished to see the new questions.
+• Practice → Mock Interview to get questions from across all nine topics
+mixed together, now drawing from a much deeper pool.
+• Behavioral drills should feel distinctly different question-to-question —
+flag anything that reads as a near-duplicate of another prompt.
 • Anything else: backgrounding the app mid-mock (the timer should survive),
 VoiceOver, and large Dynamic Type sizes.

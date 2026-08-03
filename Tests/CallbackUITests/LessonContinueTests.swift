@@ -14,7 +14,8 @@ final class LessonContinueTests: XCTestCase {
     private let swiftLessons = [
         "Value vs Reference Types",
         "Optionals & Unwrapping",
-        "Protocols & Generics"
+        "Protocols & Generics",
+        "Closures: Capture Semantics & Escaping"
     ]
 
     override func setUpWithError() throws {

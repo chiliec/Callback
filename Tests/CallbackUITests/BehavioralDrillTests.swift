@@ -29,7 +29,9 @@ final class BehavioralDrillTests: XCTestCase {
         XCTAssertTrue(practiceCTA.waitForExistence(timeout: 10))
         practiceCTA.tap()
 
-        for i in 0..<10 {
+        // Practice drills the topic's whole bank (topic.questions.count) — 27
+        // for behavioral since the depth-parity content expansion.
+        for i in 0..<27 {
             let revealButton = app.buttons["reveal-guidance-button"]
             XCTAssertTrue(revealButton.waitForExistence(timeout: 10), "reveal button missing at question \(i)")
             revealButton.tap()
