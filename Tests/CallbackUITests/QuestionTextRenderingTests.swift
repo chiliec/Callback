@@ -38,8 +38,16 @@ final class QuestionTextRenderingTests: XCTestCase {
                      _ element: XCUIElement,
                      _ what: String,
                      expecting outcome: XCUIElement) {
-        XCTAssertTrue(element.waitForExistence(timeout: 45), "\(what) never appeared")
         let scroll = scrollContainer(app)
+        // A row below the fold doesn't just fail `isHittable` — SwiftUI's List
+        // doesn't materialize its accessibility element at all until scrolled
+        // into view, so `waitForExistence` alone can hang until timeout.
+        var existenceScrolls = 0
+        while !element.exists && existenceScrolls < 8 && scroll.exists {
+            scroll.swipeUp()
+            existenceScrolls += 1
+        }
+        XCTAssertTrue(element.waitForExistence(timeout: 45), "\(what) never appeared")
         var scrolls = 0
         while !element.isHittable && scrolls < 8 && scroll.exists {
             scroll.swipeUp()
@@ -105,7 +113,7 @@ final class QuestionTextRenderingTests: XCTestCase {
     /// untouched topic is exactly 50% mastery.
     func testBehavioralQuickCheckCanBeSelfRated() throws {
         let app = launch()
-        openTopic(app, row: 5, named: "Behavioral")
+        openTopic(app, row: 7, named: "Behavioral")
 
         tap(app, app.buttons["lesson-row-0"], "the first Behavioral lesson row",
             expecting: app.scrollViews.firstMatch)
@@ -135,7 +143,7 @@ final class QuestionTextRenderingTests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Behavioral"].waitForExistence(timeout: 20))
         app.navigationBars.buttons.element(boundBy: 0).tap()
 
-        let behavioralRow = app.buttons["topic-row-5"]
+        let behavioralRow = app.buttons["topic-row-7"]
         XCTAssertTrue(behavioralRow.waitForExistence(timeout: 20))
         XCTAssertTrue(behavioralRow.staticTexts["50%"].waitForExistence(timeout: 20),
                       "a Decent self-rating should score the topic at 50% mastery, row reads: "

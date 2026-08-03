@@ -20,8 +20,16 @@ final class BehavioralDrillTests: XCTestCase {
     func testBehavioralDrillCanBeCompletedEndToEnd() throws {
         app.tabBars.buttons["Topics"].tap()
 
-        // Behavioral is order 5 (last of 6 topics) in the shipping content bundle.
-        let behavioralRow = app.buttons["topic-row-5"]
+        // Behavioral is order 7 (first of the craft section) in the 11-topic content bundle,
+        // which now sits below the fold — the List doesn't materialize its accessibility
+        // element until scrolled into view, so waitForExistence alone isn't enough.
+        let behavioralRow = app.buttons["topic-row-7"]
+        let list = app.collectionViews.firstMatch
+        var scrolls = 0
+        while !behavioralRow.exists && scrolls < 8 && list.exists {
+            list.swipeUp()
+            scrolls += 1
+        }
         XCTAssertTrue(behavioralRow.waitForExistence(timeout: 10))
         behavioralRow.tap()
 

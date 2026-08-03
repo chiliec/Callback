@@ -184,6 +184,13 @@ final class LessonContinueTests: XCTestCase {
             }
         }
 
+        // On a short review entry, this row can sit fully behind the pinned
+        // Next review/Retry bar without ever failing `isHittable` — XCUITest
+        // reports it hittable at its true (occluded) position, so a tap there
+        // lands on the bar instead. Force it clear of the fold before tapping.
+        let reviewScroll = scrollContainer(app)
+        for _ in 0..<3 where reviewScroll.exists { reviewScroll.swipeUp() }
+
         tap(app, gapRow, "the covers-this-gap row",
             expecting: app.buttons["lesson-up-next"],
             "the covers-this-gap row did not open a lesson with a way on")
