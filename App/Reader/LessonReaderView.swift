@@ -76,10 +76,20 @@ struct LessonReaderView: View {
                     )
             }
             .frame(height: 3)
+            // A track, so the unread remainder isn't a window onto the body text
+            // scrolling underneath. `TopicsView` and `ReviewQueueView` back their
+            // top insets the same way.
+            .background(.bar)
         }
         .sensoryFeedback(.success, trigger: isComplete)
         .navigationTitle(lesson.title)
         .navigationBarTitleDisplayMode(.inline)
+        // A pinned top `safeAreaInset` starts the scroll view *below* the
+        // navigation bar, so UIKit never sees content pass under it and leaves
+        // the bar's background hidden — body text then scrolls straight through
+        // the title and the "Lesson n of m" subtitle. The other two screens with
+        // a top inset get away with it because theirs are tall and opaque.
+        .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 VStack(spacing: 2) {

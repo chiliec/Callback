@@ -131,4 +131,53 @@ final class NavigationTitleTests: XCTestCase {
 
         try assertTitleIsDrawn(app, app.navigationBars["Swift"], "Swift")
     }
+
+    /// The other half of the same pairing: the lesson reader's top inset is a 3pt
+    /// progress bar, so UIKit never sees content pass under the navigation bar and
+    /// left its background hidden — body text scrolled straight through the title.
+    ///
+    /// Probed by sampling the band left of the title (the back chevron's, which
+    /// doesn't move) at the top of the lesson and again scrolled down. An opaque
+    /// bar looks identical in both; a transparent one picks up whatever line of
+    /// body text happens to be behind it.
+    func testLessonReaderTitleBarIsOpaqueWhileScrolling() throws {
+        let app = launch()
+        selectTab(app, "Topics", expecting: app.buttons["topic-row-0"])
+        app.buttons["topic-row-0"].tap()
+
+        let lessonRow = app.buttons["lesson-row-0"]
+        XCTAssertTrue(lessonRow.waitForExistence(timeout: 30), "no lesson rows in Swift")
+        lessonRow.tap()
+
+        let bar = app.navigationBars.firstMatch
+        XCTAssertTrue(bar.waitForExistence(timeout: 30), "the reader has no navigation bar")
+        let subtitle = app.staticTexts.containing(
+            NSPredicate(format: "label BEGINSWITH 'Lesson '")
+        ).firstMatch
+        XCTAssertTrue(subtitle.waitForExistence(timeout: 20), "no \"Lesson n of m\" subtitle")
+
+        // Left of the principal title view, right of the bar's leading edge.
+        let band = CGRect(x: bar.frame.minX + 2,
+                          y: bar.frame.minY,
+                          width: max(0, subtitle.frame.minX - bar.frame.minX - 6),
+                          height: bar.frame.height)
+        XCTAssertGreaterThan(band.width, 8, "no room to sample beside the title")
+
+        Thread.sleep(forTimeInterval: 1.0)
+        let atTop = try inkCoverage(of: band, in: app)
+
+        let reader = app.scrollViews.firstMatch
+        XCTAssertTrue(reader.exists, "the reader is not a scroll view")
+        reader.swipeUp()
+        reader.swipeUp()
+        Thread.sleep(forTimeInterval: 1.0)
+        let scrolled = try inkCoverage(of: band, in: app)
+
+        XCTAssertLessThan(
+            abs(scrolled - atTop), 0.02,
+            "the navigation bar's contents changed when the body scrolled "
+            + "(ink \(String(format: "%.4f", atTop)) → \(String(format: "%.4f", scrolled))) "
+            + "— body text is showing through a transparent bar"
+        )
+    }
 }
