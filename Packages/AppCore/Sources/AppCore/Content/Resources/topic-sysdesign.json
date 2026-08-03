@@ -24,7 +24,8 @@
         "options": [
           { "text": "The server", "isMonospaced": false },
           { "text": "The local store", "isMonospaced": false },
-          { "text": "Whichever wrote last", "isMonospaced": false }
+          { "text": "Whichever wrote last", "isMonospaced": false },
+          { "text": "There is no single source; both stay authoritative", "isMonospaced": false }
         ]
       }
     },

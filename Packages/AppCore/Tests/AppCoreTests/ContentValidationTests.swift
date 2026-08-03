@@ -124,9 +124,10 @@ struct ContentValidationTests {
         }
     }
 
-    /// Gradable questions in a topic's own bank (excludes lesson quick-checks).
+    /// Gradable questions in a topic's bank, including lesson quick-checks.
     private func gradable(_ topic: TopicDTO) -> [QuestionDTO] {
-        topic.questions.filter { !$0.kind.isSelfRated && !$0.options.isEmpty }
+        (topic.questions + topic.lessons.compactMap(\.quickCheck))
+            .filter { !$0.kind.isSelfRated && !$0.options.isEmpty }
     }
 
     /// Systemic position tell: the older topics only ever placed the correct
