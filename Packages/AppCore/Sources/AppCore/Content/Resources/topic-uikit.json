@@ -375,8 +375,8 @@
     {
       "id": "uikit-q9",
       "kind": "multipleChoice",
-      "prompt": "A UITableView's numberOfRowsInSection and cellForRowAt aren't implemented, but tableView(_:didSelectRowAt:) is. What happens?",
-      "explanation": "DataSource methods (numberOfRowsInSection, cellForRowAt) are what actually produce rows and their content. Delegate methods like didSelectRowAt only react to interaction with rows that already exist — without a data source, there's nothing on screen to select in the first place.",
+      "prompt": "A UITableView's data source implements numberOfRowsInSection returning 0 for every section — so cellForRowAt is never invoked, even though it's implemented too — while the delegate's tableView(_:didSelectRowAt:) is implemented. What happens?",
+      "explanation": "DataSource methods (numberOfRowsInSection, cellForRowAt) are what actually produce rows and their content. Returning 0 rows means cellForRowAt never runs, so nothing is on screen. Delegate methods like didSelectRowAt only react to interaction with rows that already exist — with a row count of zero, there's nothing on screen to select in the first place.",
       "correctIndex": 0,
       "rubric": null,
       "level": "mid",
@@ -703,27 +703,27 @@
     {
       "id": "uikit-q20",
       "kind": "multipleChoice",
-      "prompt": "A view controller calls NotificationCenter.default.addObserver(self, selector:, name:, object: nil) in viewDidLoad but never removes that observation. On modern iOS, where the system auto-removes an object's block-based observations on deinit, what's the concrete risk here?",
-      "explanation": "The automatic cleanup Apple added applies to block-based (addObserver(forName:object:queue:using:)) registrations. The older selector-based API doesn't get that automatic teardown, so it's still good practice to explicitly removeObserver — typically in deinit — for that variant.",
+      "prompt": "A view controller registers an observer with NotificationCenter.default.addObserver(forName: .someUpdate, object: nil, queue: nil) { _ in self.reloadData() } in viewDidLoad, capturing self, and never calls removeObserver or discards the returned token. iOS 9 / macOS 10.11 added automatic observer removal on deinit for the older selector-based addObserver(_:selector:name:object:) API. What's the concrete risk with the block-based registration shown here?",
+      "explanation": "The automatic on-deinit cleanup Apple added in iOS 9 / macOS 10.11 applies to the selector-based addObserver(_:selector:name:object:) API. Block-based registrations via addObserver(forName:object:queue:using:) aren't covered by it — NotificationCenter keeps the block, and anything it captures, alive as part of the registration, so it keeps firing on future posts until removeObserver is called explicitly or the returned token is removed.",
       "correctIndex": 3,
       "rubric": null,
       "level": "mid",
       "codeSnippet": null,
       "options": [
         {
-          "text": "NotificationCenter registrations are removed automatically on deinit, block-based or not",
+          "text": "No risk — the same on-deinit removal introduced in iOS 9 for observer cleanup covers block-based registrations exactly like it covers the selector-based API",
           "isMonospaced": false
         },
         {
-          "text": "The code fails to compile — that registration form was removed from recent SDKs",
+          "text": "The code won't compile — addObserver(forName:object:queue:using:) is only valid when the observing object also registers through the selector-based API",
           "isMonospaced": false
         },
         {
-          "text": "NotificationCenter posts are queued and held back until removeObserver is called",
+          "text": "NotificationCenter silently queues the notification until removeObserver is called, then delivers everything at once",
           "isMonospaced": false
         },
         {
-          "text": "The selector-based API isn't covered by that automatic cleanup",
+          "text": "That on-deinit removal only covers the selector-based API — this block registration keeps self retained and keeps firing until removeObserver is called explicitly",
           "isMonospaced": false
         }
       ]
