@@ -146,8 +146,8 @@
       "level": "senior",
       "codeSnippet": null,
       "options": [
-        { "text": "box.count can't be mutated, since let applied to a class instance is assumed to make every one of its stored properties immutable for the lifetime of the variable", "isMonospaced": false },
-        { "text": "box can later be reassigned to point at an entirely different Box instance, since let is assumed to restrict only the instance's internal stored properties rather than the variable binding itself", "isMonospaced": false },
+        { "text": "box.count can't be mutated, since let applied to a class instance makes every one of its stored properties immutable for the lifetime of the variable", "isMonospaced": false },
+        { "text": "box can later be reassigned to point at an entirely different Box instance, since let restricts only the instance's internal stored properties rather than the variable binding itself", "isMonospaced": false },
         { "text": "Box must redeclare count as a let constant too, or the code is rejected at compile time before box.count += 1 can ever run", "isMonospaced": false },
         { "text": "box itself can't be reassigned to a different instance, but count and its other stored properties can still be mutated through it", "isMonospaced": false }
       ]
@@ -199,7 +199,7 @@
       "codeSnippet": null,
       "options": [
         { "text": "They behave identically at runtime; [weak self] is purely a style preference with no effect on memory", "isMonospaced": false },
-        { "text": "The plain closure is assumed to be safer, since capturing self strongly is thought to guarantee that updateUI() always has a valid, fully initialized instance available to call no matter when the closure eventually runs", "isMonospaced": false },
+        { "text": "The plain closure is safer, since capturing self strongly guarantees that updateUI() always has a valid, fully initialized instance available to call no matter when the closure eventually runs", "isMonospaced": false },
         { "text": "[weak self] makes updateUI() run on a background queue instead of the main thread", "isMonospaced": false },
         { "text": "The plain closure risks a retain cycle if self indirectly retains the closure; [weak self] avoids it by capturing self as an optional, weak reference", "isMonospaced": false }
       ]
@@ -216,7 +216,7 @@
       "options": [
         { "text": "func declarations can't reference stored properties at all in Swift", "isMonospaced": false },
         { "text": "By default, a struct's instance methods can't modify its stored properties — mutating opts in to that", "isMonospaced": false },
-        { "text": "value would need to be declared as an optional (var value: Int?) instead of a plain Int, since only optional stored properties are assumed to be mutable from within a struct's own instance methods", "isMonospaced": false },
+        { "text": "value would need to be declared as an optional (var value: Int?) instead of a plain Int, since only optional stored properties are mutable from within a struct's own instance methods", "isMonospaced": false },
         { "text": "increment() would need to be marked static to change value", "isMonospaced": false }
       ]
     },
@@ -233,7 +233,7 @@
         { "text": "A case with a payload: pattern matching can extract the associated User or Error value specific to whichever case matched", "isMonospaced": false },
         { "text": "A computed property that returns either a User or an Error depending on context", "isMonospaced": false },
         { "text": "A protocol requirement that any conforming type must implement", "isMonospaced": false },
-        { "text": "A struct with two optional properties, user and error, where exactly one of them is assumed to always be non-nil while the other stays nil for the lifetime of the value", "isMonospaced": false }
+        { "text": "A struct with two optional properties, user and error, where exactly one of them is always non-nil while the other stays nil for the lifetime of the value", "isMonospaced": false }
       ]
     },
     {
@@ -268,7 +268,7 @@
       "options": [
         { "text": "They're identical; Swift automatically converts one form into the other wherever they appear", "isMonospaced": false },
         { "text": "Result can only be used inside async functions, while throws works everywhere", "isMonospaced": false },
-        { "text": "throws is assumed to always be faster at runtime than Result, since Result is assumed to box its payload on the heap regardless of whether User and Error are small value types that would otherwise fit inline", "isMonospaced": false },
+        { "text": "throws is always faster at runtime than Result, since Result boxes its payload on the heap regardless of whether User and Error are small value types that would otherwise fit inline", "isMonospaced": false },
         { "text": "throws requires the caller to use try/catch (or propagate with throws); Result is a plain value that can be stored, passed around, and inspected without try at all", "isMonospaced": false }
       ]
     },
@@ -285,7 +285,7 @@
         { "text": "Nothing — the switch still compiles and up is simply never matched at runtime", "isMonospaced": false },
         { "text": "Every switch over Direction that isn't exhaustive (and has no default) now fails to compile, flagging the missing case", "isMonospaced": false },
         { "text": "The compiler inserts an implicit default: break automatically for the new case", "isMonospaced": false },
-        { "text": "The program is assumed to compile fine either way, but crashes at runtime the very first time a Direction.up value is actually passed into this particular switch statement", "isMonospaced": false }
+        { "text": "The program compiles fine either way, but crashes at runtime the very first time a Direction.up value is actually passed into this particular switch statement", "isMonospaced": false }
       ]
     },
     {
@@ -299,7 +299,7 @@
       "codeSnippet": null,
       "options": [
         { "text": "The else branch doesn't exit the scope (e.g. with return), so the compiler can't guarantee n exists afterward", "isMonospaced": false },
-        { "text": "guard is assumed to only support plain Bool conditions in every version of Swift, and is thought to never support optional binding with let inside its condition clause", "isMonospaced": false },
+        { "text": "guard only supports plain Bool conditions in every version of Swift, and never supports optional binding with let inside its condition clause", "isMonospaced": false },
         { "text": "name must be a non-optional String for guard let to apply", "isMonospaced": false },
         { "text": "print inside an else branch isn't allowed in Swift", "isMonospaced": false }
       ]
@@ -334,9 +334,9 @@
         "code": "struct Thermostat {\n    var temperature: Int = 70 {\n        didSet {\n            print(\"changed from \\(oldValue) to \\(temperature)\")\n        }\n    }\n}\n\nvar t = Thermostat()\nt.temperature = 72"
       },
       "options": [
-        { "text": "changed from 70 to 70, then changed from 70 to 72 — didSet is assumed to also fire once for the default value assigned during initialization", "isMonospaced": false },
-        { "text": "Nothing prints, since didSet is assumed to never fire on a struct's stored property, only ever on a class's", "isMonospaced": false },
-        { "text": "changed from 0 to 72, since oldValue is assumed to always default to 0 the very first time didSet runs for any property", "isMonospaced": false },
+        { "text": "changed from 70 to 70, then changed from 70 to 72 — didSet also fires once for the default value assigned during initialization", "isMonospaced": false },
+        { "text": "Nothing prints, since didSet never fires on a struct's stored property, only ever on a class's", "isMonospaced": false },
+        { "text": "changed from 0 to 72, since oldValue always defaults to 0 the very first time didSet runs for any property", "isMonospaced": false },
         { "text": "changed from 70 to 72", "isMonospaced": true }
       ]
     },
@@ -352,7 +352,7 @@
       "options": [
         { "text": "Neither — cross-extension calls to a private helper always require making it internal instead", "isMonospaced": false },
         { "text": "private already covers this — it's visible across all extensions of the same type in the same file", "isMonospaced": false },
-        { "text": "Only fileprivate is assumed to work here, since private is thought to be scoped strictly to the single individual extension block where it happens to be declared, never anything wider", "isMonospaced": false },
+        { "text": "Only fileprivate works here, since private is scoped strictly to the single individual extension block where it happens to be declared, never anything wider", "isMonospaced": false },
         { "text": "It requires public, since extensions are compiled as if they were separate modules", "isMonospaced": false }
       ]
     },
@@ -368,7 +368,7 @@
       "options": [
         { "text": "Because the closure is stored for later use and will outlive the function call, which non-escaping closures aren't allowed to do", "isMonospaced": false },
         { "text": "Because Data isn't a value type, and only value-typed closures can be non-escaping", "isMonospaced": false },
-        { "text": "Because completion handlers are assumed to always need to run on a background queue somewhere, and only closures marked @escaping are thought to be capable of running off the main thread at all", "isMonospaced": false },
+        { "text": "Because completion handlers always need to run on a background queue somewhere, and only closures marked @escaping are capable of running off the main thread at all", "isMonospaced": false },
         { "text": "Because the function is async, and only async functions can accept closure parameters at all", "isMonospaced": false }
       ]
     },
@@ -389,7 +389,7 @@
         { "text": "3, 3, 3 — every closure shares the same i, which has finished looping by the time they run", "isMonospaced": false },
         { "text": "A compile error, since i can't be captured inside a for-in loop's body without an explicit capture list", "isMonospaced": false },
         { "text": "0, 1, 2 — each iteration captures its own independent value of i", "isMonospaced": false },
-        { "text": "2, 1, 0, since closures are assumed to capture and replay values in reverse order of insertion", "isMonospaced": false }
+        { "text": "2, 1, 0, since closures capture and replay values in reverse order of insertion", "isMonospaced": false }
       ]
     },
     {
@@ -403,8 +403,8 @@
       "codeSnippet": null,
       "options": [
         { "text": "Synthesis stops entirely, and you must write encode(to:) and init(from:) by hand", "isMonospaced": false },
-        { "text": "The omitted property is encoded anyway, since CodingKeys is assumed to only affect decoding, never encoding", "isMonospaced": false },
-        { "text": "A compile error occurs, since CodingKeys is assumed to require listing every single stored property with absolutely no exceptions permitted under any circumstance", "isMonospaced": false },
+        { "text": "The omitted property is encoded anyway, since CodingKeys only affects decoding, never encoding", "isMonospaced": false },
+        { "text": "A compile error occurs, since CodingKeys requires listing every single stored property, and the synthesized initializer rejects any enum that omits one", "isMonospaced": false },
         { "text": "Synthesis still works, but the omitted property is skipped entirely by both encoding and decoding", "isMonospaced": false }
       ]
     },
@@ -441,7 +441,7 @@
         { "text": "Once — the first access computes and caches it; later reads just return the cached value", "isMonospaced": false },
         { "text": "Twice — once per property that reads it", "isMonospaced": false },
         { "text": "Zero times, since lazy properties are only ever evaluated when explicitly forced with a separate call to config.evaluate()", "isMonospaced": false },
-        { "text": "Every time config is read, since lazy is assumed to only defer the type declaration, never the actual evaluation of the initializer expression itself", "isMonospaced": false }
+        { "text": "Every time config is read, since lazy only defers the type declaration, never the actual evaluation of the initializer expression itself", "isMonospaced": false }
       ]
     },
     {
@@ -470,7 +470,7 @@
       "level": "senior",
       "codeSnippet": null,
       "options": [
-        { "text": "value is assumed to still be plain Int, and any thrown error is assumed to automatically propagate further up to the caller's own caller instead", "isMonospaced": false },
+        { "text": "value is still plain Int, and any thrown error automatically propagates further up to the caller's own caller instead", "isMonospaced": false },
         { "text": "value is Result<Int, Error>, capturing whichever case actually applies", "isMonospaced": false },
         { "text": "value is Int, and a thrown error is silently replaced with 0", "isMonospaced": false },
         { "text": "value is Int?, and a thrown error becomes nil, discarding the specific error", "isMonospaced": false }
@@ -507,9 +507,9 @@
       "codeSnippet": null,
       "options": [
         { "text": "Collection alone doesn't guarantee its Element is Equatable; the where clause adds that separate requirement on the associated type", "isMonospaced": false },
-        { "text": "Without it, the function is assumed to fail to compile for an entirely unrelated reason — generic functions are thought to always require at least two separate constraints listed together before they're considered valid", "isMonospaced": false },
+        { "text": "Without it, the function fails to compile for a different reason — generic functions always require at least two separate constraints listed together before they're considered valid", "isMonospaced": false },
         { "text": "The where clause is only decorative here; Collection already implies Equatable elements in every case", "isMonospaced": false },
-        { "text": "It restricts C itself to arrays, since where clauses on associated types are assumed to only ever apply when C happens to be Array", "isMonospaced": false }
+        { "text": "It restricts C itself to arrays, since where clauses on associated types only ever apply when C happens to be Array", "isMonospaced": false }
       ]
     },
     {
@@ -523,7 +523,7 @@
       "codeSnippet": null,
       "options": [
         { "text": "Yes — some Drawable means each call is free to return a different concrete type, so long as it conforms", "isMonospaced": false },
-        { "text": "No, because Drawable itself would be assumed to require being declared as a class-only protocol before any opaque return type involving it could ever be considered valid at all", "isMonospaced": false },
+        { "text": "No, because Drawable itself would need to be declared as a class-only protocol before any opaque return type involving it could be considered valid", "isMonospaced": false },
         { "text": "No — some commits the function to one single concrete type for all calls; any Drawable would be needed to vary it per call", "isMonospaced": false },
         { "text": "Yes, but only if Drawable has no associated types or Self requirements anywhere in its definition", "isMonospaced": false }
       ]
@@ -544,7 +544,7 @@
       "options": [
         { "text": "Int, the same clamped value as health itself, just accessed through a different spelling", "isMonospaced": false },
         { "text": "ClosedRange<Int>, the range health is clamped to", "isMonospaced": false },
-        { "text": "A compile error is assumed to occur here, since $ -prefixed access is thought to only ever be meaningful on properties wrapped specifically with Combine's @Published, never a custom property wrapper", "isMonospaced": false },
+        { "text": "A compile error occurs here, since $ -prefixed access is only ever meaningful on properties wrapped specifically with Combine's @Published, never a custom property wrapper", "isMonospaced": false },
         { "text": "Bool, defined by projectedValue here as whether health is currently at the top of its clamped range", "isMonospaced": false }
       ]
     },
@@ -558,10 +558,10 @@
       "level": "senior",
       "codeSnippet": null,
       "options": [
-        { "text": "Stored properties are assumed to require the @objc attribute, which extensions can't apply to a type they don't originally declare", "isMonospaced": false },
+        { "text": "Stored properties require the @objc attribute, which extensions can't apply to a type they don't originally declare", "isMonospaced": false },
         { "text": "A stored property needs space in the type's memory layout, and extensions can't retroactively change that layout", "isMonospaced": false },
         { "text": "Extensions can only be applied to protocols, not to concrete structs or classes, so stored properties never apply", "isMonospaced": false },
-        { "text": "It's a language limitation planned for removal — a future Swift version is assumed to allow stored properties in extensions", "isMonospaced": false }
+        { "text": "It's a language limitation planned for removal — a future Swift version will allow stored properties in extensions", "isMonospaced": false }
       ]
     }
   ]
