@@ -4,7 +4,7 @@
   "section": "craft",
   "symbolName": "checkmark.diamond.fill",
   "colorToken": "testing",
-  "order": 6,
+  "order": 8,
   "lessons": [
     {
       "id": "testing-l1",

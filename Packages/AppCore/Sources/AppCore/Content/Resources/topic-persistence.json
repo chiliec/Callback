@@ -1,0 +1,940 @@
+{
+  "id": "persistence",
+  "name": "Persistence & Data",
+  "section": "frameworks",
+  "symbolName": "cylinder.split.1x2.fill",
+  "colorToken": "coredata",
+  "order": 6,
+  "lessons": [
+    {
+      "id": "persistence-l1",
+      "order": 0,
+      "title": "Where State Lives",
+      "estimatedMinutes": 5,
+      "body": "Every app accumulates state that has to survive relaunch, and picking the wrong container for it causes real bugs — a leaked secret, a lost preference, a UI stutter from over-fetching. iOS gives you four places to put durable state, each suited to a different shape of data.\n\n## The menu\n\n- **`UserDefaults`** — a small property-list store for lightweight preferences: a theme choice, a feature flag, whether onboarding finished. Anything written to it lives in a plain plist file in the app's sandbox, so it's not a safe place for secrets.\n- **Files on disk (`Codable` + `FileManager`)** — arbitrary-sized structured data that doesn't need querying: a cached JSON payload, a user-authored document, an exported PDF. You own reading, writing, and any versioning yourself.\n- **Keychain** — encrypted, access-controlled storage built for secrets: OAuth tokens, passwords, cryptographic keys. It can survive an app deletion and reinstall, which `UserDefaults` does not.\n- **SwiftData / Core Data** — an object graph with relationships you need to query, sort, and filter efficiently: your contacts, your orders, this app's own questions and progress.\n\n```swift\n// Fine in UserDefaults: small, non-secret, read as a single value\nUserDefaults.standard.set(true, forKey: \"hasSeenOnboarding\")\n\n// Wrong: a token belongs in the Keychain, not a plist on disk\nUserDefaults.standard.set(authToken, forKey: \"authToken\") // don't\n```\n\n## What not to put in UserDefaults\n\n`UserDefaults` backs onto a plist file inside the app's container, and every write serializes the whole file back to disk — fine for a handful of small values, costly once it grows. That rules out two things: secrets (tokens, passwords, keys belong in the Keychain) and anything large or frequently updated (a big blob belongs in a file; structured, queryable data belongs in SwiftData or Core Data).\n\n> KEY: Match the container to the data's two real properties — is it a secret, and does it need to be queried — rather than whichever store happens to be quickest to reach for.",
+      "quickCheck": {
+        "id": "persistence-l1-qc",
+        "kind": "multipleChoice",
+        "prompt": "A teammate wants to persist an OAuth access token so a logged-in session survives relaunch. Where should it go, and why not `UserDefaults`?",
+        "explanation": "`UserDefaults` stores its values in a plain plist file inside the app's sandbox — readable by anything with access to that container. The Keychain exists specifically for secrets: it's encrypted at rest and access-controlled, which a token needs and a preference plist doesn't provide.",
+        "correctIndex": 2,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "UserDefaults, since any value written through `set(_:forKey:)` is automatically encrypted before it touches disk",
+            "isMonospaced": false
+          },
+          {
+            "text": "A file on disk, since files get stronger sandbox protection than anything stored through UserDefaults",
+            "isMonospaced": false
+          },
+          {
+            "text": "The Keychain — encrypted and access-controlled, unlike UserDefaults' plain plist file",
+            "isMonospaced": false
+          },
+          {
+            "text": "SwiftData, modeling the token as a `@Model` property alongside the rest of the user's data",
+            "isMonospaced": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "persistence-l2",
+      "order": 1,
+      "title": "SwiftData Essentials",
+      "estimatedMinutes": 6,
+      "body": "SwiftData is Apple's Swift-native persistence framework — the modern front door onto the same storage engine Core Data has always used. It replaces `NSManagedObject` subclasses and `.xcdatamodeld` files with plain Swift types and macros.\n\n## Declaring the model\n\nThe `@Model` macro turns an ordinary class into a persisted type — every stored property becomes tracked, storable state, with no `@Published` or manual change-notification wiring required.\n\n```swift\n@Model\nfinal class Question {\n    var prompt: String\n    var correctIndex: Int\n    var topic: Topic?\n\n    init(prompt: String, correctIndex: Int) {\n        self.prompt = prompt\n        self.correctIndex = correctIndex\n    }\n}\n```\n\n## Container and context\n\n- **`ModelContainer`** owns the schema and the actual storage, on disk or in memory. You typically create one at app launch and hand it to the view hierarchy with `.modelContainer(for:)`.\n- **`ModelContext`** is the working area — a unit of work where you `insert`, `delete`, and mutate model instances, then `save()` to commit. This app itself keeps a `ModelContext` for tracking progress through its own questions.\n\n## Reading with @Query\n\n`@Query` is a SwiftUI property wrapper that fetches model instances and keeps a view's list live: insert or delete through any `ModelContext` backed by the same container, and every `@Query`-driven view refreshes without you writing an observer.\n\n```swift\nstruct ProgressList: View {\n    @Query(sort: \\Attempt.date, order: .reverse) private var attempts: [Attempt]\n\n    var body: some View {\n        List(attempts) { Text($0.summary) }\n    }\n}\n```\n\n## Relationships and delete rules\n\nA relationship between two `@Model` types can specify a delete rule through `@Relationship(deleteRule:)`: `.cascade` deletes the related objects too, `.nullify` clears the reference and leaves them in place, `.deny` refuses the delete while related objects still exist. Getting this wrong either orphans data or wipes out far more than intended.\n\n> KEY: `@Model` gives you the schema, `ModelContext` gives you the transaction, and `@Query` gives SwiftUI its automatic refresh — the same three roles Core Data always had, with far less boilerplate to write.",
+      "quickCheck": {
+        "id": "persistence-l2-qc",
+        "kind": "multipleChoice",
+        "prompt": "A view lists every `Attempt` sorted by date using `@Query`. A background task inserts a new `Attempt` through a `ModelContext` backed by the same `ModelContainer`. What happens to the view?",
+        "explanation": "`@Query` keeps its results live: any insert, delete, or change committed through a `ModelContext` sharing the same container is reflected automatically, so the list updates without any manual refresh call.",
+        "correctIndex": 0,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "The list updates automatically — @Query tracks the same container's changes and refreshes the view",
+            "isMonospaced": false
+          },
+          {
+            "text": "Nothing happens until the view is manually reloaded, since @Query only fetches once when the view first appears",
+            "isMonospaced": false
+          },
+          {
+            "text": "The app crashes, since a ModelContext can only ever be touched from the exact view that declared the @Query in the first place",
+            "isMonospaced": false
+          },
+          {
+            "text": "The new Attempt appears only after the app is relaunched, since @Query results are cached to disk between launches",
+            "isMonospaced": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "persistence-l3",
+      "order": 2,
+      "title": "Core Data and the Bridge",
+      "estimatedMinutes": 5,
+      "body": "SwiftData's simplicity sits on top of Core Data's decade of infrastructure — knowing the layer underneath still matters, since some apps and some framework details (background imports, complex migrations, `NSFetchedResultsController`) still call for Core Data directly.\n\n## The core vocabulary\n\n- **`NSManagedObject`** — a Core Data record, alive only while its owning `NSManagedObjectContext` is around. Every property access goes through that context, whether you call it explicitly or not.\n- **`NSManagedObjectContext`** — a scratchpad for a set of changes. Apps typically keep at least two: a main-queue context for UI-bound reads, and a background context for imports or heavy writes, merged back through notifications or `parent`/`child` context chaining.\n- **`NSFetchRequest`** — describes what to fetch: entity, predicate, sort descriptors, and how many objects to pull into memory versus fault in later.\n\n```swift\nlet request = Note.fetchRequest()\nrequest.predicate = NSPredicate(format: \"title CONTAINS %@\", \"todo\")\nlet notes = try backgroundContext.fetch(request)\n```\n\n## Faulting\n\nA fetched managed object doesn't necessarily load all its data immediately — Core Data can return a **fault**, a lightweight placeholder that only pulls in its real property values once something actually touches them. That keeps a large fetch cheap up front, but touching a fault's properties one at a time inside a loop, rather than pre-fetching what the loop needs, turns into a wave of individual round-trips.\n\n## SwiftData's relationship to Core Data\n\nBy default, a `ModelContainer` is backed by the same Core Data storage engine SwiftData has always used — `@Model` and `ModelContext` are a Swift-native façade over `NSManagedObject` and `NSManagedObjectContext`. Reaching for Core Data directly still makes sense when a team needs `NSFetchedResultsController`-level control, custom incremental migrations, or already maintains a store that predates SwiftData.\n\n> KEY: Every managed object is confined to the queue of the context that fetched it — reading or writing it from any other queue is the single most common Core Data threading bug.",
+      "quickCheck": {
+        "id": "persistence-l3-qc",
+        "kind": "multipleChoice",
+        "prompt": "Why do many Core Data apps keep a background `NSManagedObjectContext` separate from the main-queue context?",
+        "explanation": "Import or batch work can take real time and would block the UI if it ran on the main context; a background context lets that work happen off the main queue, with changes merged back afterward, so the UI thread stays responsive.",
+        "correctIndex": 2,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "Because NSManagedObjectContext can only be created once per app launch, so a second one is needed for any additional work at all",
+            "isMonospaced": false
+          },
+          {
+            "text": "Because SwiftUI requires exactly two contexts to exist before a @Query property wrapper will compile",
+            "isMonospaced": false
+          },
+          {
+            "text": "To keep heavy work like an import off the main thread, then merge those changes back automatically so the UI stays responsive",
+            "isMonospaced": false
+          },
+          {
+            "text": "Because a single context can only hold 100 objects before Core Data automatically discards the oldest ones",
+            "isMonospaced": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "persistence-l4",
+      "order": 3,
+      "title": "Migrations and Data Safety",
+      "estimatedMinutes": 6,
+      "body": "A schema is never final — a new required property, a renamed field, a restructured relationship all show up after real users already have a store on disk. Migrating that store safely is the difference between an update and a support ticket about vanished data.\n\n## Lightweight vs custom migration\n\n- **Lightweight migration** handles the changes Core Data (and SwiftData) can infer automatically: adding an optional attribute, adding an attribute with a default value, a rename backed by an explicit mapping hint. It runs with no migration code from you.\n- **Custom migration** is required for anything that can't be inferred: splitting one entity into two, transforming a value's type or meaning (a string category becoming a numeric level), merging data across entities. That needs an explicit mapping model or migration code that transforms data by hand before the new schema takes over.\n\n## SwiftData's migration types\n\nSwiftData expresses schema history through `VersionedSchema` — one type per schema version — and a `SchemaMigrationPlan` that lists the ordered stages between them. A stage can be `.lightweight` (inferred) or `.custom` (with `willMigrate`/`didMigrate` closures that transform data by hand). The plan runs in order the first time the app launches against an older store.\n\n```swift\nenum MigrationPlan: SchemaMigrationPlan {\n    static var schemas: [any VersionedSchema.Type] { [SchemaV1.self, SchemaV2.self] }\n    static var stages: [MigrationStage] {\n        [.custom(\n            fromVersion: SchemaV1.self,\n            toVersion: SchemaV2.self,\n            willMigrate: { context in /* transform old data here */ },\n            didMigrate: nil\n        )]\n    }\n}\n```\n\n## Why a bad migration is a data-loss bug, not just a crash\n\nA missed migration stage doesn't always crash outright — sometimes it silently drops a field, or the store resets when a mapping can't be inferred and none was provided. That failure mode is often worse than a crash: the app keeps running, and the user only notices their data is gone later, if at all.\n\n## Threading is still part of data safety\n\nA context — SwiftData's `ModelContext` or Core Data's `NSManagedObjectContext` — is confined to one queue or isolation domain at a time. Passing a model instance across an `await` boundary or a `DispatchQueue.global()` call, instead of passing its identifier and re-fetching, is a common source of the same kind of corruption a bad migration causes: state quietly diverging from what's actually on disk.\n\n> KEY: Treat every schema change as a migration decision, not an afterthought — the cost of getting it wrong is measured in a user's data, not just a compiler warning.",
+      "quickCheck": {
+        "id": "persistence-l4-qc",
+        "kind": "multipleChoice",
+        "prompt": "You add a new non-optional `String` property to an existing `@Model` type, ship it with no default value and no migration stage. What's most likely to happen for a user with an existing store?",
+        "explanation": "Lightweight migration can only infer a value for a new required property if a default is provided; without one, and without a custom migration stage, the container fails to load the existing store rather than silently guessing a value.",
+        "correctIndex": 1,
+        "rubric": null,
+        "level": "junior",
+        "codeSnippet": null,
+        "options": [
+          {
+            "text": "Nothing — SwiftData always assigns an empty string automatically to any new non-optional property it can't otherwise infer",
+            "isMonospaced": false
+          },
+          {
+            "text": "The container fails to open the store, since lightweight migration can't infer a value with no default or custom stage",
+            "isMonospaced": false
+          },
+          {
+            "text": "The property is silently ignored until some future schema change happens to add a default value for it",
+            "isMonospaced": false
+          },
+          {
+            "text": "SwiftData treats the new property as optional automatically, regardless of how it was declared, so the store opens with the property simply left blank",
+            "isMonospaced": false
+          }
+        ]
+      }
+    }
+  ],
+  "questions": [
+    {
+      "id": "persistence-q1",
+      "kind": "multipleChoice",
+      "prompt": "You need to remember whether the user has already dismissed the onboarding flow, across launches. Which store fits best?",
+      "explanation": "A single small boolean preference is exactly the case `UserDefaults` is designed for — cheap to read and write, no querying or relationships involved, and nothing secret about it.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "SwiftData, modeling a single `HasSeenOnboarding` object with one boolean property",
+          "isMonospaced": false
+        },
+        {
+          "text": "UserDefaults — a small boolean preference like this is simply what it's built for",
+          "isMonospaced": false
+        },
+        {
+          "text": "The Keychain, since anything that needs to persist across launches counts as a secret",
+          "isMonospaced": false
+        },
+        {
+          "text": "A file written directly with FileManager, since UserDefaults can't store boolean values",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q2",
+      "kind": "multipleChoice",
+      "prompt": "A note-taking feature lets a user attach a multi-megabyte voice memo to an entry. Which store fits, and why not `UserDefaults`?",
+      "explanation": "UserDefaults rewrites its entire backing plist on every change, so handing it a multi-megabyte value turns a routine save into real, avoidable I/O cost. Writing the memo to a file and keeping only its URL avoids that entirely.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "UserDefaults, since it can hold a Data value of any size without a practical cost",
+          "isMonospaced": false
+        },
+        {
+          "text": "A file on disk, addressed by a URL — UserDefaults rewrites its whole plist on every save",
+          "isMonospaced": false
+        },
+        {
+          "text": "The Keychain, since it has no size limit and is meant for exactly this kind of media",
+          "isMonospaced": false
+        },
+        {
+          "text": "SwiftData, storing the raw audio bytes as a plain `Data` property read into memory on every fetch",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q3",
+      "kind": "code",
+      "prompt": "This import routine is reported to occasionally crash with a Core Data threading violation. What's wrong with it?",
+      "explanation": "An `NSManagedObject` is confined to the queue of the `NSManagedObjectContext` that created it. `notes` was fetched on `context`'s own queue, but `note.title` is then read from `DispatchQueue.global()` inside the loop — a different queue than the one the objects are confined to. The fix is to read through `context.perform { ... }` (or hand off plain data, not the managed objects themselves).",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "Import.swift",
+        "language": "swift",
+        "code": "func importNotes(from context: NSManagedObjectContext) {\n    let notes = try! context.fetch(Note.fetchRequest()) as! [Note]\n    DispatchQueue.global().async {\n        for note in notes {\n            print(note.title as Any) // touched off context's queue\n        }\n    }\n}"
+      },
+      "options": [
+        {
+          "text": "Nothing — NSManagedObject properties are safe to read from any queue once the initial fetch has completed",
+          "isMonospaced": false
+        },
+        {
+          "text": "The fetch itself is the bug, since context.fetch(_:) is only callable from the main queue in any Core Data app",
+          "isMonospaced": false
+        },
+        {
+          "text": "notes should be declared as a global actor-isolated array so the compiler stops flagging the later queue hop",
+          "isMonospaced": false
+        },
+        {
+          "text": "note.title is touched off context's queue — confined managed objects must always be read via context.perform",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q4",
+      "kind": "multipleChoice",
+      "prompt": "What is the Keychain primarily used for, compared to UserDefaults?",
+      "explanation": "The Keychain is built for secrets — encrypted at rest and access-controlled — which is exactly the boundary that separates it from UserDefaults' plain plist storage.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "The Keychain — secrets like tokens are automatically encrypted there and access-controlled",
+          "isMonospaced": false
+        },
+        {
+          "text": "Storing large media files efficiently, since Keychain has no practical size limit for anything stored in it",
+          "isMonospaced": false
+        },
+        {
+          "text": "Caching network responses for offline use, since it's the fastest local store available on the device",
+          "isMonospaced": false
+        },
+        {
+          "text": "Storing user interface preferences like the app's chosen color theme",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q5",
+      "kind": "multipleChoice",
+      "prompt": "Which of these is a bad fit for UserDefaults?",
+      "explanation": "A refresh token is a secret; UserDefaults stores its values in a plain, unencrypted plist file, so a leaked backup or a jailbroken device can expose it. Secrets belong in the Keychain, not a preferences store.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "A boolean flag for whether a tutorial was dismissed",
+          "isMonospaced": false
+        },
+        {
+          "text": "An OAuth refresh token needed to keep a session alive",
+          "isMonospaced": false
+        },
+        {
+          "text": "The user's chosen app icon variant",
+          "isMonospaced": false
+        },
+        {
+          "text": "A small integer counting how many times a feature was used",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q6",
+      "kind": "multipleChoice",
+      "prompt": "What does the @Model macro do when applied to a class?",
+      "explanation": "@Model is the macro that turns a plain class into a persistent SwiftData type: its stored properties become tracked, storable state, without hand-writing NSManagedObject boilerplate.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "It makes the class conform to Codable automatically so it can be sent over the network",
+          "isMonospaced": false
+        },
+        {
+          "text": "It marks the class as safe to share across concurrency domains with no further annotation needed",
+          "isMonospaced": false
+        },
+        {
+          "text": "It turns the class into a persisted, change-tracked SwiftData model",
+          "isMonospaced": false
+        },
+        {
+          "text": "It generates a SwiftUI view that displays the class's properties automatically",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q7",
+      "kind": "multipleChoice",
+      "prompt": "What's distinctive about how a SwiftUI view using @Query stays in sync with the underlying data?",
+      "explanation": "@Query is a live-fetching property wrapper — any insert, delete, or update committed through a ModelContext sharing the same container refreshes the view without an explicit reload call.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "It polls the store on a fixed timer to check for any changes since the last poll",
+          "isMonospaced": false
+        },
+        {
+          "text": "It requires the developer to call a refresh() method after every insert or delete",
+          "isMonospaced": false
+        },
+        {
+          "text": "It only updates the first time the view appears, then holds a static snapshot from then on",
+          "isMonospaced": false
+        },
+        {
+          "text": "It updates automatically whenever a shared ModelContext commits a change",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q8",
+      "kind": "multipleChoice",
+      "prompt": "How do ModelContainer and ModelContext divide responsibility in SwiftData?",
+      "explanation": "A ModelContainer configures and owns the schema plus its storage location; a ModelContext is the transactional workspace where model instances are inserted, mutated, deleted, and saved.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "ModelContainer owns the schema and storage; ModelContext is where changes are made and saved",
+          "isMonospaced": false
+        },
+        {
+          "text": "ModelContainer is created fresh for every view; ModelContext is created exactly once at app launch",
+          "isMonospaced": false
+        },
+        {
+          "text": "ModelContainer handles networking; ModelContext handles local caching only",
+          "isMonospaced": false
+        },
+        {
+          "text": "They're interchangeable names for the same type, kept only for API compatibility with Core Data",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q9",
+      "kind": "multipleChoice",
+      "prompt": "What is an NSManagedObject in Core Data?",
+      "explanation": "An NSManagedObject represents one persisted record, and it's tied to the queue of the context that fetched it — reading or writing it elsewhere is a threading violation, not something the type protects against on its own.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "A value type that can be freely passed across threads once it's been fetched",
+          "isMonospaced": false
+        },
+        {
+          "text": "A record confined to the queue of the context that created it — never touch it elsewhere",
+          "isMonospaced": false
+        },
+        {
+          "text": "A protocol every SwiftUI view must conform to in order to read from a store",
+          "isMonospaced": false
+        },
+        {
+          "text": "A cache layer that sits in front of NSFetchRequest to avoid repeated fetches",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q10",
+      "kind": "multipleChoice",
+      "prompt": "By default, what does a SwiftData ModelContainer use as its underlying storage engine?",
+      "explanation": "SwiftData's @Model and ModelContext are a Swift-native façade over the same Core Data engine — NSManagedObject and NSManagedObjectContext still do the underlying work by default.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "A brand-new storage engine entirely unrelated to Core Data, built from scratch for SwiftData",
+          "isMonospaced": false
+        },
+        {
+          "text": "SQLite accessed directly, bypassing Core Data's runtime altogether",
+          "isMonospaced": false
+        },
+        {
+          "text": "The same Core Data storage engine SwiftData has always used, wrapped by a Swift-native API",
+          "isMonospaced": false
+        },
+        {
+          "text": "CloudKit's local cache, with Core Data used only as an optional fallback",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q11",
+      "kind": "multipleChoice",
+      "prompt": "Which schema change can Core Data typically infer through lightweight migration with no code from you?",
+      "explanation": "Adding an optional attribute (or one with a default) is exactly the kind of change lightweight migration infers automatically; restructuring entities or transforming a value's meaning needs a custom migration with an explicit mapping instead.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "junior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Splitting one entity into two related entities",
+          "isMonospaced": false
+        },
+        {
+          "text": "Merging the properties of two entities into a single new entity",
+          "isMonospaced": false
+        },
+        {
+          "text": "Changing a stored date from a String to a proper Date, with a custom transform in between",
+          "isMonospaced": false
+        },
+        {
+          "text": "Adding a new optional attribute to an existing entity — inferred automatically, no code required",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q12",
+      "kind": "multipleChoice",
+      "prompt": "Why does a Core Data-backed app commonly perform a large import on a background NSManagedObjectContext instead of the main one?",
+      "explanation": "Import or batch work can be slow; doing it on a background context avoids blocking the main-queue context — and the UI it drives — with changes merged back once the work finishes.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "A background context keeps heavy import work off the main context, keeping the UI responsive",
+          "isMonospaced": false
+        },
+        {
+          "text": "A main-queue context is read-only by default, so any write has to happen somewhere else entirely",
+          "isMonospaced": false
+        },
+        {
+          "text": "Background contexts are the only kind that support NSFetchRequest at all",
+          "isMonospaced": false
+        },
+        {
+          "text": "The main context automatically discards any object not touched within one second of being fetched",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q13",
+      "kind": "code",
+      "prompt": "This view's list never reflects new attempts saved elsewhere in the app. What's the bug?",
+      "explanation": "A plain array fetched once in init is a snapshot — it never changes again. @Query is what subscribes the view to the store and triggers a re-render on every relevant change; replacing the manual fetch with `@Query var attempts: [Attempt]` would fix it.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": {
+        "filename": "ProgressList.swift",
+        "language": "swift",
+        "code": "struct ProgressList: View {\n    let attempts: [Attempt]\n\n    init(context: ModelContext) {\n        attempts = (try? context.fetch(FetchDescriptor<Attempt>())) ?? []\n    }\n\n    var body: some View {\n        List(attempts) { Text($0.summary) }\n    }\n}"
+      },
+      "options": [
+        {
+          "text": "List requires attempts to conform to RandomAccessCollection, a requirement that Array is missing here",
+          "isMonospaced": false
+        },
+        {
+          "text": "attempts is fetched once in init, so it never reflects later changes to the store",
+          "isMonospaced": false
+        },
+        {
+          "text": "FetchDescriptor doesn't support Attempt as a generic parameter in any context",
+          "isMonospaced": false
+        },
+        {
+          "text": "context.fetch must always be awaited, so this code doesn't compile as written",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q14",
+      "kind": "multipleChoice",
+      "prompt": "In a SwiftData or Core Data relationship, what does a `.cascade` delete rule do that `.nullify` doesn't?",
+      "explanation": ".cascade propagates the delete to related objects; .nullify instead just clears the reference and leaves those objects in place. Picking the wrong one either orphans data or deletes more than intended.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "It prevents the delete entirely while related objects still exist",
+          "isMonospaced": false
+        },
+        {
+          "text": "It clears the reference on related objects but leaves those objects in the store",
+          "isMonospaced": false
+        },
+        {
+          "text": "It deletes the related objects too, not just clears the reference",
+          "isMonospaced": false
+        },
+        {
+          "text": "It converts the relationship into a one-to-many relationship automatically",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q15",
+      "kind": "code",
+      "prompt": "Adding a Topic to a Question's `topic` relationship doesn't show that Question in `Topic.questions` until the app is relaunched. What's most likely missing?",
+      "explanation": "SwiftData's automatic inverse inference is documented to cover a single unambiguous relationship pair between two model types, but it's unreliable enough in practice that explicit inverses are the safer habit — especially once a model gains a second relationship to the same type, where inference gives up entirely. Without an explicit inverse tying the two sides together, setting one side of the relationship can leave the other side stale in memory until an explicit inverse is added or a fresh fetch reloads the graph.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": {
+        "filename": "Models.swift",
+        "language": "swift",
+        "code": "@Model\nfinal class Topic {\n    var name: String\n    var questions: [Question] = []\n    init(name: String) { self.name = name }\n}\n\n@Model\nfinal class Question {\n    var prompt: String\n    var topic: Topic?\n    init(prompt: String) { self.prompt = prompt }\n}"
+      },
+      "options": [
+        {
+          "text": "Question.topic should be declared as an array, since a question is expected to belong to more than one topic at once",
+          "isMonospaced": false
+        },
+        {
+          "text": "Topic.questions needs a default value of nil instead of an empty array literal",
+          "isMonospaced": false
+        },
+        {
+          "text": "ModelContext.save() must be called twice before a two-sided relationship is allowed to register at all",
+          "isMonospaced": false
+        },
+        {
+          "text": "The two properties aren't declared as inverses, so the graph's two sides don't automatically stay in sync",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q16",
+      "kind": "multipleChoice",
+      "prompt": "How do you filter the results a @Query fetches, rather than fetching everything and filtering in Swift afterward?",
+      "explanation": "A #Predicate passed to @Query (or built into a FetchDescriptor) lets the store itself apply the filter, which is both more efficient and more direct than fetching everything and filtering the resulting array in Swift.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Pass a #Predicate to @Query, so filtering happens in the store instead of in Swift afterward",
+          "isMonospaced": false
+        },
+        {
+          "text": "Wrap the view's body in an if statement that hides rows that don't match",
+          "isMonospaced": false
+        },
+        {
+          "text": "@Query has no filtering support at all; every filter has to run in Swift after the full fetch completes",
+          "isMonospaced": false
+        },
+        {
+          "text": "Apply .filter { } to the @Query property from inside body every time the view is redrawn",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q17",
+      "kind": "multipleChoice",
+      "prompt": "When would a team still reach for Core Data directly instead of SwiftData?",
+      "explanation": "SwiftData covers most everyday cases well, but a team with an existing Core Data store, a need for NSFetchedResultsController's fine-grained control, or a complex migration path may still choose Core Data's more direct API.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Never — SwiftData is a strict superset of Core Data's capabilities on every OS version it supports",
+          "isMonospaced": false
+        },
+        {
+          "text": "When they need NSFetchedResultsController-level control or already maintain a pre-SwiftData store",
+          "isMonospaced": false
+        },
+        {
+          "text": "Whenever the app happens to define more than one @Model type",
+          "isMonospaced": false
+        },
+        {
+          "text": "Whenever the data needs to be queried at all, since SwiftData is read-only by design",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q18",
+      "kind": "code",
+      "prompt": "This function is supposed to persist a new Attempt, but attempts inserted through it are sometimes missing after the app relaunches. What's the risk here?",
+      "explanation": "insert(_:) stages the object in the context but doesn't guarantee it's flushed to the store immediately — ModelContext's autosave can lag or not fire before the process ends. Calling context.save() explicitly (and handling its thrown error) makes the commit deliberate instead of depending on autosave's timing.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": {
+        "filename": "Recorder.swift",
+        "language": "swift",
+        "code": "func record(_ attempt: Attempt, in context: ModelContext) {\n    context.insert(attempt)\n}"
+      },
+      "options": [
+        {
+          "text": "Attempt needs to be marked Sendable before insert(_:) is able to accept it as an argument",
+          "isMonospaced": false
+        },
+        {
+          "text": "insert(_:) already persists synchronously to disk, so nothing else is required here",
+          "isMonospaced": false
+        },
+        {
+          "text": "The change is never explicitly saved — context.save() must be called to commit it",
+          "isMonospaced": false
+        },
+        {
+          "text": "insert(_:) should be called on the ModelContainer instead of on the ModelContext",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q19",
+      "kind": "multipleChoice",
+      "prompt": "You need to rename `title` to `heading` on an existing @Model type while keeping already-saved data intact. What kind of migration does that require?",
+      "explanation": "A rename looks, from the schema's perspective, like dropping one property and adding an unrelated one — lightweight migration can't safely infer that they're the same data. It needs either an explicit rename hint or a custom migration stage that copies the value across.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "mid",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "No migration at all, since SwiftData matches properties by their position in the type, not by name",
+          "isMonospaced": false
+        },
+        {
+          "text": "A destructive migration that recreates the store from scratch every time",
+          "isMonospaced": false
+        },
+        {
+          "text": "Lightweight migration with no further input, since a property rename is always inferred automatically from the old schema",
+          "isMonospaced": false
+        },
+        {
+          "text": "A custom migration stage (or explicit rename hint) — plain renames aren't safely inferred",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q20",
+      "kind": "multipleChoice",
+      "prompt": "What role do VersionedSchema and SchemaMigrationPlan play in a SwiftData app?",
+      "explanation": "VersionedSchema types snapshot a schema at a point in time; SchemaMigrationPlan defines the ordered stages — each either .lightweight or .custom — that carry a store from one VersionedSchema to the next. Skipping this for anything beyond the simplest change risks the store failing to open.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "VersionedSchema snapshots a schema version; the plan lists the stages between them",
+          "isMonospaced": false
+        },
+        {
+          "text": "VersionedSchema replaces @Model entirely in any app that has more than one schema version",
+          "isMonospaced": false
+        },
+        {
+          "text": "SchemaMigrationPlan is only ever used to seed preview data inside SwiftUI previews",
+          "isMonospaced": false
+        },
+        {
+          "text": "They're optional convenience types with no effect on how an existing store opens",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q21",
+      "kind": "code",
+      "prompt": "This report generator is slow for large datasets. What's the performance problem?",
+      "explanation": "A relationship like author is commonly returned as a fault — a placeholder that loads its real data on first access. Touching note.author.name inside a loop over many notes turns into one round trip per note; prefetching the relationship (e.g. via relationshipKeyPathsForPrefetching) turns that into a single batched fetch.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "Report.swift",
+        "language": "swift",
+        "code": "func summaries(for context: NSManagedObjectContext) throws -> [String] {\n    let notes = try context.fetch(Note.fetchRequest()) as! [Note]\n    return notes.map { note in\n        // each access below can trigger its own round trip to the store\n        \"\\(note.title ?? \"\"): \\(note.author?.name ?? \"unknown\")\"\n    }\n}"
+      },
+      "options": [
+        {
+          "text": "fetchRequest() returns objects in a random order, so the mapped array needs an explicit sort added afterward",
+          "isMonospaced": false
+        },
+        {
+          "text": "note.author is likely a fault; touching .name per note in the loop costs one round trip each",
+          "isMonospaced": false
+        },
+        {
+          "text": "map is not a safe method to call on the result of a Core Data fetch",
+          "isMonospaced": false
+        },
+        {
+          "text": "String interpolation forces every Note into memory twice before the string is built",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q22",
+      "kind": "code",
+      "prompt": "Deleting a single Topic unexpectedly wipes out every Question the user has already answered under it, including their saved Attempt history. What's the likely cause?",
+      "explanation": "Two chained .cascade rules propagate a single delete through the whole graph — Topic to Question to Attempt. If attempt history should survive independently of its question, one of those links needs a different rule, most likely .nullify, so the delete stops cascading past the point where data should actually be preserved.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "Models.swift",
+        "language": "swift",
+        "code": "@Model\nfinal class Topic {\n    @Relationship(deleteRule: .cascade) var questions: [Question] = []\n}\n\n@Model\nfinal class Question {\n    @Relationship(deleteRule: .cascade) var attempts: [Attempt] = []\n}"
+      },
+      "options": [
+        {
+          "text": "Topic shouldn't hold an array relationship at all — only a single Question is meant to belong to one Topic",
+          "isMonospaced": false
+        },
+        {
+          "text": "Attempt needs its own separate @Model declaration, since it currently can't be a valid relationship target",
+          "isMonospaced": false
+        },
+        {
+          "text": "Both relationships use .cascade, chaining the delete from Topic to Question to Attempt",
+          "isMonospaced": false
+        },
+        {
+          "text": "SwiftData relationships always cascade regardless of the declared deleteRule, so the annotation here has no real effect",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q23",
+      "kind": "code",
+      "prompt": "A `Question` model is changing its `difficulty: String` ('easy'/'medium'/'hard') to `difficultyLevel: Int` (1/2/3). Which migration stage keeps the existing data intact rather than losing it?",
+      "explanation": "Changing a property's underlying type and meaning — a string category becoming a numeric level — isn't something lightweight migration can infer; it needs a custom stage that reads the old value and writes the translated one during willMigrate, before the store commits to the new schema. Skipping this either loses the difficulty data or leaves it as a meaningless default.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "MigrationPlan.swift",
+        "language": "swift",
+        "code": "enum MigrationPlan: SchemaMigrationPlan {\n    static var schemas: [any VersionedSchema.Type] { [SchemaV1.self, SchemaV2.self] }\n    static var stages: [MigrationStage] { [ /* which stage goes here? */ ] }\n}"
+      },
+      "options": [
+        {
+          "text": "A lightweight stage, since Int and String are both simple value types SwiftData can convert between automatically",
+          "isMonospaced": false
+        },
+        {
+          "text": "No stage at all — SwiftData preserves the old difficulty column under its new name until the next launch",
+          "isMonospaced": false
+        },
+        {
+          "text": "A lightweight stage combined with a default value of 1 for difficultyLevel, letting SwiftData infer the conversion from the old string values",
+          "isMonospaced": false
+        },
+        {
+          "text": "A custom stage whose willMigrate translates each difficulty string into its matching int first",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q24",
+      "kind": "multipleChoice",
+      "prompt": "Why is passing an NSManagedObjectID across a queue boundary the safer pattern, compared to passing the NSManagedObject itself?",
+      "explanation": "The object ID is a stable, thread-safe handle; passing it instead of the managed object lets the receiving context re-fetch its own copy through that ID, which respects each context's queue confinement instead of reaching across it.",
+      "correctIndex": 0,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "An NSManagedObjectID is thread-safe and can be re-fetched by any context, regardless of queue",
+          "isMonospaced": false
+        },
+        {
+          "text": "NSManagedObjectID is simply faster to encode over the network than an NSManagedObject",
+          "isMonospaced": false
+        },
+        {
+          "text": "NSManagedObject already conforms to Sendable, so this is only a style preference and not a real safety concern",
+          "isMonospaced": false
+        },
+        {
+          "text": "Passing an ID instead of the object avoids a hard limit of one managed object per context",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q25",
+      "kind": "multipleChoice",
+      "prompt": "How does SwiftData handle running model work off the main actor?",
+      "explanation": "ModelActor gives a type its own actor-isolated ModelContext, so background work can run off the main actor — but the same confinement discipline still applies: that context is tied to its own isolation domain, not freely shared across others.",
+      "correctIndex": 1,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "It doesn't — every ModelContext in SwiftData is permanently confined to the main actor no matter how it's used",
+          "isMonospaced": false
+        },
+        {
+          "text": "A ModelActor gets its own isolated ModelContext for background work, under the same confinement rules",
+          "isMonospaced": false
+        },
+        {
+          "text": "By automatically making every @Model type Sendable, so any context can be touched from any thread",
+          "isMonospaced": false
+        },
+        {
+          "text": "By running all inserts on one hidden global queue shared across every ModelContainer in the process",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q26",
+      "kind": "code",
+      "prompt": "A code reviewer flags this login code. What's the concern?",
+      "explanation": "The refresh token is exactly the kind of secret UserDefaults' plain, unencrypted plist file isn't built to protect — it belongs in the Keychain. displayName is ordinary, non-secret preference-shaped data, which is what UserDefaults is actually for.",
+      "correctIndex": 2,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": {
+        "filename": "Login.swift",
+        "language": "swift",
+        "code": "func handleLoginSuccess(_ response: LoginResponse) {\n    UserDefaults.standard.set(response.refreshToken, forKey: \"refreshToken\")\n    UserDefaults.standard.set(response.displayName, forKey: \"displayName\")\n}"
+      },
+      "options": [
+        {
+          "text": "displayName shouldn't be stored at all, since UserDefaults cannot hold a String value without first converting it to Data",
+          "isMonospaced": false
+        },
+        {
+          "text": "Both values need to be wrapped in one Codable struct before UserDefaults will accept either of them",
+          "isMonospaced": false
+        },
+        {
+          "text": "refreshToken belongs in the Keychain, not a plain plist; displayName is fine in UserDefaults",
+          "isMonospaced": false
+        },
+        {
+          "text": "UserDefaults writes are asynchronous, so refreshToken might not be saved before the app is backgrounded",
+          "isMonospaced": false
+        }
+      ]
+    },
+    {
+      "id": "persistence-q27",
+      "kind": "multipleChoice",
+      "prompt": "Why is a bad or missing SwiftData/Core Data migration considered a data-loss bug rather than 'just' a crash?",
+      "explanation": "Some migration failures do crash right away, but the more dangerous case is silent: a store that resets, or a field that quietly doesn't carry over, while the app itself keeps running normally. That's why migrations deserve the same scrutiny as any other change that touches a user's data.",
+      "correctIndex": 3,
+      "rubric": null,
+      "level": "senior",
+      "codeSnippet": null,
+      "options": [
+        {
+          "text": "Because SwiftData automatically emails the development team a diagnostic report the moment any migration fails",
+          "isMonospaced": false
+        },
+        {
+          "text": "Because it can only happen in DEBUG builds, since migration code is stripped entirely from a Release build",
+          "isMonospaced": false
+        },
+        {
+          "text": "Because App Review rejects any app whose store fails to migrate, so the bug never reaches real users in practice",
+          "isMonospaced": false
+        },
+        {
+          "text": "A migration failure doesn't always crash — it can silently drop data, so the loss surfaces only later",
+          "isMonospaced": false
+        }
+      ]
+    }
+  ]
+}

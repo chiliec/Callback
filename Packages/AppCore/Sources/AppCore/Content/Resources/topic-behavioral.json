@@ -4,7 +4,7 @@
   "section": "craft",
   "symbolName": "message.fill",
   "colorToken": "behavioral",
-  "order": 5,
+  "order": 7,
   "lessons": [
     {
       "id": "behavioral-l1",

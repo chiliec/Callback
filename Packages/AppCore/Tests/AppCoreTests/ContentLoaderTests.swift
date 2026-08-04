@@ -83,16 +83,16 @@ private let sampleJSON = """
     // Version 2+
     #expect(bundle.version >= 2)
 
-    // Exactly 9 topics with expected ids, orders 0–8 contiguous
+    // Exactly 11 topics with expected ids, orders 0–10 contiguous
     let expectedTopicIds: Set<String> = [
-        "swift", "memory", "concurrency", "swiftui", "uikit", "behavioral",
-        "testing", "architecture", "sysdesign"
+        "swift", "memory", "concurrency", "swiftui", "uikit", "networking",
+        "persistence", "behavioral", "testing", "architecture", "sysdesign"
     ]
     let topicIds = Set(bundle.topics.map(\.id))
     #expect(topicIds == expectedTopicIds)
-    #expect(bundle.topics.count == 9)
+    #expect(bundle.topics.count == 11)
     let orders = Set(bundle.topics.map(\.order))
-    #expect(orders == Set(0..<9))
+    #expect(orders == Set(0..<11))
 
     let validSections: Set<String> = ["fundamentals", "frameworks", "craft"]
     let validColorTokens: Set<String> = [
@@ -274,8 +274,8 @@ private let sampleJSON = """
 
 @Test func bundledContentLoadsEveryTopicInTheManifest() throws {
     let bundle = try ContentLoader.bundledContent()
-    #expect(bundle.version == 6)
-    #expect(bundle.topics.count == 9)
+    #expect(bundle.version == 7)
+    #expect(bundle.topics.count == 11)
     #expect(Set(bundle.topics.map(\.id)).count == bundle.topics.count)
 }
 

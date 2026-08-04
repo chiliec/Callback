@@ -13,6 +13,8 @@ public enum DemoSeed {
         "concurrency":  [false, false, true,  false, true],
         "swiftui":      [true,  false, true,  false, true],
         "uikit":        [false, true,  false, false, true],
+        "networking":  [false, true,  false, true,  true],
+        "persistence": [true,  false, true,  false, true],
         "testing":      [false, true,  true,  false, true],
         "architecture": [true,  false, true,  true,  false]
     ]

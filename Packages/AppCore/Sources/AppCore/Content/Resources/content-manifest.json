@@ -1,11 +1,13 @@
 {
-  "version": 6,
+  "version": 7,
   "topics": [
     "swift",
     "memory",
     "concurrency",
     "swiftui",
     "uikit",
+    "networking",
+    "persistence",
     "behavioral",
     "testing",
     "architecture",
