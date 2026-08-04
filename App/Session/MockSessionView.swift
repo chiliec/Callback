@@ -120,14 +120,16 @@ struct MockSessionView: View {
                     }
                     let sortedOptions = question.options.sorted { $0.order < $1.order }
                     ForEach(Array(sortedOptions.enumerated()), id: \.element.persistentModelID) { i, option in
+                        let label = i < Self.labels.count ? Self.labels[i] : "\(i + 1)"
                         OptionRow(
-                            label: i < Self.labels.count ? Self.labels[i] : "\(i + 1)",
+                            label: label,
                             text: option.text,
                             isMonospaced: option.isMonospaced,
                             state: answerState(optionIndex: i, question: question)
                         ) {
                             session.pick(i)
                         }
+                        .accessibilityIdentifier("option-\(label)")
                     }
                     if question.kind.isSelfRated {
                         SelfAssessCard(
@@ -154,6 +156,7 @@ struct MockSessionView: View {
                         .clipShape(RoundedRectangle(cornerRadius: DSRadius.button, style: .continuous))
                         .padding(DSSpacing.sessionInset)
                         .background(.bar)
+                        .accessibilityIdentifier("next-finish-button")
                 }
             }
         }
@@ -167,6 +170,7 @@ struct MockSessionView: View {
             let correct = question.correctIndex.map { picked == $0 } ?? false
             HStack(spacing: 6) {
                 Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .accessibilityHidden(true)
                 Text(correct ? "Correct" : "Not quite")
                     .font(DSFont.headline)
             }
@@ -175,6 +179,8 @@ struct MockSessionView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background((correct ? DSColor.green : DSColor.red).opacity(0.12))
             .clipShape(RoundedRectangle(cornerRadius: DSRadius.control, style: .continuous))
+            .accessibilityIdentifier("verdict-chip")
+            .accessibilityAddTraits(.isStaticText)
             .id(Self.verdictAnchor)
             // From `onAppear`, not `onChange(of: session.isAnswered)`: the anchor
             // isn't in the hierarchy yet when the flag flips. See
