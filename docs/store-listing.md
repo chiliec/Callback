@@ -88,23 +88,21 @@ device.
 **Public link limit:** 100
 
 **What to test:**
-This build fixes readability and interaction issues found while dogfooding the
-last one. Nothing about your progress or the content changes — the questions are
-the same, they just read correctly now.
+This build adds two new topics, bringing Callback to eleven. Both have the same
+depth as the rest — four lessons and a full question bank each. Nothing about
+your existing progress changes.
 
-• Question text and answers → code terms like `struct` or `@MainActor` should
-render as inline code, never as literal backticks on screen. Flag any leftover
-backtick you see in a prompt, answer, explanation, or rubric.
-• Answer options → a whole-sentence answer should read as normal prose, not in
-a code font; only true code (a keyword, a value, program output) stays
-monospaced. Flag any full sentence still shown in code font.
-• Behavioral lessons → open a lesson's quick-check: it should let you reveal
-the guidance and rate yourself (Shaky / Decent / Solid) and move the topic's
-mastery, not dead-end on a prompt with nothing to tap.
-• Practice a topic → the drill should ramp easiest-to-hardest and the answer
-verdict + "Why" should scroll into view after you answer, not hide behind the
-Next button. The lesson reader's title bar should stay opaque as you scroll.
-• Code snippets → a wide snippet should fade at its right edge to show it
-scrolls sideways, rather than clipping with no hint.
-• Anything else: backgrounding the app mid-mock (the timer should survive),
-VoiceOver, and large Dynamic Type sizes.
+• Networking → a new topic. Read its lessons and run a practice drill; the bank
+covers URLSession, REST, JSON decoding, and related interview ground. Flag
+anything that reads wrong or renders oddly.
+• Persistence & Data → a new topic covering Core Data, SwiftData, and on-device
+storage, same lessons-plus-drill format. Work through it and flag anything off.
+• Topics list → all eleven topics should appear in the right order with the
+right accent colors, the two new ones sitting before Behavioral. Flag any wrong
+order, color, or question/lesson count.
+• Practice drills → Rapid Fire and Code Review should include the new topics
+and ramp junior → mid → senior; filtering by level should behave.
+• Review queue → getting questions wrong in the new topics should fold them
+into your weak areas and move the readiness score.
+• Anything else: lesson Markdown and code rendering, backgrounding mid-mock
+(the timer should survive), VoiceOver, and large Dynamic Type sizes.
