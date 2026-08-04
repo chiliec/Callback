@@ -20,6 +20,21 @@ public enum QuestionKind: String, Codable, Sendable, CaseIterable {
 
 public enum SessionKind: String, Codable, Sendable, CaseIterable {
     case mock, rapidFire, codeReview, systemDesign, behavioral
+
+    /// How many questions a full session of this kind asks for. It lives here,
+    /// not in `PracticeView`, because it is a content requirement as much as a UI
+    /// one: `QuestionSelectorPoolTests` asserts every kind × level can fill this
+    /// count from the bundled bank without the level-widening fallback firing.
+    /// A drill that quietly under-fills is a content gap, and the test only
+    /// catches it if it reads the same number the drill does.
+    public var targetQuestionCount: Int {
+        switch self {
+        case .mock: return 12
+        case .rapidFire: return 10
+        case .codeReview: return 8
+        case .systemDesign, .behavioral: return 6
+        }
+    }
 }
 
 public enum Level: String, Codable, Sendable, CaseIterable {

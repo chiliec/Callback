@@ -67,7 +67,8 @@ struct PracticeView: View {
                 }
                 .pickerStyle(.segmented)
                 Button("Start session") {
-                    startSession(kind: .mock, totalSeconds: 45 * 60, maxQuestions: 12)
+                    startSession(kind: .mock, totalSeconds: 45 * 60,
+                                 maxQuestions: SessionKind.mock.targetQuestionCount)
                 }
                 .font(DSFont.headline)
                 .frame(maxWidth: .infinity)
@@ -87,15 +88,17 @@ struct PracticeView: View {
         let title: String
         let icon: String
         let minutes: Int
-        let maxQuestions: Int
+
+        /// Owned by `SessionKind` so the pool-coverage test can assert against the
+        /// very number the drill asks for.
+        var maxQuestions: Int { kind.targetQuestionCount }
     }
 
     private let drillSpecs: [DrillSpec] = [
-        DrillSpec(kind: .rapidFire, title: "Rapid Fire", icon: "bolt", minutes: 10, maxQuestions: 10),
-        DrillSpec(kind: .codeReview, title: "Code Review", icon: "chevron.left.forwardslash.chevron.right", minutes: 15, maxQuestions: 8),
-        DrillSpec(kind: .systemDesign, title: "System Design", icon: "point.3.connected.trianglepath.dotted", minutes: 20, maxQuestions: 6),
-        DrillSpec(kind: .behavioral, title: "Behavioral", icon: "message",
-                  minutes: 15, maxQuestions: 6),
+        DrillSpec(kind: .rapidFire, title: "Rapid Fire", icon: "bolt", minutes: 10),
+        DrillSpec(kind: .codeReview, title: "Code Review", icon: "chevron.left.forwardslash.chevron.right", minutes: 15),
+        DrillSpec(kind: .systemDesign, title: "System Design", icon: "point.3.connected.trianglepath.dotted", minutes: 20),
+        DrillSpec(kind: .behavioral, title: "Behavioral", icon: "message", minutes: 15),
     ]
 
     private var timedDrillsSection: some View {
