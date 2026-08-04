@@ -553,7 +553,7 @@
       "kind": "code",
       "prompt": "Adding a Topic to a Question's `topic` relationship doesn't show that Question in `Topic.questions` until the app is relaunched. What's most likely missing?",
       "explanation": "SwiftData's automatic inverse inference is documented to cover a single unambiguous relationship pair between two model types, but it's unreliable enough in practice that explicit inverses are the safer habit — especially once a model gains a second relationship to the same type, where inference gives up entirely. Without an explicit inverse tying the two sides together, setting one side of the relationship can leave the other side stale in memory until an explicit inverse is added or a fresh fetch reloads the graph.",
-      "correctIndex": 3,
+      "correctIndex": 0,
       "rubric": null,
       "level": "mid",
       "codeSnippet": {
@@ -562,6 +562,10 @@
         "code": "@Model\nfinal class Topic {\n    var name: String\n    var questions: [Question] = []\n    init(name: String) { self.name = name }\n}\n\n@Model\nfinal class Question {\n    var prompt: String\n    var topic: Topic?\n    init(prompt: String) { self.prompt = prompt }\n}"
       },
       "options": [
+        {
+          "text": "The two properties aren't declared as inverses, so the graph's two sides don't automatically stay in sync",
+          "isMonospaced": false
+        },
         {
           "text": "Question.topic should be declared as an array, since a question is expected to belong to more than one topic at once",
           "isMonospaced": false
@@ -572,10 +576,6 @@
         },
         {
           "text": "ModelContext.save() must be called twice before a two-sided relationship is allowed to register at all",
-          "isMonospaced": false
-        },
-        {
-          "text": "The two properties aren't declared as inverses, so the graph's two sides don't automatically stay in sync",
           "isMonospaced": false
         }
       ]
@@ -701,15 +701,11 @@
       "kind": "multipleChoice",
       "prompt": "What role do VersionedSchema and SchemaMigrationPlan play in a SwiftData app?",
       "explanation": "VersionedSchema types snapshot a schema at a point in time; SchemaMigrationPlan defines the ordered stages — each either .lightweight or .custom — that carry a store from one VersionedSchema to the next. Skipping this for anything beyond the simplest change risks the store failing to open.",
-      "correctIndex": 0,
+      "correctIndex": 3,
       "rubric": null,
       "level": "senior",
       "codeSnippet": null,
       "options": [
-        {
-          "text": "VersionedSchema snapshots a schema version; the plan lists the stages between them",
-          "isMonospaced": false
-        },
         {
           "text": "VersionedSchema replaces @Model entirely in any app that has more than one schema version",
           "isMonospaced": false
@@ -720,6 +716,10 @@
         },
         {
           "text": "They're optional convenience types with no effect on how an existing store opens",
+          "isMonospaced": false
+        },
+        {
+          "text": "VersionedSchema snapshots a schema version; the plan lists the stages between them",
           "isMonospaced": false
         }
       ]
@@ -793,7 +793,7 @@
       "kind": "code",
       "prompt": "A `Question` model is changing its `difficulty: String` ('easy'/'medium'/'hard') to `difficultyLevel: Int` (1/2/3). Which migration stage keeps the existing data intact rather than losing it?",
       "explanation": "Changing a property's underlying type and meaning — a string category becoming a numeric level — isn't something lightweight migration can infer; it needs a custom stage that reads the old value and writes the translated one during willMigrate, before the store commits to the new schema. Skipping this either loses the difficulty data or leaves it as a meaningless default.",
-      "correctIndex": 3,
+      "correctIndex": 0,
       "rubric": null,
       "level": "senior",
       "codeSnippet": {
@@ -802,6 +802,10 @@
         "code": "enum MigrationPlan: SchemaMigrationPlan {\n    static var schemas: [any VersionedSchema.Type] { [SchemaV1.self, SchemaV2.self] }\n    static var stages: [MigrationStage] { [ /* which stage goes here? */ ] }\n}"
       },
       "options": [
+        {
+          "text": "A custom stage whose willMigrate translates each difficulty string into its matching int first",
+          "isMonospaced": false
+        },
         {
           "text": "A lightweight stage, since Int and String are both simple value types SwiftData can convert between automatically",
           "isMonospaced": false
@@ -812,10 +816,6 @@
         },
         {
           "text": "A lightweight stage combined with a default value of 1 for difficultyLevel, letting SwiftData infer the conversion from the old string values",
-          "isMonospaced": false
-        },
-        {
-          "text": "A custom stage whose willMigrate translates each difficulty string into its matching int first",
           "isMonospaced": false
         }
       ]

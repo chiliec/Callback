@@ -11,10 +11,27 @@ import Foundation
 public enum QuestionOrder {
     /// Easiest band first, then by the question number authored into the id.
     public static func practice(_ questions: [Question]) -> [Question] {
-        questions.sorted { lhs, rhs in
-            if lhs.level != rhs.level { return lhs.level.rank < rhs.level.rank }
-            let (l, r) = (number(in: lhs.id), number(in: rhs.id))
-            return l == r ? lhs.id < rhs.id : l < r
+        practiceSorted(questions, level: \.level, id: \.id)
+    }
+
+    /// The same rule over anything carrying a level and an id.
+    ///
+    /// `ContentValidationTests` measures answer-key autocorrelation, which is only
+    /// meaningful in the order the drill actually presents — and it works on
+    /// `QuestionDTO`, not `Question`. Sharing the comparator keeps the guardrail
+    /// from silently measuring a different order than the app shows if this rule
+    /// ever changes.
+    public static func practiceSorted<T>(
+        _ items: [T],
+        level: (T) -> Level,
+        id: (T) -> String
+    ) -> [T] {
+        items.sorted { lhs, rhs in
+            let (lLevel, rLevel) = (level(lhs), level(rhs))
+            if lLevel != rLevel { return lLevel.rank < rLevel.rank }
+            let (lID, rID) = (id(lhs), id(rhs))
+            let (l, r) = (number(in: lID), number(in: rID))
+            return l == r ? lID < rID : l < r
         }
     }
 

@@ -166,6 +166,40 @@ struct ContentValidationTests {
         }
     }
 
+    /// Sequential position tell, which the aggregate clustering check above is
+    /// blind to: `0,1,2,3,0,1,2,3,…` spreads answers perfectly evenly across the
+    /// four indices — 25% each, well inside the 40% cap — while being completely
+    /// predictable to anyone two questions in. `topic-persistence` shipped exactly
+    /// that, and `swift`/`memory`/`swiftui` shipped period-4 cycles in their
+    /// authored array order.
+    ///
+    /// Measured in `QuestionOrder.practice` order, because the drill regroups the
+    /// bank by band before presenting it — that reshuffle is what the learner
+    /// sees, and it happens to defuse a cycle authored in array order.
+    ///
+    /// Threshold is deliberately loose. Chance is 25% and with ~23 comparisons the
+    /// standard deviation is ~9 points, so a clean bank can legitimately reach the
+    /// low 40s (`testing` sits at 44% for one lag); 50% is ~2.8σ — high enough not
+    /// to fire on noise, low enough to catch a real cycle, which scores 57–100%.
+    @Test func answerPositionsAreNotSequentiallyPredictable() throws {
+        for topic in try bundle().topics {
+            let bank = QuestionOrder.practiceSorted(
+                topic.questions.filter { !$0.kind.isSelfRated && !$0.options.isEmpty },
+                level: \.level,
+                id: \.id
+            )
+            let seq = bank.compactMap(\.correctIndex)
+            guard seq.count >= 12 else { continue }
+            for lag in 1...6 where seq.count > lag {
+                let comparisons = seq.count - lag
+                let repeats = (0..<comparisons).count { seq[$0] == seq[$0 + lag] }
+                let share = Double(repeats) / Double(comparisons)
+                #expect(share < 0.50,
+                        "\(topic.id): correctIndex repeats at lag \(lag) in \(Int(share * 100))% of \(comparisons) pairs (max 50%, chance 25%) — sequence \(seq.map(String.init).joined())")
+            }
+        }
+    }
+
     /// `OptionRow` renders a monospaced option as a plain code token — it does
     /// not parse Markdown. A backtick in a monospaced option therefore reaches the
     /// screen verbatim. Backticks belong to prose options, which render inline

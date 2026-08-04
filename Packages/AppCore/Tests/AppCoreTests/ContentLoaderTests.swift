@@ -274,7 +274,7 @@ private let sampleJSON = """
 
 @Test func bundledContentLoadsEveryTopicInTheManifest() throws {
     let bundle = try ContentLoader.bundledContent()
-    #expect(bundle.version == 7)
+    #expect(bundle.version == 8)
     #expect(bundle.topics.count == 11)
     #expect(Set(bundle.topics.map(\.id)).count == bundle.topics.count)
 }
