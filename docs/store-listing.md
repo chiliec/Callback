@@ -13,7 +13,7 @@ paragraph breaks, and `•` starts a new line.
 **Subtitle:** iOS interview prep, offline
 
 **Promotional text:**
-Six core topics, timed mock interviews, and a review queue that remembers what
+Eleven topics, timed mock interviews, and a review queue that remembers what
 you got wrong. No account, no network, no tracking.
 
 **Keywords:**
@@ -26,8 +26,10 @@ account to create, nothing to sign in to, and no network connection required.
 
 WHAT YOU GET
 
-• Six core topics — Swift, Memory, Concurrency, SwiftUI, UIKit, and Behavioral —
-each with focused lessons and a bank of interview-grade questions.
+• Eleven topics — Swift, Memory Management, Concurrency, SwiftUI, UIKit,
+Networking, Persistence & Data, Behavioral, Testing, Architecture & Patterns,
+and Mobile System Design — each with focused lessons and a bank of
+interview-grade questions.
 • Short, readable lessons with syntax-highlighted Swift, each ending in a quick
 check so you find out immediately whether it stuck.
 • Timed mock interviews with a pause-safe timer that survives backgrounding, so
