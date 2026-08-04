@@ -146,6 +146,13 @@ else
   end
 end
 
+# `copyright` hangs off the version record, not the localization, so it is easy
+# to miss: every metadata PATCH succeeds without it and ASC only surfaces it at
+# submit time, as an ENTITY_ERROR.ATTRIBUTE.REQUIRED inside the 409 that
+# POST /v1/reviewSubmissionItems returns. It blocked the 0.2.0 submission once.
+patch_attrs("/v1/appStoreVersions/#{version_id}", "appStoreVersions", version_id,
+            { copyright: field("Copyright") }, "copyright → #{field('Copyright').inspect}")
+
 vloc_id = "<vloc>"
 unless DRY_RUN
   vlocs = fetch!("/v1/appStoreVersions/#{version_id}/appStoreVersionLocalizations", "version localizations")

@@ -17,6 +17,7 @@ DRY_RUN = ARGV.include?("--dry-run")
 LIMITS = {
   "Name" => 30, "Subtitle" => 30, "Keywords" => 100,
   "Promotional text" => 170, "Description" => 4000, "Release notes" => 4000,
+  "Copyright" => 100,
   "Beta app description" => 4000, "What to test" => 4000
 }.freeze
 
