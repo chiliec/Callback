@@ -14,7 +14,7 @@
 require_relative "asc_listing"
 
 BUNDLE  = "cx.viz.callback"
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 SHOTS   = File.join(ROOT, "docs", "store-assets", "ios")
 # The API has no APP_IPHONE_69: 6.9" images (1320x2868) go in the 6.7" set,
 # which is the largest iPhone display type it accepts.
@@ -139,7 +139,8 @@ else
   puts "  reusing existing version record #{current.inspect} id=#{version_id}"
   if current != VERSION
     # ASC only offers builds whose CFBundleShortVersionString matches this
-    # string, and the uploaded builds are 0.1.0 — so rename rather than add.
+    # string. The 0.1.0 record was never released, and all uploaded builds are
+    # 0.2.0, so rename the open record rather than add a new one.
     patch_attrs("/v1/appStoreVersions/#{version_id}", "appStoreVersions", version_id,
                 { versionString: VERSION }, "versionString #{current} → #{VERSION}")
   end
