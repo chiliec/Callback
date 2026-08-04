@@ -552,7 +552,7 @@
       "id": "persistence-q15",
       "kind": "code",
       "prompt": "Adding a Topic to a Question's `topic` relationship doesn't show that Question in `Topic.questions` until the app is relaunched. What's most likely missing?",
-      "explanation": "SwiftData can infer a relationship's inverse automatically only when there's one unambiguous matching pair between two model types. When that inference doesn't happen, setting one side of the relationship won't update the other side in memory until an explicit inverse ties them together or a fresh fetch reloads the graph.",
+      "explanation": "SwiftData's automatic inverse inference is documented to cover a single unambiguous relationship pair between two model types, but it's unreliable enough in practice that explicit inverses are the safer habit — especially once a model gains a second relationship to the same type, where inference gives up entirely. Without an explicit inverse tying the two sides together, setting one side of the relationship can leave the other side stale in memory until an explicit inverse is added or a fresh fetch reloads the graph.",
       "correctIndex": 3,
       "rubric": null,
       "level": "mid",
