@@ -10,7 +10,7 @@ paragraph breaks, and `•` starts a new line.
 
 **Name:** Callback: Interview Prep
 
-**Subtitle:** iOS interview prep, offline
+**Subtitle:** Interview prep for developers
 
 **Promotional text:**
 Eleven topics, timed mock interviews, and a review queue that remembers what
