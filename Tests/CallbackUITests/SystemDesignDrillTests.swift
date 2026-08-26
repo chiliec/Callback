@@ -50,12 +50,9 @@ final class SystemDesignDrillTests: XCTestCase {
             XCTAssertTrue(rateStrong.waitForExistence(timeout: 5), "rate button missing at question \(i)")
             rateStrong.tap()
 
-            // `MockSessionView` advances with a plain `Button("Next")` — no
-            // identifier — and its `.bar` background stretches the accessibility
-            // frame toward the home indicator, so tap near the frame's top.
-            let next = app.buttons["Next"]
+            let next = app.buttons["next-finish-button"]
             XCTAssertTrue(next.waitForExistence(timeout: 5), "Next button missing at question \(i)")
-            next.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15)).tap()
+            next.tap()
         }
 
         XCTAssertTrue(app.staticTexts["\(expectedQuestionCount) of \(expectedQuestionCount) correct"]

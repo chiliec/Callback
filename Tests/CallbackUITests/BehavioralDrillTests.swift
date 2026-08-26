@@ -50,10 +50,7 @@ final class BehavioralDrillTests: XCTestCase {
 
             let nextFinish = app.buttons["next-finish-button"]
             XCTAssertTrue(nextFinish.waitForExistence(timeout: 5), "next/finish button missing at question \(i)")
-            // The element's accessibility frame includes the `.bar` background
-            // that extends behind the safe area, so its center sits near the
-            // tab bar rather than on the visible button — tap near the top instead.
-            nextFinish.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15)).tap()
+            nextFinish.tap()
         }
 
         XCTAssertTrue(app.staticTexts["Drill complete"].waitForExistence(timeout: 10))

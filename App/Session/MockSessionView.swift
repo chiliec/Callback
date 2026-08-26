@@ -147,16 +147,20 @@ struct MockSessionView: View {
             }
             .safeAreaInset(edge: .bottom) {
                 if session.isAnswered {
-                    Button("Next") { session.advance() }
-                        .font(DSFont.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(DSColor.action)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: DSRadius.button, style: .continuous))
-                        .padding(DSSpacing.sessionInset)
-                        .background(.bar)
-                        .accessibilityIdentifier("next-finish-button")
+                    // Styling lives inside the label: applied outside the Button it
+                    // isn't hit-testable, leaving only the text tappable.
+                    Button { session.advance() } label: {
+                        Text("Next")
+                            .font(DSFont.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(DSColor.action)
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: DSRadius.button, style: .continuous))
+                    }
+                    .accessibilityIdentifier("next-finish-button")
+                    .padding(DSSpacing.sessionInset)
+                    .background(.bar)
                 }
             }
         }
