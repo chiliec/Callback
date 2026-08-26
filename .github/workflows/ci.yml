@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  XCODE_APP: /Applications/Xcode_26.4.app
+  IOS_DESTINATION: platform=iOS Simulator,name=iPhone 17,OS=latest
+
+jobs:
+  packages:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v5
+      - name: Select Xcode
+        run: sudo xcode-select -s "$XCODE_APP"
+      - name: Test AppCore
+        run: swift test --package-path Packages/AppCore
+      - name: Test DesignSystem
+        run: swift test --package-path Packages/DesignSystem
+
+  xcode:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v5
+      - name: Select Xcode
+        run: sudo xcode-select -s "$XCODE_APP"
+      - name: Install xcodegen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: Build app
+        run: |
+          xcodebuild build \
+            -project Callback.xcodeproj \
+            -scheme Callback \
+            -destination "$IOS_DESTINATION" \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Run CallbackTests
+        run: |
+          xcodebuild test \
+            -project Callback.xcodeproj \
+            -scheme Callback \
+            -destination "$IOS_DESTINATION" \
+            -only-testing:CallbackTests \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Run CallbackUITests
+        run: |
+          xcodebuild test \
+            -project Callback.xcodeproj \
+            -scheme Callback \
+            -destination "$IOS_DESTINATION" \
+            -only-testing:CallbackUITests \
+            CODE_SIGNING_ALLOWED=NO
