@@ -28,17 +28,10 @@ targets:
     dependencies:
       - package: DesignSystem
       - package: AppCore
-    # Explicit scheme: `xcodebuild test TEST_RUNNER_FOO=` does not reach the UI
-    # test runner on this toolchain, so the screenshot output directory has to be
-    # declared in the test action itself.
     scheme:
       testTargets:
         - CallbackTests
         - CallbackUITests
-      environmentVariables:
-        - variable: SCREENSHOT_DIR
-          value: $(SRCROOT)/docs/store-assets/ios
-          isEnabled: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: cx.viz.callback
@@ -71,3 +64,20 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: cx.viz.callback.uitests
         TEST_TARGET_NAME: Callback
+schemes:
+  # Store-screenshot capture only (Scripts/capture-screenshots.sh). SCREENSHOT_DIR
+  # must live in a scheme's test action: `xcodebuild test TEST_RUNNER_FOO=` does
+  # not reach the UI test runner on this toolchain. It is deliberately absent from
+  # the main Callback scheme so routine test runs skip ScreenshotTests instead of
+  # overwriting the checked-in docs/store-assets/ios PNGs.
+  Screenshots:
+    build:
+      targets:
+        Callback: test
+    test:
+      targets:
+        - CallbackUITests
+      environmentVariables:
+        - variable: SCREENSHOT_DIR
+          value: $(SRCROOT)/docs/store-assets/ios
+          isEnabled: true

@@ -9,12 +9,12 @@ final class ScreenshotTests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
-        // Fail loudly rather than passing with zero files written: the whole point
-        // of this test is the PNGs.
-        let path = try XCTUnwrap(
-            ProcessInfo.processInfo.environment["SCREENSHOT_DIR"],
-            "SCREENSHOT_DIR unset — it comes from the Callback scheme's test action"
-        )
+        // Only the Screenshots scheme sets SCREENSHOT_DIR; under the main scheme
+        // skip rather than overwrite the checked-in store assets on every run.
+        // capture-screenshots.sh still fails loudly if fewer than 6 PNGs land.
+        guard let path = ProcessInfo.processInfo.environment["SCREENSHOT_DIR"] else {
+            throw XCTSkip("SCREENSHOT_DIR unset — screenshots run via Scripts/capture-screenshots.sh")
+        }
         let dir = URL(fileURLWithPath: path, isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         outputDir = dir
