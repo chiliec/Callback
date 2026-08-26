@@ -13,11 +13,11 @@ rm -f "$OUT"/*.png
 # project is rebuilt, and -only-testing then silently matches nothing.
 (cd "$ROOT" && xcodegen generate >/dev/null)
 
-# SCREENSHOT_DIR comes from the scheme's test action (see project.yml) — passing it
-# on the xcodebuild command line does not reach the UI test runner process.
+# SCREENSHOT_DIR comes from the Screenshots scheme's test action (see project.yml) —
+# passing it on the xcodebuild command line does not reach the UI test runner process.
 xcodebuild test \
   -project "$ROOT/Callback.xcodeproj" \
-  -scheme Callback \
+  -scheme Screenshots \
   -destination "platform=iOS Simulator,name=$DEVICE,OS=latest" \
   -only-testing:CallbackUITests/ScreenshotTests
 
