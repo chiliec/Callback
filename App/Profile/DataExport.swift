@@ -11,6 +11,16 @@ struct DataExport: Codable {
         let answeredCount: Int
         let accuracy: Double
         let streakDays: Int
+
+        init(_ p: UserProfile) {
+            targetRole = p.targetRole
+            level = p.levelRaw
+            dailyGoal = p.dailyGoal
+            readiness = p.readiness
+            answeredCount = p.answeredCount
+            accuracy = p.accuracy
+            streakDays = p.streakDays
+        }
     }
 
     struct AnswerSnapshot: Codable {
@@ -20,6 +30,15 @@ struct DataExport: Codable {
         let isCorrect: Bool
         let isFlagged: Bool
         let answeredAt: Date
+
+        init(_ a: AnswerRecord) {
+            questionID = a.questionID
+            topicID = a.topicID
+            pickedIndex = a.pickedIndex
+            isCorrect = a.isCorrect
+            isFlagged = a.isFlagged
+            answeredAt = a.answeredAt
+        }
     }
 
     struct SessionSnapshot: Codable {
@@ -28,9 +47,19 @@ struct DataExport: Codable {
         let startedAt: Date
         let durationSeconds: Int
         let score: Int
+
+        init(_ s: Session) {
+            kind = s.kindRaw
+            level = s.levelRaw
+            startedAt = s.startedAt
+            durationSeconds = s.durationSeconds
+            score = s.score
+        }
     }
 
-    let profile: ProfileSnapshot
+    /// Nil when the store has no profile yet, so a consumer can distinguish
+    /// "no profile" from a real all-zero user (was previously an empty snapshot).
+    let profile: ProfileSnapshot?
     let answers: [AnswerSnapshot]
     let sessions: [SessionSnapshot]
 }
@@ -38,52 +67,21 @@ struct DataExport: Codable {
 enum DataExporter {
     @MainActor
     static func makeJSON(context: ModelContext) throws -> Data {
-        let profiles = (try? context.fetch(FetchDescriptor<UserProfile>())) ?? []
-        let answers = (try? context.fetch(FetchDescriptor<AnswerRecord>())) ?? []
-        let sessions = (try? context.fetch(
+        // Propagate fetch failures instead of swallowing them with `try?`:
+        // the caller shows a "Couldn't export" alert, which is better than
+        // silently producing an empty or partial export file.
+        let profiles = try context.fetch(FetchDescriptor<UserProfile>())
+        let answers = try context.fetch(FetchDescriptor<AnswerRecord>())
+        let sessions = try context.fetch(
             FetchDescriptor<Session>(sortBy: [SortDescriptor(\.startedAt)])
-        )) ?? []
+        )
 
-        let profileSnap: DataExport.ProfileSnapshot
-        if let p = profiles.first {
-            profileSnap = DataExport.ProfileSnapshot(
-                targetRole: p.targetRole,
-                level: p.levelRaw,
-                dailyGoal: p.dailyGoal,
-                readiness: p.readiness,
-                answeredCount: p.answeredCount,
-                accuracy: p.accuracy,
-                streakDays: p.streakDays
-            )
-        } else {
-            profileSnap = DataExport.ProfileSnapshot(
-                targetRole: "", level: "", dailyGoal: 0,
-                readiness: 0, answeredCount: 0, accuracy: 0, streakDays: 0
-            )
-        }
+        let export = DataExport(
+            profile: profiles.first.map(DataExport.ProfileSnapshot.init),
+            answers: answers.map(DataExport.AnswerSnapshot.init),
+            sessions: sessions.map(DataExport.SessionSnapshot.init)
+        )
 
-        let answerSnaps = answers.map {
-            DataExport.AnswerSnapshot(
-                questionID: $0.questionID,
-                topicID: $0.topicID,
-                pickedIndex: $0.pickedIndex,
-                isCorrect: $0.isCorrect,
-                isFlagged: $0.isFlagged,
-                answeredAt: $0.answeredAt
-            )
-        }
-
-        let sessionSnaps = sessions.map {
-            DataExport.SessionSnapshot(
-                kind: $0.kindRaw,
-                level: $0.levelRaw,
-                startedAt: $0.startedAt,
-                durationSeconds: $0.durationSeconds,
-                score: $0.score
-            )
-        }
-
-        let export = DataExport(profile: profileSnap, answers: answerSnaps, sessions: sessionSnaps)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601

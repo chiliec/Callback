@@ -5,6 +5,18 @@ Local-first — no accounts, no network, no analytics.
 
 Tagline: *Get the callback.*
 
+| Home | Topics | Question | Verdict |
+| --- | --- | --- | --- |
+| ![Home](docs/store-assets/ios/01-home.png) | ![Topics](docs/store-assets/ios/02-topics.png) | ![Question](docs/store-assets/ios/04-question.png) | ![Verdict](docs/store-assets/ios/05-verdict.png) |
+
+## Built with
+
+- **SwiftUI** + **`@Observable`** state, no legacy `ObservableObject`
+- **SwiftData** for local-first persistence (no backend, no accounts)
+- **Swift Testing** unit tests + **XCUITest** UI/screenshot tests
+- Modularised into local **Swift packages** — `AppCore` (domain: question selection, content loading, review queue, models) and `DesignSystem` (tokens, components) — each with its own test target
+- **XcodeGen** project generation; **deterministic, seeded** question selection for testable randomness
+
 ## Requirements
 
 - macOS 14+
