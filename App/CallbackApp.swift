@@ -14,6 +14,8 @@ struct CallbackApp: App {
     private static let demoSeed = ProcessInfo.processInfo.arguments.contains("--demo-seed")
 
     init() {
+        Analytics.enabled = !Self.isUITest && !Self.demoSeed
+            && ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil
         do {
             if Self.isUITest || Self.demoSeed {
                 container = try AppModelContainer.make(inMemory: true)

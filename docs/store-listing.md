@@ -14,7 +14,7 @@ paragraph breaks, and `•` starts a new line.
 
 **Promotional text:**
 Eleven topics, timed mock interviews, and a review queue that remembers what
-you got wrong. No account, no network, no tracking.
+you got wrong. No account, no ads, no tracking.
 
 **Keywords:**
 swift,ios,interview,developer,swiftui,uikit,concurrency,memory,arc,quiz,practice,coding,prep
@@ -22,7 +22,8 @@ swift,ios,interview,developer,swiftui,uikit,concurrency,memory,arc,quiz,practice
 **Description:**
 Callback prepares you for iOS developer interviews — on the train, in a waiting
 room, or the night before the real thing. Everything works offline. There is no
-account to create, nothing to sign in to, and no network connection required.
+account to create, nothing to sign in to, and no network connection required —
+only anonymous screen-view analytics on our own server.
 
 WHAT YOU GET
 
@@ -44,10 +45,11 @@ accounts for how much of each topic you've actually covered.
 
 PRIVATE BY DESIGN
 
-Callback makes no network requests at all. Your progress lives on your device
-and nowhere else. There is no analytics SDK, no advertising, and no crash
-reporting. You can export everything you've done as a JSON file, or erase it in
-one tap.
+Your progress lives on your device and nowhere else. There is no advertising,
+no crash reporting, and no third-party SDK. The only thing the app sends is
+anonymous screen-view analytics (which screen you opened, app/OS version, device
+model — no identifiers) to our own self-hosted Umami server. You can export
+everything you've done as a JSON file, or erase it in one tap.
 
 Get the callback.
 
@@ -68,8 +70,11 @@ Get the callback.
 **Release notes:** First release.
 
 **Review notes:**
-Callback is fully offline. No account or sign-in is required — launch the app
-and everything is immediately available. First launch offers an optional
+Callback works offline. No account or sign-in is required — launch the app
+and everything is immediately available. The only network traffic is anonymous
+screen-view analytics (screen name, app/OS version, device model; no
+identifiers) to our self-hosted Umami at analytics.nextgensoft.co, as declared
+in App Privacy and the privacy manifest. First launch offers an optional
 placement quiz which can be skipped with the Skip button.
 
 ## TestFlight
@@ -80,8 +85,8 @@ feedback email" are app-level Beta App Information; "What to test" is per-build.
 **Beta app description:**
 Callback is an offline iOS interview-prep app — lessons, question drills, timed
 mock interviews, and a review queue that resurfaces whatever you got wrong.
-There is no account and no network access of any kind; everything runs on your
-device.
+There is no account; everything runs on your device, with only anonymous
+screen-view analytics sent to our own server.
 
 **Beta feedback email:** vovababin@gmail.com
 

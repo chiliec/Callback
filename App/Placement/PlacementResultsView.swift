@@ -45,6 +45,7 @@ struct PlacementResultsView: View {
             .background(.bar)
         }
         .navigationTitle("Your results")
+        .onAppear { Analytics.screen("placement-results") }
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .background(DSColor.groupedBackground.ignoresSafeArea())

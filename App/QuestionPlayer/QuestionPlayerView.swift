@@ -17,11 +17,14 @@ struct QuestionPlayerView: View {
     private static let verdictAnchor = "verdict"
 
     var body: some View {
-        if session.isComplete {
-            drillCompleteView
-        } else if let question = session.current {
-            questionView(question)
+        Group {
+            if session.isComplete {
+                drillCompleteView
+            } else if let question = session.current {
+                questionView(question)
+            }
         }
+        .onAppear { Analytics.screen("drill") }
     }
 
     // MARK: Question screen

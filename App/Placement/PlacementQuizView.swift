@@ -50,6 +50,7 @@ struct PlacementQuizView: View {
         }
         .sensoryFeedback(trigger: session.currentIndex) { _, _ in .selection }
         .sensoryFeedback(.success, trigger: session.isComplete)
+        .onAppear { Analytics.screen("placement") }
     }
 
     // MARK: Progress bar
