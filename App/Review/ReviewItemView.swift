@@ -71,6 +71,7 @@ struct ReviewItemView: View {
             .background(.bar)
         }
         .navigationTitle("Review")
+        .onAppear { Analytics.screen("review-item") }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {

@@ -6,7 +6,7 @@ linear_project_id: skip
 # Callback — iOS interview-prep app
 
 Native iPhone app (iOS 18+) to prepare for iOS developer interviews. Local-first,
-no accounts, no network. Modern MV + `@Observable` + SwiftData. Two local SPM packages
+no accounts; the only network call is anonymous screen-view analytics (self-hosted Umami, `App/Shared/Analytics.swift`). Modern MV + `@Observable` + SwiftData. Two local SPM packages
 (`DesignSystem`, `AppCore`) + app target, wired via XcodeGen.
 
 ## Status: live on TestFlight — builds 13 + 14 in beta testing (2026-07-30)

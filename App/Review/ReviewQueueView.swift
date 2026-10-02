@@ -39,6 +39,7 @@ struct ReviewQueueView: View {
             }
         }
         .navigationTitle("Review")
+        .onAppear { Analytics.screen("review") }
         // Inline, not large: the pinned `.safeAreaInset(edge: .top)` below
         // swallows the large-title row, leaving an empty strip where "Review"
         // should be. Same pairing, same fix as `TopicsView`.

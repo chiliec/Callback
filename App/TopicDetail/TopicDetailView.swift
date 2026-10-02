@@ -25,6 +25,7 @@ struct TopicDetailView: View {
             questionBankSection
         }
         .navigationTitle(topic.name)
+        .onAppear { Analytics.screen("topic") }
         .navigationBarTitleDisplayMode(.large)
         .background(DSColor.groupedBackground.ignoresSafeArea())
         .navigationDestination(item: $drillSession) { session in

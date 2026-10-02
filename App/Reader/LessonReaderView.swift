@@ -83,6 +83,7 @@ struct LessonReaderView: View {
         }
         .sensoryFeedback(.success, trigger: isComplete)
         .navigationTitle(lesson.title)
+        .onAppear { Analytics.screen("lesson") }
         .navigationBarTitleDisplayMode(.inline)
         // A pinned top `safeAreaInset` starts the scroll view *below* the
         // navigation bar, so UIKit never sees content pass under it and leaves

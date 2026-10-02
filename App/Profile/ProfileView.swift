@@ -121,6 +121,7 @@ struct ProfileView: View {
             }
         }
         .navigationTitle("All sessions")
+        .onAppear { Analytics.screen("sessions") }
     }
 
     private var answerHistoryView: some View {
@@ -139,6 +140,7 @@ struct ProfileView: View {
             }
         }
         .navigationTitle("Answer history")
+        .onAppear { Analytics.screen("answer-history") }
     }
 
     private func sessionKindLabel(_ kind: SessionKind) -> String {

@@ -69,6 +69,7 @@ struct MockSessionView: View {
         }
         .sensoryFeedback(.success, trigger: session.isComplete)
         .onAppear { session.startTimer() }
+        .onAppear { Analytics.screen("mock") }
         .onDisappear { session.stopTimer() }
         .onChange(of: scenePhase) { _, phase in
             switch phase {

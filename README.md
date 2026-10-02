@@ -1,7 +1,7 @@
 # Callback
 
 Native iPhone app (iOS 18+) that prepares iOS developers for job interviews.
-Local-first — no accounts, no network, no analytics.
+Local-first — no accounts, no ads, no tracking. The only network traffic is anonymous screen-view analytics to our self-hosted Umami (`App/Shared/Analytics.swift`, off in tests; see [privacy policy](docs/privacy.html)).
 
 Tagline: *Get the callback.*
 

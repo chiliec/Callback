@@ -23,5 +23,6 @@ struct AppTabView: View {
             }
             .accessibilityIdentifier("profile-tab")
         }
+        .onChange(of: coordinator.selectedTab, initial: true) { _, tab in Analytics.screen("\(tab)") }
     }
 }
