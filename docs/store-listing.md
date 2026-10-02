@@ -67,7 +67,7 @@ Get the callback.
 
 **Copyright:** 2026 Vladimir Babin
 
-**Release notes:** First release.
+**Release notes:** Anonymous usage analytics: Callback now reports which screens are opened (screen name, app and OS version, device model — no identifiers, no answers or progress) to our own self-hosted Umami, so we can see which features matter. Everything else still works fully offline. Privacy policy updated.
 
 **Review notes:**
 Callback works offline. No account or sign-in is required — launch the app

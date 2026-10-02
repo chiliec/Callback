@@ -14,7 +14,7 @@
 require_relative "asc_listing"
 
 BUNDLE  = "cx.viz.callback"
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 SHOTS   = File.join(ROOT, "docs", "store-assets", "ios")
 # The API has no APP_IPHONE_69: 6.9" images (1320x2868) go in the 6.7" set,
 # which is the largest iPhone display type it accepts.
